@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174', 'https://agroindustrias-app.onrender.com', 'https://agroindustrias-app-client-bklu.vercel.app'],
+  origin: ['http://localhost:5173', 'http://localhost:5174', 'https://agroindustrias-app.onrender.com', 'https://agroindustriasargentinas.vercel.app'],
   credentials: true,
 }));
 app.use(express.json());
