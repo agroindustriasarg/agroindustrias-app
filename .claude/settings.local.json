@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run dev:*)",
+      "Bash(npx prisma generate:*)",
+      "Bash(npx prisma db push:*)",
+      "Bash(taskkill:*)",
+      "Bash(curl:*)",
+      "Bash(timeout /t 3)",
+      "Bash(npm install:*)",
+      "Bash(timeout /t 5)",
+      "Bash(del package-lock.json)",
+      "Bash(powershell -Command \"cd client; Remove-Item -Recurse -Force node_modules; npm install\")",
+      "Bash(cat:*)",
+      "Bash(powershell -Command \"Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force\")",
+      "Bash(npx prisma migrate:*)",
+      "Bash(npm run build:*)",
+      "Bash(dir:*)",
+      "Bash(copy \"C:\\\\Users\\\\Ignacio\\\\Downloads\\\\logo.png\" \"c:\\\\Users\\\\Ignacio\\\\agroindustrias-app\\\\client\\\\public\\\\assets\\\\logo.png\")",
+      "Bash(move \"logo.png.jpg\" \"logo.png\")",
+      "Bash(powershell -Command \"Get-ChildItem -Recurse -File | Where-Object { $_FullName -notlike ''*node_modules*'' -and $_FullName -notlike ''*.git*'' -and $_FullName -notlike ''*dist*'' -and $_FullName -notlike ''*build*'' } | Measure-Object -Property Length -Sum | Select-Object Count, @{Name=''SizeMB'';Expression={[math]::Round\\($_Sum / 1MB, 2\\)}}\")",
+      "Bash(powershell -Command \"Get-Process node -ErrorAction SilentlyContinue | Select-Object Id, ProcessName, StartTime\")",
+      "Bash(powershell -Command:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}

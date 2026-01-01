@@ -1,0 +1,318 @@
+// Prisma Schema para Agroindustrias Argentinas SRL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ========== USUARIOS Y AUTENTICACIÓN ==========
+
+model User {
+  id        String   @id @default(uuid())
+  usuario   String   @unique @default("")
+  email     String   @unique
+  password  String
+  nombre    String
+  apellido  String
+  rol       UserRole @default(OPERARIO)
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  gastos    Gasto[]
+  reportes  Reporte[]
+  servicios Servicio[]
+
+  @@map("usuarios")
+}
+
+enum UserRole {
+  ADMIN
+  GERENTE
+  OPERARIO
+  VISOR
+}
+
+// ========== CAMPOS Y LOTES ==========
+
+model Campo {
+  id          String   @id @default(uuid())
+  nombre      String
+  ubicacion   String
+  hectareas   Float
+  descripcion String?
+  activo      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relaciones
+  lotes     Lote[]
+  servicios Servicio[]
+  gastos    Gasto[]
+
+  @@map("campos")
+}
+
+model Lote {
+  id          String   @id @default(uuid())
+  nombre      String
+  hectareas   Float
+  cultivo     String?
+  estado      String?  // En preparación, Sembrado, En crecimiento, Cosechado
+  descripcion String?
+  campoId     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relaciones
+  campo     Campo      @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  servicios Servicio[]
+  gastos    GastoLote[]
+
+  @@map("lotes")
+}
+
+// ========== MAQUINARIAS ==========
+
+model Maquinaria {
+  id                String   @id @default(uuid())
+  nombre            String
+  tipo              String   // Tractor, Cosechadora, Sembradora, Fumigadora, etc.
+  marca             String?
+  modelo            String?
+  anio              Int?
+  patente           String?
+  estado            String   @default("Operativa") // Operativa, En mantenimiento, Fuera de servicio
+  horasUso          Float    @default(0)
+  ultimoMantenimiento DateTime?
+  proximoMantenimiento DateTime?
+  descripcion       String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relaciones
+  servicios        Servicio[]
+  gastos           Gasto[]
+  gastosImplemento Gasto[]    @relation("GastoImplemento")
+
+  @@map("maquinarias")
+}
+
+// ========== CONTRATISTAS ==========
+
+model Contratista {
+  id          String   @id @default(uuid())
+  nombre      String
+  apellido    String?
+  empresa     String?
+  telefono    String?
+  email       String?
+  especialidad String? // Siembra, Fumigación, Cosecha, etc.
+  activo      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relaciones
+  servicios Servicio[]
+
+  @@map("contratistas")
+}
+
+// ========== SERVICIOS ==========
+
+model Servicio {
+  id            String    @id @default(uuid())
+  tipo          String    // Siembra, Fumigación, Cosecha, Fertilización, etc.
+  fecha         DateTime
+  descripcion   String?
+  hectareas     Float?
+  costoPorHa    Float?    // Costo por hectárea
+  total         Float?    // Total calculado (hectareas * costoPorHa)
+  moneda        String    @default("ARS") // ARS o USD
+  estado        String    @default("PENDIENTE") // PENDIENTE o REALIZADO
+  variedad      String?   // Variedad de semilla (para Siembra)
+  tipoFertilizante String? // Tipo de fertilizante (para Fertilización)
+  dosisKgHa     Float?    // Dosis cantidad (para Fertilización)
+  unidadDosis   String?   // Unidad de dosis: kg/ha o kg/surco (para Fertilización)
+  caldo         Float?    // Litros por hectárea de caldo (para Pulverización)
+  receta        String?   // JSON con array de productos [{producto, cantidad, unidad}] (para Pulverización)
+  campoId       String
+  loteId        String?
+  maquinariaId  String?
+  contratistaId String?
+  usuarioId     String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relaciones
+  campo       Campo        @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  lote        Lote?        @relation(fields: [loteId], references: [id], onDelete: SetNull)
+  maquinaria  Maquinaria?  @relation(fields: [maquinariaId], references: [id], onDelete: SetNull)
+  contratista Contratista? @relation(fields: [contratistaId], references: [id], onDelete: SetNull)
+  usuario     User?        @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@map("servicios")
+}
+
+// ========== STOCK E INSUMOS ==========
+
+model Stock {
+  id            String   @id @default(uuid())
+  nombre        String
+  categoria     String   // Semillas, Fertilizantes, Agroquímicos, Combustible, Repuestos
+  cantidad      Float
+  unidad        String   // kg, litros, unidades, etc.
+  precioUnitario Float?
+  stockMinimo   Float?
+  ubicacion     String?
+  descripcion   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relaciones
+  movimientos MovimientoStock[]
+
+  @@map("stock")
+}
+
+model MovimientoStock {
+  id          String   @id @default(uuid())
+  stockId     String
+  tipo        String   // ENTRADA, SALIDA
+  cantidad    Float
+  motivo      String?  // Compra, Uso en campo, Ajuste, etc.
+  fecha       DateTime @default(now())
+  observaciones String?
+
+  // Campos para ENTRADA
+  precio          Float?
+  proveedor       String?
+  precioUnitario  Float?
+  tipoFactura     String?
+  numeroRemito    String?
+  numeroFactura   String?
+  cuentaId        String?
+
+  // Campos para SALIDA
+  maquinariaId    String?
+  implementoId    String?
+  servicioId      String?
+  campoId         String?
+  loteId          String?
+
+  createdAt   DateTime @default(now())
+
+  // Relaciones
+  stock   Stock   @relation(fields: [stockId], references: [id], onDelete: Cascade)
+  cuenta  Cuenta? @relation(fields: [cuentaId], references: [id], onDelete: SetNull)
+
+  @@map("movimientos_stock")
+}
+
+// ========== CUENTAS ==========
+
+model Cuenta {
+  id          String   @id @default(uuid())
+  nombre      String   @unique
+  tipo        String   // EMPRESA, PERSONAL, TERCEROS
+  titular     String?  // Nombre del titular si es personal
+  descripcion String?
+  activo      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relaciones
+  gastos             Gasto[]
+  movimientosStock   MovimientoStock[]
+
+  @@map("cuentas")
+}
+
+// ========== GASTOS ==========
+
+model Gasto {
+  id             String    @id @default(uuid())
+  concepto       String
+  categoria      String    // Combustible, Mantenimiento, Insumos, Salarios, Servicios, Otros
+  monto          Float
+  fecha          DateTime
+  descripcion    String?
+  tipoFactura    String?   // A, B, C, Sin Factura
+  numeroFactura  String?
+  cuentaId       String?   // Cuenta que realizó el gasto
+  campoId        String?
+  maquinariaId   String?
+  implementoId   String?
+  usuarioId      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relaciones
+  cuenta      Cuenta?     @relation(fields: [cuentaId], references: [id], onDelete: SetNull)
+  campo       Campo?      @relation(fields: [campoId], references: [id], onDelete: SetNull)
+  lotes       GastoLote[]
+  maquinaria  Maquinaria? @relation(fields: [maquinariaId], references: [id], onDelete: SetNull)
+  implemento  Maquinaria? @relation("GastoImplemento", fields: [implementoId], references: [id], onDelete: SetNull)
+  usuario     User?       @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@map("gastos")
+}
+
+// Tabla intermedia para relación muchos-a-muchos entre Gastos y Lotes
+model GastoLote {
+  id       String @id @default(uuid())
+  gastoId  String
+  loteId   String
+  createdAt DateTime @default(now())
+
+  // Relaciones
+  gasto Gasto @relation(fields: [gastoId], references: [id], onDelete: Cascade)
+  lote  Lote  @relation(fields: [loteId], references: [id], onDelete: Cascade)
+
+  @@unique([gastoId, loteId])
+  @@map("gastos_lotes")
+}
+
+// ========== RENDIMIENTOS ==========
+
+model Rendimiento {
+  id              String   @id @default(uuid())
+  campoId         String
+  loteId          String?
+  cultivo         String
+  fechaCosecha    DateTime
+  cantidad        Float    // Cantidad cosechada
+  unidad          String   // kg o tn
+  superficie      Float    // Superficie cosechada
+  unidadSuperficie String  // ha o surco
+  rendimientoHa   Float?   // Calculado automáticamente (cantidad/superficie si es en ha)
+  observaciones   String?
+  usuarioId       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("rendimientos")
+}
+
+// ========== REPORTES ==========
+
+model Reporte {
+  id          String   @id @default(uuid())
+  titulo      String
+  tipo        String   // Producción, Gastos, Servicios, Inventario
+  contenido   String   // JSON con datos del reporte
+  fechaDesde  DateTime?
+  fechaHasta  DateTime?
+  usuarioId   String?
+  createdAt   DateTime @default(now())
+
+  // Relaciones
+  usuario User? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@map("reportes")
+}
