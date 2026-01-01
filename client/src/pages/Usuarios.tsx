@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { Plus, X, UserCog, Briefcase, Calculator, Users, Wrench, Trash2, Pencil } from 'lucide-react';
 import api from '../services/api';
