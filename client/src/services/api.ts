@@ -1,7 +1,10 @@
 import axios from 'axios';
 
+// Usar la URL del backend de producción o el proxy local en desarrollo
+const API_URL = import.meta.env.VITE_API_URL || 'https://agroindustrias-app.onrender.com/api';
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
