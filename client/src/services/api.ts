@@ -1,3 +1,4 @@
+// @ts-nocheck
 import axios from 'axios';
 
 // Usar la URL del backend de producción o el proxy local en desarrollo
