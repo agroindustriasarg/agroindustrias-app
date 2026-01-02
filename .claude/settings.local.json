@@ -21,7 +21,21 @@
       "Bash(powershell -Command \"Get-ChildItem -Recurse -File | Where-Object { $_FullName -notlike ''*node_modules*'' -and $_FullName -notlike ''*.git*'' -and $_FullName -notlike ''*dist*'' -and $_FullName -notlike ''*build*'' } | Measure-Object -Property Length -Sum | Select-Object Count, @{Name=''SizeMB'';Expression={[math]::Round\\($_Sum / 1MB, 2\\)}}\")",
       "Bash(powershell -Command \"Get-Process node -ErrorAction SilentlyContinue | Select-Object Id, ProcessName, StartTime\")",
       "Bash(powershell -Command:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git branch:*)",
+      "Bash(git remote add:*)",
+      "Bash(git push:*)",
+      "Bash(npx tsx:*)",
+      "Bash(node -e \"import\\(''bcryptjs''\\).then\\(bcrypt => { bcrypt.default.compare\\(''admin123'', ''$2a$10$yQJ0T3jHxJ9XvLZvZ9XvZ9XvZ9XvZ9XvZ9XvZ9XvZ9XvZ9XvZ9Xv''\\).then\\(result => console.log\\(''Password match:'', result\\)\\); }\\);\")",
+      "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_dERn0jl6qpiV@ep-purple-rice-ac0lt1zq-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require\" npx prisma migrate deploy:*)",
+      "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_dERn0jl6qpiV@ep-purple-rice-ac0lt1zq-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require\" npx prisma db push:*)",
+      "Bash(node -e \"const { PrismaClient } = require\\(''@prisma/client''\\); const prisma = new PrismaClient\\({ datasources: { db: { url: ''postgresql://neondb_owner:npg_dERn0jl6qpiV@ep-purple-rice-ac0lt1zq-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require'' } } }\\); prisma.user.findUnique\\({ where: { usuario: ''admin'' } }\\).then\\(u => { console.log\\(''User:'', u?.usuario\\); console.log\\(''Password hash:'', u?.password\\); prisma.$disconnect\\(\\); }\\);\")",
+      "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_dERn0jl6qpiV@ep-purple-rice-ac0lt1zq-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require\" npx tsx -e \"import { PrismaClient } from ''@prisma/client''; import bcrypt from ''bcryptjs''; const prisma = new PrismaClient\\(\\); const hash = await bcrypt.hash\\(''admin123'', 10\\); console.log\\(''Hash:'', hash\\); await prisma.user.delete\\({ where: { usuario: ''admin'' } }\\).catch\\(\\(\\) => {}\\); const user = await prisma.user.create\\({ data: { usuario: ''admin'', email: ''admin@agroindustrias.com'', password: hash, nombre: ''Admin'', apellido: ''Sistema'', rol: ''ADMIN'', activo: true } }\\); console.log\\(''User created:'', user.usuario\\); await prisma.$disconnect\\(\\);\")",
+      "Bash(convert:*)",
+      "Bash(node generate-icons.js:*)",
+      "Bash(copy \"C:\\\\Users\\\\Ignacio\\\\Downloads\\\\WhatsApp Image 2026-01-01 at 9.59.41 PM.jpeg\" \"c:\\\\Users\\\\Ignacio\\\\agroindustrias-app\\\\client\\\\public\\\\logo.png\")",
+      "Bash(git --version:*)"
     ]
   }
 }
