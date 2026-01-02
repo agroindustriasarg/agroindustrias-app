@@ -283,7 +283,9 @@ export default function StockPage() {
                 >
                   <option value="">Seleccionar...</option>
                   <option value="kg">Kilogramos (kg)</option>
+                  <option value="gramos">Gramos (g)</option>
                   <option value="litros">Litros</option>
+                  <option value="cc">CC (cm³)</option>
                   <option value="unidades">Unidades</option>
                   <option value="bolsas">Bolsas</option>
                   <option value="toneladas">Toneladas</option>
