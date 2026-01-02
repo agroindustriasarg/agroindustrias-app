@@ -101,6 +101,13 @@ class ApiWithCache {
 
     return await api.delete<T>(endpoint);
   }
+
+  // PATCH para actualizaciones parciales (usado en cambio de estado)
+  async patch<T = any>(endpoint: string, data: any): Promise<{ data: T }> {
+    // PATCH se usa típicamente para cambios de estado, delegamos al API normal
+    // ya que no queremos cachear esto offline
+    return await api.patch<T>(endpoint, data);
+  }
 }
 
 const apiWithCache = new ApiWithCache();
