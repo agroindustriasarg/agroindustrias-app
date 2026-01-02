@@ -8,6 +8,16 @@ export enum EntityType {
   VENTA = 'venta',
   PRODUCTO = 'producto',
   USUARIO = 'usuario',
+  CAMPO = 'campo',
+  LOTE = 'lote',
+  MAQUINARIA = 'maquinaria',
+  SERVICIO = 'servicio',
+  CONTRATISTA = 'contratista',
+  STOCK = 'stock',
+  COMPRA = 'compra',
+  GASTO = 'gasto',
+  CUENTA = 'cuenta',
+  RENDIMIENTO = 'rendimiento',
 }
 
 interface OfflineApiOptions {

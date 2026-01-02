@@ -1,6 +1,7 @@
 // @ts-nocheck
-import { useState, useEffect } from 'react';
-import api from '../services/api';
+import { useState } from 'react';
+import { useOfflineData } from '../hooks/useOfflineData';
+import { EntityType } from '../services/offlineApi';
 import { Maquinaria } from '../types';
 import { Plus, Truck, Trash2, Tractor, CarFront, Bike, Sprout as Sprayer, Box, Blend, Wheat, Settings, CircleDot } from 'lucide-react';
 
@@ -31,8 +32,15 @@ const subcategorias = {
 };
 
 export default function Maquinarias() {
-  const [maquinarias, setMaquinarias] = useState<Maquinaria[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    data: maquinarias,
+    loading,
+    create,
+    remove,
+  } = useOfflineData<Maquinaria>({
+    endpoint: '/maquinarias',
+    entityType: EntityType.MAQUINARIA,
+  });
   const [showForm, setShowForm] = useState(false);
   const [categoriaPrincipal, setCategoriaPrincipal] = useState<string | null>(null);
   const [subcategoriaSeleccionada, setSubcategoriaSeleccionada] = useState<string | null>(null);
@@ -48,25 +56,10 @@ export default function Maquinarias() {
     descripcion: '',
   });
 
-  useEffect(() => {
-    fetchMaquinarias();
-  }, []);
-
-  const fetchMaquinarias = async () => {
-    try {
-      const response = await api.get('/maquinarias');
-      setMaquinarias(response.data);
-    } catch (error) {
-      console.error('Error al cargar maquinarias:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await api.post('/maquinarias', {
+      await create({
         ...formData,
         anio: formData.anio ? parseInt(formData.anio) : undefined,
         horasUso: formData.horasUso ? parseFloat(formData.horasUso) : 0,
@@ -83,19 +76,17 @@ export default function Maquinarias() {
         horasUso: '',
         descripcion: '',
       });
-      fetchMaquinarias();
     } catch (error: any) {
-      alert(error.response?.data?.error || 'Error al crear maquinaria');
+      alert(error.message || 'Error al crear maquinaria');
     }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm('¿Estás seguro de eliminar esta maquinaria?')) return;
     try {
-      await api.delete(`/maquinarias/${id}`);
-      fetchMaquinarias();
-    } catch (error) {
-      alert('Error al eliminar maquinaria');
+      await remove(id);
+    } catch (error: any) {
+      alert(error.message || 'Error al eliminar maquinaria');
     }
   };
 

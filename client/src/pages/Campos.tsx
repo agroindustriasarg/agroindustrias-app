@@ -1,11 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useOfflineData } from '../hooks/useOfflineData';
+import { EntityType } from '../services/offlineApi';
 import api from '../services/api';
 import { Campo } from '../types';
 import { Plus, MapPin, Trash2, Edit, Layers } from 'lucide-react';
 
 export default function Campos() {
-  const [campos, setCampos] = useState<Campo[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    data: campos,
+    loading,
+    create,
+    update,
+    remove,
+    refetch,
+  } = useOfflineData<Campo>({
+    endpoint: '/campos',
+    entityType: EntityType.CAMPO,
+  });
   const [showForm, setShowForm] = useState(false);
   const [showLotesModal, setShowLotesModal] = useState<string | null>(null);
   const [showLoteForm, setShowLoteForm] = useState(false);
@@ -21,41 +32,24 @@ export default function Campos() {
     superficie: '',
   });
 
-  useEffect(() => {
-    fetchCampos();
-  }, []);
-
-  const fetchCampos = async () => {
-    try {
-      const response = await api.get('/campos');
-      setCampos(response.data);
-    } catch (error) {
-      console.error('Error al cargar campos:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const campoData = {
+        ...formData,
+        hectareas: parseFloat(formData.hectareas),
+      };
+
       if (editingCampo) {
-        await api.put(`/campos/${editingCampo}`, {
-          ...formData,
-          hectareas: parseFloat(formData.hectareas),
-        });
+        await update(editingCampo, campoData);
       } else {
-        await api.post('/campos', {
-          ...formData,
-          hectareas: parseFloat(formData.hectareas),
-        });
+        await create(campoData);
       }
       setShowForm(false);
       setEditingCampo(null);
       setFormData({ nombre: '', ubicacion: '', hectareas: '', descripcion: '' });
-      fetchCampos();
     } catch (error: any) {
-      alert(error.response?.data?.error || 'Error al guardar campo');
+      alert(error.message || 'Error al guardar campo');
     }
   };
 
@@ -73,10 +67,9 @@ export default function Campos() {
   const handleDelete = async (id: string) => {
     if (!confirm('¿Estás seguro de eliminar este campo?')) return;
     try {
-      await api.delete(`/campos/${id}`);
-      fetchCampos();
-    } catch (error) {
-      alert('Error al eliminar campo');
+      await remove(id);
+    } catch (error: any) {
+      alert(error.message || 'Error al eliminar campo');
     }
   };
 
@@ -91,7 +84,7 @@ export default function Campos() {
       });
       setShowLoteForm(false);
       setLoteFormData({ nombre: '', superficie: '' });
-      fetchCampos();
+      refetch();
     } catch (error: any) {
       alert(error.response?.data?.error || 'Error al crear lote');
     }
@@ -101,7 +94,7 @@ export default function Campos() {
     if (!confirm('¿Estás seguro de eliminar este lote?')) return;
     try {
       await api.delete(`/campos/lotes/${loteId}`);
-      fetchCampos();
+      refetch();
     } catch (error) {
       alert('Error al eliminar lote');
     }

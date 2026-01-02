@@ -1,11 +1,20 @@
-import { useState, useEffect } from 'react';
-import api from '../services/api';
+import { useState } from 'react';
+import { useOfflineData } from '../hooks/useOfflineData';
+import { EntityType } from '../services/offlineApi';
 import { Contratista } from '../types';
 import { Plus, User, Trash2, Edit, Phone, Mail, Briefcase } from 'lucide-react';
 
 export default function Contratistas() {
-  const [contratistas, setContratistas] = useState<Contratista[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    data: contratistas,
+    loading,
+    create,
+    update,
+    remove,
+  } = useOfflineData<Contratista>({
+    endpoint: '/contratistas',
+    entityType: EntityType.CONTRATISTA,
+  });
   const [showForm, setShowForm] = useState(false);
   const [editingContratista, setEditingContratista] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -16,21 +25,6 @@ export default function Contratistas() {
     email: '',
     especialidad: '',
   });
-
-  useEffect(() => {
-    fetchContratistas();
-  }, []);
-
-  const fetchContratistas = async () => {
-    try {
-      const response = await api.get('/contratistas');
-      setContratistas(response.data);
-    } catch (error) {
-      console.error('Error al cargar contratistas:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleEdit = (contratista: Contratista) => {
     setFormData({
@@ -49,9 +43,9 @@ export default function Contratistas() {
     e.preventDefault();
     try {
       if (editingContratista) {
-        await api.put(`/contratistas/${editingContratista}`, formData);
+        await update(editingContratista, formData);
       } else {
-        await api.post('/contratistas', formData);
+        await create(formData);
       }
       setShowForm(false);
       setEditingContratista(null);
@@ -63,19 +57,17 @@ export default function Contratistas() {
         email: '',
         especialidad: '',
       });
-      fetchContratistas();
     } catch (error: any) {
-      alert(error.response?.data?.error || 'Error al guardar contratista');
+      alert(error.message || 'Error al guardar contratista');
     }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm('¿Estás seguro de eliminar este contratista?')) return;
     try {
-      await api.delete(`/contratistas/${id}`);
-      fetchContratistas();
-    } catch (error) {
-      alert('Error al eliminar contratista');
+      await remove(id);
+    } catch (error: any) {
+      alert(error.message || 'Error al eliminar contratista');
     }
   };
 
