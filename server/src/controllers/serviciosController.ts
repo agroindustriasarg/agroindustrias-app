@@ -46,14 +46,52 @@ export const getServicios = async (req: AuthRequest, res: Response): Promise<voi
 
 export const createServicio = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { fecha, hectareas, costoPorHa, ...rest } = servicioSchema.parse(req.body);
+    const { fecha, hectareas, costoPorHa, tipo, receta, ...rest } = servicioSchema.parse(req.body);
+
+    // Si es una pulverización con receta, validar stock ANTES de crear
+    if (tipo === 'Pulverización' && receta && hectareas) {
+      const recetaData = JSON.parse(receta);
+
+      // Verificar stock para cada producto
+      for (const item of recetaData) {
+        if (item.stockId) {
+          const stock = await prisma.stock.findUnique({
+            where: { id: item.stockId },
+          });
+
+          if (!stock) {
+            res.status(400).json({
+              error: `Producto ${item.producto} no encontrado en stock`
+            });
+            return;
+          }
+
+          // Calcular cantidad total necesaria
+          const dosisHa = parseFloat(item.cantidad);
+          const cantidadNecesaria = dosisHa * hectareas;
+
+          // Si la unidad es L/ha o kg/ha, extraer solo la unidad base
+          const unidadBase = item.unidad.split('/')[0];
+
+          if (stock.cantidad < cantidadNecesaria) {
+            res.status(400).json({
+              error: `Stock insuficiente de ${item.producto}. Disponible: ${stock.cantidad.toFixed(2)} ${unidadBase}, Necesario: ${cantidadNecesaria.toFixed(2)} ${unidadBase}`
+            });
+            return;
+          }
+        }
+      }
+    }
 
     // Calcular total automáticamente
     const total = hectareas && costoPorHa ? hectareas * costoPorHa : undefined;
 
+    // Crear el servicio
     const servicio = await prisma.servicio.create({
       data: {
         ...rest,
+        tipo,
+        receta,
         fecha: new Date(fecha),
         hectareas,
         costoPorHa,
@@ -68,6 +106,42 @@ export const createServicio = async (req: AuthRequest, res: Response): Promise<v
         usuario: { select: { nombre: true, apellido: true } },
       },
     });
+
+    // DESPUÉS de crear el servicio, descontar del stock si es pulverización
+    if (tipo === 'Pulverización' && receta && hectareas) {
+      const recetaData = JSON.parse(receta);
+
+      for (const item of recetaData) {
+        if (item.stockId) {
+          const dosisHa = parseFloat(item.cantidad);
+          const cantidadNecesaria = dosisHa * hectareas;
+
+          // Descontar del stock
+          await prisma.stock.update({
+            where: { id: item.stockId },
+            data: {
+              cantidad: {
+                decrement: cantidadNecesaria,
+              },
+            },
+          });
+
+          // Crear movimiento de stock
+          await prisma.movimientoStock.create({
+            data: {
+              stockId: item.stockId,
+              tipo: 'SALIDA',
+              cantidad: cantidadNecesaria,
+              motivo: 'Uso en pulverización',
+              servicioId: servicio.id,
+              campoId: servicio.campoId,
+              loteId: servicio.loteId || undefined,
+              observaciones: `Pulverización - ${item.producto} (${dosisHa} ${item.unidad})`,
+            },
+          });
+        }
+      }
+    }
 
     res.status(201).json(servicio);
   } catch (error) {
@@ -95,114 +169,7 @@ export const updateServicio = async (req: AuthRequest, res: Response): Promise<v
       return;
     }
 
-    // Si se está cambiando el estado a REALIZADO y es tipo Pulverización
-    if (estado === 'REALIZADO' && servicioActual.estado !== 'REALIZADO' && servicioActual.tipo === 'Pulverización') {
-      // Validar que hay stock suficiente
-      if (servicioActual.receta && servicioActual.hectareas) {
-        const receta = JSON.parse(servicioActual.receta);
-
-        // Verificar stock para cada producto
-        for (const item of receta) {
-          if (item.stockId) {
-            const stock = await prisma.stock.findUnique({
-              where: { id: item.stockId },
-            });
-
-            if (!stock) {
-              res.status(400).json({
-                error: `Producto ${item.producto} no encontrado en stock`
-              });
-              return;
-            }
-
-            // Calcular cantidad total necesaria
-            const dosisHa = parseFloat(item.cantidad); // cantidad por hectárea
-            const cantidadNecesaria = dosisHa * servicioActual.hectareas;
-
-            // Convertir unidades si es necesario para comparación
-            let cantidadEnStockComparable = stock.cantidad;
-
-            // Si la unidad es L/ha o kg/ha, extraer solo la unidad base
-            const unidadBase = item.unidad.split('/')[0]; // 'L' de 'L/ha' o 'kg' de 'kg/ha'
-
-            if (cantidadEnStockComparable < cantidadNecesaria) {
-              res.status(400).json({
-                error: `Stock insuficiente de ${item.producto}. Disponible: ${cantidadEnStockComparable.toFixed(2)} ${unidadBase}, Necesario: ${cantidadNecesaria.toFixed(2)} ${unidadBase}`
-              });
-              return;
-            }
-          }
-        }
-
-        // Si todo está OK, descontar del stock y crear movimientos
-        for (const item of receta) {
-          if (item.stockId) {
-            const dosisHa = parseFloat(item.cantidad);
-            const cantidadNecesaria = dosisHa * servicioActual.hectareas;
-
-            // Descontar del stock
-            await prisma.stock.update({
-              where: { id: item.stockId },
-              data: {
-                cantidad: {
-                  decrement: cantidadNecesaria,
-                },
-              },
-            });
-
-            // Crear movimiento de stock
-            await prisma.movimientoStock.create({
-              data: {
-                stockId: item.stockId,
-                tipo: 'SALIDA',
-                cantidad: cantidadNecesaria,
-                motivo: 'Uso en pulverización',
-                servicioId: id,
-                campoId: servicioActual.campoId,
-                loteId: servicioActual.loteId || undefined,
-                observaciones: `Pulverización - ${item.producto} (${dosisHa} ${item.unidad})`,
-              },
-            });
-          }
-        }
-      }
-    }
-
-    // Si se está cambiando de REALIZADO a PENDIENTE y es tipo Pulverización, devolver stock
-    if (estado === 'PENDIENTE' && servicioActual.estado === 'REALIZADO' && servicioActual.tipo === 'Pulverización') {
-      if (servicioActual.receta && servicioActual.hectareas) {
-        const receta = JSON.parse(servicioActual.receta);
-
-        for (const item of receta) {
-          if (item.stockId) {
-            const dosisHa = parseFloat(item.cantidad);
-            const cantidadADevolver = dosisHa * servicioActual.hectareas;
-
-            // Devolver al stock
-            await prisma.stock.update({
-              where: { id: item.stockId },
-              data: {
-                cantidad: {
-                  increment: cantidadADevolver,
-                },
-              },
-            });
-
-            // Crear movimiento de entrada para registro
-            await prisma.movimientoStock.create({
-              data: {
-                stockId: item.stockId,
-                tipo: 'ENTRADA',
-                cantidad: cantidadADevolver,
-                motivo: 'Devolución de pulverización cancelada',
-                servicioId: id,
-                observaciones: `Reversión de pulverización - ${item.producto}`,
-              },
-            });
-          }
-        }
-      }
-    }
+    // Nota: El stock ahora se descuenta al crear el servicio, no al cambiar estado
 
     // Calcular total automáticamente si se proporcionan hectareas y costoPorHa
     const total = hectareas && costoPorHa ? hectareas * costoPorHa : undefined;
@@ -233,6 +200,50 @@ export const updateServicio = async (req: AuthRequest, res: Response): Promise<v
 export const deleteServicio = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
+
+    // Obtener el servicio antes de eliminarlo para devolver stock si es necesario
+    const servicio = await prisma.servicio.findUnique({
+      where: { id },
+    });
+
+    if (!servicio) {
+      res.status(404).json({ error: 'Servicio no encontrado' });
+      return;
+    }
+
+    // Si es una pulverización con receta, devolver el stock antes de eliminar
+    if (servicio.tipo === 'Pulverización' && servicio.receta && servicio.hectareas) {
+      const receta = JSON.parse(servicio.receta);
+
+      for (const item of receta) {
+        if (item.stockId) {
+          const dosisHa = parseFloat(item.cantidad);
+          const cantidadADevolver = dosisHa * servicio.hectareas;
+
+          // Devolver al stock
+          await prisma.stock.update({
+            where: { id: item.stockId },
+            data: {
+              cantidad: {
+                increment: cantidadADevolver,
+              },
+            },
+          });
+
+          // Crear movimiento de entrada para registro
+          await prisma.movimientoStock.create({
+            data: {
+              stockId: item.stockId,
+              tipo: 'ENTRADA',
+              cantidad: cantidadADevolver,
+              motivo: 'Devolución por eliminación de servicio',
+              observaciones: `Reversión de pulverización eliminada - ${item.producto}`,
+            },
+          });
+        }
+      }
+    }
+
     await prisma.servicio.delete({ where: { id } });
     res.json({ message: 'Servicio eliminado correctamente' });
   } catch (error) {
