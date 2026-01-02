@@ -17,6 +17,7 @@ export function useOfflineData<T>({ endpoint, entityType, dependencies = [] }: U
       setLoading(true);
       setError(null);
 
+      // Primero intentar con offlineApi (intenta online, luego offline)
       const response = await offlineApi.get<T[]>(endpoint, {
         entityType,
         allowOffline: true,
@@ -27,17 +28,19 @@ export function useOfflineData<T>({ endpoint, entityType, dependencies = [] }: U
       console.error(`Error fetching ${entityType}:`, err);
       setError(err.message || 'Error al cargar datos');
 
-      // Intentar cargar desde caché offline
+      // Si falla, intentar cargar desde caché offline de IndexedDB
       try {
-        const cachedData = await import('../services/indexedDB').then(module =>
-          module.default.getOfflineData(entityType)
-        );
+        const dbManager = await import('../services/indexedDB').then(m => m.default);
+        await dbManager.init();
+        const cachedData = await dbManager.getOfflineData(entityType);
+
         if (cachedData.length > 0) {
           setData(cachedData.map(item => item.data));
           setError(null); // Limpiar error si tenemos datos en caché
         }
-      } catch {
-        // No hay datos en caché
+      } catch (cacheErr) {
+        console.error('Error loading from cache:', cacheErr);
+        // No hay datos en caché o error al cargar
       }
     } finally {
       setLoading(false);
