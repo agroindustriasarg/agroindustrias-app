@@ -48,7 +48,7 @@ export const createServicio = async (req: AuthRequest, res: Response): Promise<v
   try {
     const { fecha, hectareas, costoPorHa, tipo, receta, ...rest } = servicioSchema.parse(req.body);
 
-    // Si es una pulverización con receta, solo verificar que los productos existan
+    // Si es una pulverización con receta, solo verificar que los productos existan (no validar cantidad)
     if (tipo === 'Pulverización' && receta && hectareas) {
       const recetaData = JSON.parse(receta);
 
