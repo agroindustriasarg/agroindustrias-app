@@ -48,11 +48,11 @@ export const createServicio = async (req: AuthRequest, res: Response): Promise<v
   try {
     const { fecha, hectareas, costoPorHa, tipo, receta, ...rest } = servicioSchema.parse(req.body);
 
-    // Si es una pulverización con receta, validar stock ANTES de crear
+    // Si es una pulverización con receta, solo verificar que los productos existan
     if (tipo === 'Pulverización' && receta && hectareas) {
       const recetaData = JSON.parse(receta);
 
-      // Verificar stock para cada producto
+      // Verificar que los productos existan en stock
       for (const item of recetaData) {
         if (item.stockId) {
           const stock = await prisma.stock.findUnique({
@@ -62,20 +62,6 @@ export const createServicio = async (req: AuthRequest, res: Response): Promise<v
           if (!stock) {
             res.status(400).json({
               error: `Producto ${item.producto} no encontrado en stock`
-            });
-            return;
-          }
-
-          // Calcular cantidad total necesaria
-          const dosisHa = parseFloat(item.cantidad);
-          const cantidadNecesaria = dosisHa * hectareas;
-
-          // Si la unidad es L/ha o kg/ha, extraer solo la unidad base
-          const unidadBase = item.unidad.split('/')[0];
-
-          if (stock.cantidad < cantidadNecesaria) {
-            res.status(400).json({
-              error: `Stock insuficiente de ${item.producto}. Disponible: ${stock.cantidad.toFixed(2)} ${unidadBase}, Necesario: ${cantidadNecesaria.toFixed(2)} ${unidadBase}`
             });
             return;
           }
