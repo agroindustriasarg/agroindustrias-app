@@ -35,7 +35,8 @@
       "Bash(convert:*)",
       "Bash(node generate-icons.js:*)",
       "Bash(copy \"C:\\\\Users\\\\Ignacio\\\\Downloads\\\\WhatsApp Image 2026-01-01 at 9.59.41 PM.jpeg\" \"c:\\\\Users\\\\Ignacio\\\\agroindustrias-app\\\\client\\\\public\\\\logo.png\")",
-      "Bash(git --version:*)"
+      "Bash(git --version:*)",
+      "Bash(find:*)"
     ]
   }
 }

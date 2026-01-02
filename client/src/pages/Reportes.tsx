@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { useState, useEffect, useRef } from 'react';
-import api from '../services/api';
+import api from '../services/apiWithCache';
 import {
   BarChart3,
   PieChart,

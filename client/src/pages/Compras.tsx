@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { useState, useEffect } from 'react';
-import api from '../services/api';
+import api from '../services/apiWithCache';
 import { ShoppingCart, Package, AlertTriangle, TrendingUp } from 'lucide-react';
 
 interface ProductoNecesario {

@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import api from '../services/api';
+import api from '../services/apiWithCache';
 import { Gasto, Campo, Maquinaria, Cuenta } from '../types';
 import { Plus, DollarSign, Trash2, Calendar, Edit } from 'lucide-react';
 

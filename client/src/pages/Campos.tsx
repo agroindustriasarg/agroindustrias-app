@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useOfflineData } from '../hooks/useOfflineData';
 import { EntityType } from '../services/offlineApi';
-import api from '../services/api';
+import api from '../services/apiWithCache';
 import { Campo } from '../types';
 import { Plus, MapPin, Trash2, Edit, Layers } from 'lucide-react';
 

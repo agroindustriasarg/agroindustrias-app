@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../services/api';
+import api from '../services/apiWithCache';
 import { Stock } from '../types';
 import { Plus, Package, Trash2, TrendingUp, AlertTriangle, Fuel, Wrench, Droplet, Sprout, Gauge, Grid3x3 } from 'lucide-react';
 

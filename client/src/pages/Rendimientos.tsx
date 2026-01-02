@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import api from '../services/api';
+import api from '../services/apiWithCache';
 import { Plus, Edit, Trash2, Calendar, BarChart3 } from 'lucide-react';
 
 interface Rendimiento {
