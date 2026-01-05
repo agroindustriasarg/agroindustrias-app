@@ -87,10 +87,18 @@ export default function Compras() {
 
       // Calcular faltantes y filtrar solo los que tienen stock insuficiente
       const productos = Array.from(productosMap.values())
-        .map(p => ({
-          ...p,
-          faltante: Math.max(0, p.cantidadTotal - p.stockDisponible),
-        }))
+        .map(p => {
+          // Si el stock disponible es suficiente, no hay faltante
+          // Si es insuficiente (incluso negativo), el faltante es la diferencia
+          const faltante = p.stockDisponible >= p.cantidadTotal
+            ? 0
+            : p.cantidadTotal - Math.max(0, p.stockDisponible);
+
+          return {
+            ...p,
+            faltante,
+          };
+        })
         .filter(p => p.faltante > 0); // Solo productos con faltante
 
       // Ordenar por faltante (mayor a menor)
