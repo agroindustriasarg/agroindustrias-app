@@ -973,25 +973,15 @@ export default function Servicios() {
                           const cantidadPorHa = parseFloat(item.cantidad);
                           const totalHectareas = servicio.hectareas || 0;
                           const totalCantidad = cantidadPorHa * totalHectareas;
-
-                          // Buscar stock disponible
-                          const stock = stockItems.find(s => s.id === item.stockId);
-                          const stockDisponible = stock ? stock.cantidad : 0;
                           const unidadBase = item.unidad.split('/')[0];
-                          const suficiente = stockDisponible >= totalCantidad;
 
                           return (
-                            <div key={index} className={`flex justify-between items-center text-xs px-1.5 py-1 rounded ${suficiente ? 'bg-gray-50' : 'bg-red-50 border border-red-200'}`}>
+                            <div key={index} className="flex justify-between items-center text-xs px-1.5 py-1 rounded bg-gray-50">
                               <span className="font-medium text-xs">{item.producto}</span>
                               <div className="flex flex-col items-end">
                                 <span className="text-xs text-gray-600">
                                   {cantidadPorHa} {item.unidad} → {totalCantidad.toFixed(2)} {unidadBase} totales
                                 </span>
-                                {!suficiente && (
-                                  <span className="text-xs text-red-600 font-semibold">
-                                    Stock insuficiente: {stockDisponible.toFixed(2)} {unidadBase} disponibles
-                                  </span>
-                                )}
                               </div>
                             </div>
                           );
@@ -1041,23 +1031,6 @@ export default function Servicios() {
 
                 {/* Botones de Estado */}
                 <div className="flex flex-col space-y-1.5 mt-2 pt-1.5 border-t">
-                  {servicio.tipo === 'Pulverización' && (
-                    (() => {
-                      const stockInfo = calcularStockDisponible(servicio);
-                      return !stockInfo.suficiente && servicio.estado === 'PENDIENTE' ? (
-                        <div className="bg-red-50 border border-red-200 rounded p-1.5">
-                          <p className="text-xs font-semibold text-red-700 mb-1">Stock insuficiente para marcar como REALIZADO:</p>
-                          <ul className="text-xs text-red-600 space-y-0.5">
-                            {stockInfo.detalles.filter(d => !d.suficiente).map((detalle, idx) => (
-                              <li key={idx}>
-                                • {detalle.producto}: Necesario {detalle.necesario.toFixed(2)} {detalle.unidad}, Disponible {detalle.disponible.toFixed(2)} {detalle.unidad}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      ) : null;
-                    })()
-                  )}
                   <div className="flex space-x-1.5">
                     <button
                       onClick={() => handleEstadoChange(servicio.id, 'PENDIENTE')}
@@ -1071,16 +1044,7 @@ export default function Servicios() {
                       <span className="text-xs font-medium">Pendiente</span>
                     </button>
                     <button
-                      onClick={() => {
-                        if (servicio.tipo === 'Pulverización') {
-                          const stockInfo = calcularStockDisponible(servicio);
-                          if (!stockInfo.suficiente) {
-                            alert('No hay stock suficiente para marcar este servicio como realizado. Verifica los productos resaltados en rojo.');
-                            return;
-                          }
-                        }
-                        handleEstadoChange(servicio.id, 'REALIZADO');
-                      }}
+                      onClick={() => handleEstadoChange(servicio.id, 'REALIZADO')}
                       className={`flex-1 flex items-center justify-center space-x-1.5 py-1.5 px-2 rounded-lg transition-colors ${
                         servicio.estado === 'REALIZADO'
                           ? 'bg-green-500 text-white'
