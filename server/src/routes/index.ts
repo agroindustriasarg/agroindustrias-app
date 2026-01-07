@@ -10,6 +10,8 @@ import cuentasRoutes from './cuentas.js';
 import reportesRoutes from './reportes.js';
 import rendimientosRoutes from './rendimientos.js';
 import usuariosRoutes from './usuarios.js';
+import facturasRoutes from './facturas.js';
+import pagosRoutes from './pagos.js';
 
 const router = Router();
 
@@ -24,5 +26,7 @@ router.use('/cuentas', cuentasRoutes);
 router.use('/reportes', reportesRoutes);
 router.use('/rendimientos', rendimientosRoutes);
 router.use('/usuarios', usuariosRoutes);
+router.use('/facturas', facturasRoutes);
+router.use('/pagos', pagosRoutes);
 
 export default router;

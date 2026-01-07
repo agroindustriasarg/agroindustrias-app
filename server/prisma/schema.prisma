@@ -211,9 +211,80 @@ model MovimientoStock {
   // Relaciones
   stock   Stock   @relation(fields: [stockId], references: [id], onDelete: Cascade)
   cuenta  Cuenta? @relation(fields: [cuentaId], references: [id], onDelete: SetNull)
+  facturasItems FacturaItem[]
 
   @@index([stockId, createdAt])
   @@map("movimientos_stock")
+}
+
+// ========== FACTURAS ==========
+
+model Factura {
+  id             String   @id @default(uuid())
+  numeroFactura  String   @unique
+  fechaEmision   DateTime
+  proveedor      String
+  tipoFactura    String   // A, B, C
+  moneda         String   // ARS, USD
+  total          Float
+  formaPago      String   // Contado, Cheque, Canje de granos, A pagar en fecha
+  fechaPago      DateTime? // Solo si formaPago es "A pagar en fecha"
+  estado         String   @default("PENDIENTE") // PENDIENTE, PAGADA
+  observaciones  String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relaciones
+  items FacturaItem[]
+  pagos PagoFactura[]
+
+  @@map("facturas")
+}
+
+model FacturaItem {
+  id                String   @id @default(uuid())
+  facturaId         String
+  movimientoStockId String
+  precioUnitario    Float    // Precio calculado por unidad para este producto
+  precioTotal       Float    // Precio total para este producto en la factura
+  createdAt         DateTime @default(now())
+
+  // Relaciones
+  factura         Factura         @relation(fields: [facturaId], references: [id], onDelete: Cascade)
+  movimientoStock MovimientoStock @relation(fields: [movimientoStockId], references: [id], onDelete: Cascade)
+
+  @@unique([facturaId, movimientoStockId])
+  @@map("facturas_items")
+}
+
+model Pago {
+  id            String   @id @default(uuid())
+  cuentaId      String
+  formaPago     String   // Transferencia, Cheque, Efectivo, etc.
+  fechaPago     DateTime
+  observaciones String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relaciones
+  cuenta   Cuenta        @relation(fields: [cuentaId], references: [id], onDelete: Cascade)
+  facturas PagoFactura[]
+
+  @@map("pagos")
+}
+
+model PagoFactura {
+  id        String   @id @default(uuid())
+  pagoId    String
+  facturaId String
+  createdAt DateTime @default(now())
+
+  // Relaciones
+  pago    Pago    @relation(fields: [pagoId], references: [id], onDelete: Cascade)
+  factura Factura @relation(fields: [facturaId], references: [id], onDelete: Cascade)
+
+  @@unique([pagoId, facturaId])
+  @@map("pagos_facturas")
 }
 
 // ========== CUENTAS ==========
@@ -231,6 +302,7 @@ model Cuenta {
   // Relaciones
   gastos             Gasto[]
   movimientosStock   MovimientoStock[]
+  pagos              Pago[]
 
   @@map("cuentas")
 }

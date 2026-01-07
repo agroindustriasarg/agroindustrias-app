@@ -15,6 +15,8 @@ import Gastos from './pages/Gastos';
 import Cuentas from './pages/Cuentas';
 import CuentaDetalle from './pages/CuentaDetalle';
 import Contabilidad from './pages/Contabilidad';
+import Facturas from './pages/Facturas';
+import PagoProveedores from './pages/PagoProveedores';
 import Rendimientos from './pages/Rendimientos';
 import Reportes from './pages/Reportes';
 import Usuarios from './pages/Usuarios';
@@ -136,6 +138,22 @@ function App() {
             element={
               <PrivateRoute>
                 <Contabilidad />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/contabilidad/facturas"
+            element={
+              <PrivateRoute>
+                <Facturas />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/contabilidad/pago-proveedores"
+            element={
+              <PrivateRoute>
+                <PagoProveedores />
               </PrivateRoute>
             }
           />
