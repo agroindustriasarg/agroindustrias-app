@@ -56,15 +56,13 @@ export default function Compras() {
       // Solo considerar productos con stock NEGATIVO (porque ya se descontó al crear las órdenes)
       const productosConStockNegativo = stockAgroquimicos.filter((s: any) => s.cantidad < 0);
 
-      // Cargar movimientos de stock para calcular qué órdenes tienen stock insuficiente
-      const movimientosStock: any[] = [];
-      for (const stock of stockAgroquimicos) {
-        try {
-          const movRes = await api.get(`/stock/${stock.id}/movimientos`);
-          movimientosStock.push(...movRes.data.map((m: any) => ({ ...m, stockId: stock.id })));
-        } catch (err) {
-          console.error(`Error cargando movimientos de ${stock.nombre}:`, err);
-        }
+      // Cargar todos los movimientos de agroquímicos en una sola llamada
+      let movimientosStock: any[] = [];
+      try {
+        const movRes = await api.get('/stock/movimientos/agroquimicos');
+        movimientosStock = movRes.data;
+      } catch (err) {
+        console.error('Error cargando movimientos de agroquímicos:', err);
       }
 
       // Para cada producto con stock negativo, buscar las órdenes que lo usan

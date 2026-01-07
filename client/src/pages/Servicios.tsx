@@ -106,17 +106,14 @@ export default function Servicios() {
       const agroquimicos = stockRes.data.filter((item: Stock) => item.categoria === 'Agroquímicos');
       setStockItems(agroquimicos);
 
-      // Cargar todos los movimientos de stock de agroquímicos
-      const movimientos: any[] = [];
-      for (const stock of agroquimicos) {
-        try {
-          const movRes = await api.get(`/stock/${stock.id}/movimientos`);
-          movimientos.push(...movRes.data.map((m: any) => ({ ...m, stockId: stock.id })));
-        } catch (err) {
-          console.error(`Error cargando movimientos de ${stock.nombre}:`, err);
-        }
+      // Cargar todos los movimientos de agroquímicos en una sola llamada
+      try {
+        const movRes = await api.get('/stock/movimientos/agroquimicos');
+        setMovimientosStock(movRes.data);
+      } catch (err) {
+        console.error('Error cargando movimientos de agroquímicos:', err);
+        setMovimientosStock([]);
       }
-      setMovimientosStock(movimientos);
     } catch (error) {
       console.error('Error al cargar datos:', error);
     } finally {

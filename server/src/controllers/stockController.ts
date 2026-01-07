@@ -89,6 +89,33 @@ export const getMovimientos = async (req: AuthRequest, res: Response): Promise<v
   }
 };
 
+export const getMovimientosAgroquimicos = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    // Obtener todos los productos de la categoría Agroquímicos
+    const agroquimicos = await prisma.stock.findMany({
+      where: { categoria: 'Agroquímicos' },
+      select: { id: true },
+    });
+
+    const agroquimicosIds = agroquimicos.map(a => a.id);
+
+    // Obtener todos los movimientos de esos productos de una sola vez
+    const movimientos = await prisma.movimientoStock.findMany({
+      where: {
+        stockId: {
+          in: agroquimicosIds,
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    res.json(movimientos);
+  } catch (error) {
+    console.error('Error al obtener movimientos de agroquímicos:', error);
+    res.status(500).json({ error: 'Error al obtener movimientos de agroquímicos' });
+  }
+};
+
 export const createStock = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const validatedData = stockSchema.parse(req.body);

@@ -3,6 +3,7 @@ import {
   getStock,
   getStockById,
   getMovimientos,
+  getMovimientosAgroquimicos,
   createStock,
   updateStock,
   deleteStock,
@@ -16,6 +17,7 @@ const router = Router();
 router.use(authMiddleware);
 
 router.get('/', getStock);
+router.get('/movimientos/agroquimicos', getMovimientosAgroquimicos);
 router.get('/:id', getStockById);
 router.get('/:id/movimientos', getMovimientos);
 router.post('/', createStock);
