@@ -25,14 +25,6 @@ interface Cuenta {
   activo: boolean;
 }
 
-interface PagoFormData {
-  facturaIds: string[];
-  cuentaId: string;
-  formaPago: string;
-  fechaPago: string;
-  observaciones: string;
-}
-
 export default function PagoProveedores() {
   const navigate = useNavigate();
   const [facturasPendientes, setFacturasPendientes] = useState<Factura[]>([]);
@@ -161,15 +153,6 @@ export default function PagoProveedores() {
 
   const formatMoneda = (valor: number, moneda: string) => {
     return `${moneda} ${valor.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  };
-
-  const calcularTotalSeleccionado = () => {
-    return facturasPendientes
-      .filter(f => facturasSeleccionadas.has(f.id))
-      .reduce((total, f) => {
-        // Agrupar por moneda
-        return total + f.total;
-      }, 0);
   };
 
   const agruparPorMoneda = () => {

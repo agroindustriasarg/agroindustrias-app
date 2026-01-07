@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/apiWithCache';
-import { FileText, Plus, ArrowLeft, DollarSign, Calendar, CheckCircle, XCircle, Trash2, Edit2, Receipt } from 'lucide-react';
+import { FileText, Plus, ArrowLeft, Calendar, CheckCircle, XCircle, Trash2, Edit2, Receipt } from 'lucide-react';
 
 interface MovimientoStock {
   id: string;
