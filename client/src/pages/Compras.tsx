@@ -26,6 +26,19 @@ export default function Compras() {
 
   useEffect(() => {
     fetchProductosNecesarios();
+
+    // Recargar datos cuando la página vuelve a estar visible
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchProductosNecesarios();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   const fetchProductosNecesarios = async () => {

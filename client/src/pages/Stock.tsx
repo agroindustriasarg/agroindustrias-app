@@ -53,6 +53,19 @@ export default function StockPage() {
     fetchMaquinarias();
     fetchCampos();
     fetchCuentas();
+
+    // Recargar datos cuando la página vuelve a estar visible
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchStock();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   const fetchStock = async () => {

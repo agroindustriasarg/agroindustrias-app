@@ -55,6 +55,19 @@ export default function Servicios() {
 
   useEffect(() => {
     fetchData();
+
+    // Recargar datos cuando la página vuelve a estar visible
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchData();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   useEffect(() => {
