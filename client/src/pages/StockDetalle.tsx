@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/apiWithCache';
-import { ArrowLeft, TrendingUp, TrendingDown, Calendar, FileText, Trash2 } from 'lucide-react';
+import { ArrowLeft, TrendingUp, TrendingDown, Calendar, FileText, Trash2, Edit2 } from 'lucide-react';
 
 interface StockItem {
   id: string;
@@ -45,6 +45,8 @@ export default function StockDetalle() {
   const [campos, setCampos] = useState<any[]>([]);
   const [lotes, setLotes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editandoNombre, setEditandoNombre] = useState(false);
+  const [nuevoNombre, setNuevoNombre] = useState('');
 
   useEffect(() => {
     fetchStockDetalle();
@@ -138,6 +140,32 @@ export default function StockDetalle() {
     }
   };
 
+  const handleEditarNombre = () => {
+    setNuevoNombre(stock?.nombre || '');
+    setEditandoNombre(true);
+  };
+
+  const handleGuardarNombre = async () => {
+    if (!nuevoNombre.trim()) {
+      alert('El nombre no puede estar vacío');
+      return;
+    }
+
+    try {
+      await api.put(`/stock/${id}`, { nombre: nuevoNombre });
+      await fetchStockDetalle();
+      setEditandoNombre(false);
+    } catch (error) {
+      alert('Error al actualizar el nombre');
+      console.error('Error al actualizar el nombre:', error);
+    }
+  };
+
+  const handleCancelarEdicion = () => {
+    setEditandoNombre(false);
+    setNuevoNombre('');
+  };
+
   if (loading) {
     return <div className="text-center py-12">Cargando...</div>;
   }
@@ -158,7 +186,46 @@ export default function StockDetalle() {
         </button>
 
         <div className="card">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">{stock.nombre}</h1>
+          <div className="flex items-center justify-between mb-2">
+            {editandoNombre ? (
+              <div className="flex items-center space-x-2 flex-1">
+                <input
+                  type="text"
+                  value={nuevoNombre}
+                  onChange={(e) => setNuevoNombre(e.target.value)}
+                  className="input flex-1 text-2xl font-bold"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleGuardarNombre();
+                    if (e.key === 'Escape') handleCancelarEdicion();
+                  }}
+                />
+                <button
+                  onClick={handleGuardarNombre}
+                  className="btn-primary px-4 py-2"
+                >
+                  Guardar
+                </button>
+                <button
+                  onClick={handleCancelarEdicion}
+                  className="btn-secondary px-4 py-2"
+                >
+                  Cancelar
+                </button>
+              </div>
+            ) : (
+              <>
+                <h1 className="text-2xl font-bold text-gray-900">{stock.nombre}</h1>
+                <button
+                  onClick={handleEditarNombre}
+                  className="text-gray-500 hover:text-primary-600 transition-colors"
+                  title="Editar nombre"
+                >
+                  <Edit2 className="w-5 h-5" />
+                </button>
+              </>
+            )}
+          </div>
           <p className="text-gray-600 mb-4">{stock.categoria}</p>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
