@@ -177,6 +177,7 @@ model Stock {
   // Relaciones
   movimientos MovimientoStock[]
 
+  @@index([categoria])
   @@map("stock")
 }
 
@@ -211,6 +212,7 @@ model MovimientoStock {
   stock   Stock   @relation(fields: [stockId], references: [id], onDelete: Cascade)
   cuenta  Cuenta? @relation(fields: [cuentaId], references: [id], onDelete: SetNull)
 
+  @@index([stockId, createdAt])
   @@map("movimientos_stock")
 }
 
