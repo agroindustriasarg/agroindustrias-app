@@ -203,6 +203,8 @@ export const deleteMovimiento = async (req: AuthRequest, res: Response): Promise
   try {
     const { stockId, movimientoId } = req.params;
 
+    console.log('🗑️  Eliminando movimiento:', { stockId, movimientoId });
+
     // Obtener el movimiento para revertir la cantidad
     const movimiento = await prisma.movimientoStock.findUnique({
       where: { id: movimientoId },
@@ -210,11 +212,13 @@ export const deleteMovimiento = async (req: AuthRequest, res: Response): Promise
     });
 
     if (!movimiento) {
+      console.log('❌ Movimiento no encontrado');
       res.status(404).json({ error: 'Movimiento no encontrado' });
       return;
     }
 
     if (movimiento.stockId !== stockId) {
+      console.log('❌ El movimiento no pertenece a este stock');
       res.status(400).json({ error: 'El movimiento no pertenece a este stock' });
       return;
     }
@@ -224,10 +228,14 @@ export const deleteMovimiento = async (req: AuthRequest, res: Response): Promise
       ? movimiento.stock.cantidad - movimiento.cantidad
       : movimiento.stock.cantidad + movimiento.cantidad;
 
-    if (nuevaCantidad < 0) {
-      res.status(400).json({ error: 'No se puede eliminar el movimiento: resultaría en stock negativo' });
-      return;
-    }
+    console.log('📊 Ajustando stock:', {
+      stockActual: movimiento.stock.cantidad,
+      tipoMovimiento: movimiento.tipo,
+      cantidadMovimiento: movimiento.cantidad,
+      nuevoStock: nuevaCantidad
+    });
+
+    // Permitir stock negativo (eliminamos la restricción)
 
     // Preparar operaciones de transacción
     const operations: any[] = [

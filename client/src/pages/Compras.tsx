@@ -53,66 +53,96 @@ export default function Compras() {
       const stockRes = await api.get('/stock');
       const stockAgroquimicos = stockRes.data.filter((s: any) => s.categoria === 'Agroquímicos');
 
-      // Calcular productos necesarios
-      const productosMap = new Map<string, ProductoNecesario>();
+      // Solo considerar productos con stock NEGATIVO (porque ya se descontó al crear las órdenes)
+      const productosConStockNegativo = stockAgroquimicos.filter((s: any) => s.cantidad < 0);
 
-      for (const servicio of serviciosPendientes) {
+      // Cargar movimientos de stock para calcular qué órdenes tienen stock insuficiente
+      const movimientosStock: any[] = [];
+      for (const stock of stockAgroquimicos) {
         try {
-          const receta = JSON.parse(servicio.receta);
-
-          for (const item of receta) {
-            if (item.stockId && item.producto) {
-              const dosisHa = parseFloat(item.cantidad);
-              const cantidadNecesaria = dosisHa * servicio.hectareas;
-              const unidadBase = item.unidad.split('/')[0];
-
-              if (!productosMap.has(item.stockId)) {
-                const stock = stockAgroquimicos.find((s: any) => s.id === item.stockId);
-                productosMap.set(item.stockId, {
-                  stockId: item.stockId,
-                  producto: item.producto,
-                  cantidadTotal: 0,
-                  stockDisponible: stock ? stock.cantidad : 0,
-                  faltante: 0,
-                  unidad: unidadBase,
-                  servicios: [],
-                });
-              }
-
-              const productoData = productosMap.get(item.stockId)!;
-              productoData.cantidadTotal += cantidadNecesaria;
-              productoData.servicios.push({
-                id: servicio.id,
-                fecha: servicio.fecha,
-                campo: servicio.campo?.nombre || 'N/A',
-                lote: servicio.lote?.nombre || (servicio.descripcion?.includes('Lotes:')
-                  ? servicio.descripcion.split('Lotes:')[1].split('-')[0].trim()
-                  : 'N/A'),
-                hectareas: servicio.hectareas,
-                cantidad: cantidadNecesaria,
-              });
-            }
-          }
-        } catch (error) {
-          console.error('Error procesando servicio:', error);
+          const movRes = await api.get(`/stock/${stock.id}/movimientos`);
+          movimientosStock.push(...movRes.data.map((m: any) => ({ ...m, stockId: stock.id })));
+        } catch (err) {
+          console.error(`Error cargando movimientos de ${stock.nombre}:`, err);
         }
       }
 
-      // Calcular faltantes y filtrar solo los que tienen stock insuficiente
-      const productos = Array.from(productosMap.values())
-        .map(p => {
-          // Si el stock disponible es suficiente, no hay faltante
-          // Si es insuficiente (incluso negativo), el faltante es la diferencia
-          const faltante = p.stockDisponible >= p.cantidadTotal
-            ? 0
-            : p.cantidadTotal - Math.max(0, p.stockDisponible);
+      // Para cada producto con stock negativo, buscar las órdenes que lo usan
+      const productosMap = new Map<string, ProductoNecesario>();
 
-          return {
-            ...p,
-            faltante,
-          };
-        })
-        .filter(p => p.faltante > 0); // Solo productos con faltante
+      for (const stock of productosConStockNegativo) {
+        const productosEnOrdenes: any[] = [];
+
+        for (const servicio of serviciosPendientes) {
+          try {
+            const receta = JSON.parse(servicio.receta);
+
+            for (const item of receta) {
+              if (item.stockId === stock.id) {
+                const dosisHa = parseFloat(item.cantidad);
+                const cantidadNecesaria = dosisHa * servicio.hectareas;
+
+                // Calcular si esta orden específica tiene stock insuficiente
+                const movimientosProducto = movimientosStock
+                  .filter(m => m.stockId === stock.id)
+                  .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+                const fechaOrden = new Date(servicio.createdAt);
+                let stockEnMomentoCreacion = 0;
+
+                for (const mov of movimientosProducto) {
+                  const fechaMov = new Date(mov.createdAt);
+                  if (fechaMov < fechaOrden) {
+                    if (mov.tipo === 'ENTRADA') {
+                      stockEnMomentoCreacion += mov.cantidad;
+                    } else {
+                      stockEnMomentoCreacion -= mov.cantidad;
+                    }
+                  }
+                }
+
+                const faltanteEnOrden = Math.max(0, cantidadNecesaria - stockEnMomentoCreacion);
+                const tieneStockInsuficiente = faltanteEnOrden > 0;
+
+                // Solo agregar si esta orden tiene stock insuficiente
+                if (tieneStockInsuficiente) {
+                  productosEnOrdenes.push({
+                    id: servicio.id,
+                    fecha: servicio.fecha,
+                    campo: servicio.campo?.nombre || 'N/A',
+                    lote: servicio.lote?.nombre || (servicio.descripcion?.includes('Lotes:')
+                      ? servicio.descripcion.split('Lotes:')[1].split('-')[0].trim()
+                      : 'N/A'),
+                    hectareas: servicio.hectareas,
+                    cantidad: cantidadNecesaria,
+                    producto: item.producto,
+                    unidad: item.unidad.split('/')[0],
+                  });
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Error procesando servicio:', error);
+          }
+        }
+
+        if (productosEnOrdenes.length > 0) {
+          const primerProducto = productosEnOrdenes[0];
+          const cantidadTotal = productosEnOrdenes.reduce((sum, p) => sum + p.cantidad, 0);
+
+          productosMap.set(stock.id, {
+            stockId: stock.id,
+            producto: primerProducto.producto,
+            cantidadTotal: cantidadTotal,
+            stockDisponible: stock.cantidad,
+            faltante: Math.abs(stock.cantidad), // El faltante es el valor absoluto del stock negativo
+            unidad: primerProducto.unidad,
+            servicios: productosEnOrdenes,
+          });
+        }
+      }
+
+      const productos = Array.from(productosMap.values());
 
       // Ordenar por faltante (mayor a menor)
       productos.sort((a, b) => b.faltante - a.faltante);

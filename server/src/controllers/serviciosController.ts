@@ -143,7 +143,7 @@ export const createServicio = async (req: AuthRequest, res: Response): Promise<v
 export const updateServicio = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { fecha, hectareas, costoPorHa, estado, ...rest } = servicioSchema.partial().parse(req.body);
+    const { fecha, hectareas, costoPorHa, estado, tipo, receta, ...rest } = servicioSchema.partial().parse(req.body);
 
     // Obtener el servicio actual
     const servicioActual = await prisma.servicio.findUnique({
@@ -155,7 +155,68 @@ export const updateServicio = async (req: AuthRequest, res: Response): Promise<v
       return;
     }
 
-    // Nota: El stock ahora se descuenta al crear el servicio, no al cambiar estado
+    // Si es una pulverización y se está modificando la receta o las hectáreas, ajustar stock
+    if (servicioActual.tipo === 'Pulverización' && servicioActual.receta && servicioActual.hectareas && (receta || hectareas)) {
+      const recetaAnterior = JSON.parse(servicioActual.receta);
+      const hectareasAnteriores = servicioActual.hectareas;
+      const nuevaReceta = receta ? JSON.parse(receta) : recetaAnterior;
+      const nuevasHectareas = hectareas !== undefined ? hectareas : hectareasAnteriores;
+
+      // PASO 1: Devolver TODO el stock de la receta anterior
+      for (const item of recetaAnterior) {
+        if (item.stockId) {
+          const dosisHa = parseFloat(item.cantidad);
+          const cantidadADevolver = dosisHa * hectareasAnteriores;
+
+          await prisma.stock.update({
+            where: { id: item.stockId },
+            data: {
+              cantidad: {
+                increment: cantidadADevolver,
+              },
+            },
+          });
+        }
+      }
+
+      // PASO 2: Descontar TODO el stock de la nueva receta
+      for (const item of nuevaReceta) {
+        if (item.stockId) {
+          const dosisHa = parseFloat(item.cantidad);
+          const cantidadNueva = dosisHa * nuevasHectareas;
+
+          await prisma.stock.update({
+            where: { id: item.stockId },
+            data: {
+              cantidad: {
+                decrement: cantidadNueva,
+              },
+            },
+          });
+
+          // Crear UN SOLO movimiento de ajuste neto
+          const cantidadAnteriorItem = recetaAnterior.find((i: any) => i.stockId === item.stockId);
+          const cantidadAnterior = cantidadAnteriorItem
+            ? parseFloat(cantidadAnteriorItem.cantidad) * hectareasAnteriores
+            : 0;
+
+          const diferencia = cantidadNueva - cantidadAnterior;
+
+          if (diferencia !== 0) {
+            await prisma.movimientoStock.create({
+              data: {
+                stockId: item.stockId,
+                tipo: diferencia > 0 ? 'SALIDA' : 'ENTRADA',
+                cantidad: Math.abs(diferencia),
+                motivo: 'Modificación de orden de pulverización',
+                servicioId: id,
+                observaciones: `Ajuste: ${diferencia > 0 ? 'aumentó' : 'disminuyó'} ${Math.abs(diferencia).toFixed(2)} ${item.unidad.split('/')[0]}`,
+              },
+            });
+          }
+        }
+      }
+    }
 
     // Calcular total automáticamente si se proporcionan hectareas y costoPorHa
     const total = hectareas && costoPorHa ? hectareas * costoPorHa : undefined;
@@ -164,6 +225,8 @@ export const updateServicio = async (req: AuthRequest, res: Response): Promise<v
       where: { id },
       data: {
         ...rest,
+        tipo,
+        receta,
         estado,
         fecha: fecha ? new Date(fecha) : undefined,
         hectareas,

@@ -682,7 +682,7 @@ export default function StockPage() {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Cantidad:</span>
-                <span className="font-bold text-lg">{item.cantidad} {item.unidad}</span>
+                <span className="font-bold text-lg">{item.cantidad.toFixed(1)} {item.unidad}</span>
               </div>
 
               {item.stockMinimo && (

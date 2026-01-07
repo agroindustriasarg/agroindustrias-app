@@ -23,6 +23,7 @@ export default function Servicios() {
   const [maquinarias, setMaquinarias] = useState<Maquinaria[]>([]);
   const [contratistas, setContratistas] = useState<Contratista[]>([]);
   const [stockItems, setStockItems] = useState<Stock[]>([]);
+  const [movimientosStock, setMovimientosStock] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -101,7 +102,21 @@ export default function Servicios() {
       setCampos(camposRes.data);
       setMaquinarias(maquinariasRes.data);
       setContratistas(contratistasRes.data);
-      setStockItems(stockRes.data.filter((item: Stock) => item.categoria === 'Agroquímicos'));
+
+      const agroquimicos = stockRes.data.filter((item: Stock) => item.categoria === 'Agroquímicos');
+      setStockItems(agroquimicos);
+
+      // Cargar todos los movimientos de stock de agroquímicos
+      const movimientos: any[] = [];
+      for (const stock of agroquimicos) {
+        try {
+          const movRes = await api.get(`/stock/${stock.id}/movimientos`);
+          movimientos.push(...movRes.data.map((m: any) => ({ ...m, stockId: stock.id })));
+        } catch (err) {
+          console.error(`Error cargando movimientos de ${stock.nombre}:`, err);
+        }
+      }
+      setMovimientosStock(movimientos);
     } catch (error) {
       console.error('Error al cargar datos:', error);
     } finally {
@@ -212,6 +227,30 @@ export default function Servicios() {
         if (formData.tipo === 'Pulverización') {
           dataToSend.caldo = formData.caldo ? parseFloat(formData.caldo) : undefined;
           dataToSend.receta = JSON.stringify(formData.productos);
+
+          // Validar stock disponible antes de crear (solo advertencia)
+          if (!editingId && formData.productos.length > 0 && formData.hectareas) {
+            const hectareas = parseFloat(formData.hectareas);
+            const productosInsuficientes: string[] = [];
+
+            for (const producto of formData.productos) {
+              const stock = stockItems.find(s => s.id === producto.stockId);
+              const cantidadNecesaria = parseFloat(producto.cantidad) * hectareas;
+
+              if (stock && stock.cantidad < cantidadNecesaria) {
+                productosInsuficientes.push(
+                  `${producto.producto}: necesita ${cantidadNecesaria.toFixed(2)} ${producto.unidad.split('/')[0]}, disponible ${stock.cantidad.toFixed(2)} ${producto.unidad.split('/')[0]}`
+                );
+              }
+            }
+
+            if (productosInsuficientes.length > 0) {
+              const mensaje = `ADVERTENCIA: Stock insuficiente para:\n\n${productosInsuficientes.join('\n')}\n\n¿Desea crear la orden de todas formas? El stock quedará en negativo.`;
+              if (!confirm(mensaje)) {
+                return;
+              }
+            }
+          }
         }
       } else {
         dataToSend.descripcion = formData.descripcion;
@@ -975,13 +1014,47 @@ export default function Servicios() {
                           const totalCantidad = cantidadPorHa * totalHectareas;
                           const unidadBase = item.unidad.split('/')[0];
 
+                          // Calcular stock disponible en el momento de creación de esta orden
+                          const stock = stockItems.find(s => s.id === item.stockId);
+                          const stockActual = stock ? stock.cantidad : 0;
+
+                          // Obtener todos los movimientos de este producto ordenados por fecha
+                          const movimientosProducto = movimientosStock
+                            .filter(m => m.stockId === item.stockId)
+                            .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+                          // Reconstruir el stock en el momento ANTES de crear esta orden
+                          const fechaOrden = new Date(servicio.createdAt);
+                          let stockEnMomentoCreacion = 0;
+
+                          for (const mov of movimientosProducto) {
+                            const fechaMov = new Date(mov.createdAt);
+                            if (fechaMov < fechaOrden) {
+                              // Movimiento anterior a esta orden
+                              if (mov.tipo === 'ENTRADA') {
+                                stockEnMomentoCreacion += mov.cantidad;
+                              } else {
+                                stockEnMomentoCreacion -= mov.cantidad;
+                              }
+                            }
+                          }
+
+                          // Verificar si había suficiente stock cuando se creó
+                          const faltante = Math.max(0, totalCantidad - stockEnMomentoCreacion);
+                          const hayInsuficiente = faltante > 0;
+
                           return (
-                            <div key={index} className="flex justify-between items-center text-xs px-1.5 py-1 rounded bg-gray-50">
+                            <div key={index} className={`flex justify-between items-center text-xs px-1.5 py-1 rounded ${hayInsuficiente ? 'bg-red-50 border border-red-200' : 'bg-gray-50'}`}>
                               <span className="font-medium text-xs">{item.producto}</span>
                               <div className="flex flex-col items-end">
                                 <span className="text-xs text-gray-600">
                                   {cantidadPorHa} {item.unidad} → {totalCantidad.toFixed(2)} {unidadBase} totales
                                 </span>
+                                {hayInsuficiente && (
+                                  <span className="text-xs text-red-600 font-semibold">
+                                    Faltan {faltante.toFixed(2)} {unidadBase} para realizar este trabajo
+                                  </span>
+                                )}
                               </div>
                             </div>
                           );

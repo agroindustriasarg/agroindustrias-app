@@ -164,7 +164,7 @@ export default function StockDetalle() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <p className="text-sm text-gray-600">Cantidad actual</p>
-              <p className="text-xl font-bold">{stock.cantidad} {stock.unidad}</p>
+              <p className="text-xl font-bold">{stock.cantidad.toFixed(1)} {stock.unidad}</p>
             </div>
             {stock.stockMinimo && (
               <div>
