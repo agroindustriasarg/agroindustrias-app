@@ -150,11 +150,11 @@ export default function StockDetalle() {
     <div>
       <div className="mb-6">
         <button
-          onClick={() => navigate('/stock')}
+          onClick={() => navigate('/stock', { state: { categoriaSeleccionada: stock.categoria } })}
           className="btn-secondary flex items-center space-x-2 mb-4"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Volver a Stock</span>
+          <span>Volver a {stock.categoria}</span>
         </button>
 
         <div className="card">

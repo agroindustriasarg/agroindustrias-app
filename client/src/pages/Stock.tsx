@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../services/apiWithCache';
 import { Stock } from '../types';
 import { Plus, Package, Trash2, TrendingUp, AlertTriangle, Fuel, Wrench, Droplet, Sprout, Gauge, Grid3x3 } from 'lucide-react';
@@ -15,6 +15,7 @@ const categorias = [
 
 export default function StockPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [stock, setStock] = useState<Stock[]>([]);
   const [maquinarias, setMaquinarias] = useState<any[]>([]);
   const [campos, setCampos] = useState<any[]>([]);
@@ -23,7 +24,9 @@ export default function StockPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [showMovimiento, setShowMovimiento] = useState<string | null>(null);
-  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string | null>(null);
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string | null>(
+    (location.state as any)?.categoriaSeleccionada || null
+  );
   const [formData, setFormData] = useState({
     nombre: '',
     categoria: '',
