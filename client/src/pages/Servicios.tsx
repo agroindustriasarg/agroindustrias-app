@@ -91,13 +91,19 @@ export default function Servicios() {
 
   const fetchData = async () => {
     try {
-      const [serviciosRes, camposRes, maquinariasRes, contratistasRes, stockRes] = await Promise.all([
+      // Cargar TODO en paralelo incluyendo movimientos
+      const [serviciosRes, camposRes, maquinariasRes, contratistasRes, stockRes, movimientosRes] = await Promise.all([
         api.get('/servicios'),
         api.get('/campos'),
         api.get('/maquinarias'),
         api.get('/contratistas'),
         api.get('/stock'),
+        api.get('/stock/movimientos/agroquimicos').catch(err => {
+          console.error('Error cargando movimientos de agroquímicos:', err);
+          return { data: [] };
+        }),
       ]);
+
       setServicios(serviciosRes.data);
       setCampos(camposRes.data);
       setMaquinarias(maquinariasRes.data);
@@ -105,15 +111,7 @@ export default function Servicios() {
 
       const agroquimicos = stockRes.data.filter((item: Stock) => item.categoria === 'Agroquímicos');
       setStockItems(agroquimicos);
-
-      // Cargar todos los movimientos de agroquímicos en una sola llamada
-      try {
-        const movRes = await api.get('/stock/movimientos/agroquimicos');
-        setMovimientosStock(movRes.data);
-      } catch (err) {
-        console.error('Error cargando movimientos de agroquímicos:', err);
-        setMovimientosStock([]);
-      }
+      setMovimientosStock(movimientosRes.data);
     } catch (error) {
       console.error('Error al cargar datos:', error);
     } finally {
