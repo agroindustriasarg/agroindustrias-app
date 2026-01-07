@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { MapPin, Truck, Package, DollarSign, FileText, Wrench, Users, Wallet, BarChart3, ShoppingCart, UserCog } from 'lucide-react';
+import { MapPin, Truck, Package, DollarSign, FileText, Wrench, Users, Wallet, BarChart3, ShoppingCart, UserCog, Calculator } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const modules = [
@@ -66,6 +66,14 @@ const modules = [
     path: '/cuentas',
     color: 'bg-emerald-500',
     roles: ['ADMIN'], // Admin, Contador tienen todo
+  },
+  {
+    name: 'Contabilidad',
+    icon: Calculator,
+    description: 'Análisis contable y financiero',
+    path: '/contabilidad',
+    color: 'bg-pink-500',
+    roles: ['ADMIN'], // Solo Admin
   },
   {
     name: 'Rendimientos',

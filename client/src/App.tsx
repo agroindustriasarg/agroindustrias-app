@@ -14,6 +14,7 @@ import Compras from './pages/Compras';
 import Gastos from './pages/Gastos';
 import Cuentas from './pages/Cuentas';
 import CuentaDetalle from './pages/CuentaDetalle';
+import Contabilidad from './pages/Contabilidad';
 import Rendimientos from './pages/Rendimientos';
 import Reportes from './pages/Reportes';
 import Usuarios from './pages/Usuarios';
@@ -127,6 +128,14 @@ function App() {
             element={
               <PrivateRoute>
                 <CuentaDetalle />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/contabilidad"
+            element={
+              <PrivateRoute>
+                <Contabilidad />
               </PrivateRoute>
             }
           />
