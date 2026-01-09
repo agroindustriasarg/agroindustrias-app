@@ -12,6 +12,7 @@ import rendimientosRoutes from './rendimientos.js';
 import usuariosRoutes from './usuarios.js';
 import facturasRoutes from './facturas.js';
 import pagosRoutes from './pagos.js';
+import chequesRoutes from './cheques.js';
 
 const router = Router();
 
@@ -28,5 +29,6 @@ router.use('/rendimientos', rendimientosRoutes);
 router.use('/usuarios', usuariosRoutes);
 router.use('/facturas', facturasRoutes);
 router.use('/pagos', pagosRoutes);
+router.use('/cheques', chequesRoutes);
 
 export default router;

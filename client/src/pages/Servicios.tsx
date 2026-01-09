@@ -52,6 +52,7 @@ export default function Servicios() {
     unidadDosis: 'kg/ha',
     caldo: '',
     productos: [] as Array<{ stockId: string; producto: string; cantidad: string; unidad: string }>,
+    facturable: true,
   });
 
   useEffect(() => {
@@ -181,6 +182,7 @@ export default function Servicios() {
           unidadDosis: servicio.unidadDosis || 'kg/ha',
           caldo: servicio.caldo?.toString() || '',
           productos: servicio.receta ? JSON.parse(servicio.receta) : [],
+          facturable: servicio.facturable !== undefined ? servicio.facturable : true,
         });
         setEditingId(servicio.id);
         setShowForm(true);
@@ -203,6 +205,7 @@ export default function Servicios() {
         loteId: formData.lotesIds[0] || undefined,
         maquinariaId: formData.maquinariaId || undefined,
         contratistaId: formData.contratistaId || undefined,
+        facturable: formData.facturable,
       };
 
       // Para tipos con lotes múltiples, enviar todos los lotes seleccionados en la descripción
@@ -277,6 +280,7 @@ export default function Servicios() {
         dosisKgHa: '',
         unidadDosis: 'kg/ha',
         caldo: '',
+        facturable: true,
         productos: [],
       });
       fetchData();
@@ -842,6 +846,18 @@ export default function Servicios() {
                   className="input"
                   placeholder="0.00"
                 />
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="facturable"
+                  checked={formData.facturable}
+                  onChange={(e) => setFormData({ ...formData, facturable: e.target.checked })}
+                  className="rounded border-gray-300"
+                />
+                <label htmlFor="facturable" className="text-sm font-medium text-gray-700">
+                  Facturable (marque si este servicio debe poder facturarse)
+                </label>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

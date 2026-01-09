@@ -17,12 +17,44 @@ interface MovimientoStock {
   };
 }
 
+interface Servicio {
+  id: string;
+  tipo: string;
+  fecha: string;
+  descripcion?: string;
+  hectareas?: number;
+  costoPorHa?: number;
+  total?: number;
+  moneda: string;
+  estado: string;
+  campo: {
+    id: string;
+    nombre: string;
+  };
+  lote?: {
+    id: string;
+    nombre: string;
+  };
+  contratista?: {
+    id: string;
+    nombre: string;
+    apellido?: string;
+  };
+}
+
 interface FacturaItem {
   id: string;
-  movimientoStockId: string;
+  movimientoStockId?: string;
+  stockId?: string;
+  cantidad: number;
   precioUnitario: number;
   precioTotal: number;
-  movimientoStock: MovimientoStock;
+  movimientoStock?: MovimientoStock;
+  stock?: {
+    id: string;
+    nombre: string;
+    unidad: string;
+  };
 }
 
 interface Factura {
@@ -32,23 +64,41 @@ interface Factura {
   proveedor: string;
   tipoFactura: string;
   moneda: string;
+  subtotal: number;
+  iva105: number;
+  iva21: number;
   total: number;
   formaPago: string;
   fechaPago?: string;
   estado: string;
+  tieneRemitos: boolean;
+  tipoCambio?: number;
   observaciones?: string;
   items: FacturaItem[];
+  servicios?: Servicio[];
   createdAt: string;
+}
+
+interface ProductoPrecio {
+  stockId: string;
+  nombre: string;
+  cantidad: number;
+  unidad: string;
+  precioUnitario: number;
 }
 
 export default function Facturas() {
   const navigate = useNavigate();
   const [facturas, setFacturas] = useState<Factura[]>([]);
   const [remitosSinFactura, setRemitosSinFactura] = useState<MovimientoStock[]>([]);
+  const [serviciosSinFactura, setServiciosSinFactura] = useState<Servicio[]>([]);
   const [loading, setLoading] = useState(true);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [editando, setEditando] = useState<string | null>(null);
   const [filtroEstado, setFiltroEstado] = useState<'TODAS' | 'PENDIENTE' | 'PAGADA'>('TODAS');
+
+  // Modo de factura: 'remitos', 'servicios', o 'simple'
+  const [modoFactura, setModoFactura] = useState<'remitos' | 'servicios' | 'simple'>('simple');
 
   // Estado del formulario
   const [numeroFactura, setNumeroFactura] = useState('');
@@ -60,11 +110,23 @@ export default function Facturas() {
   const [fechaPago, setFechaPago] = useState('');
   const [estado, setEstado] = useState('PENDIENTE');
   const [observaciones, setObservaciones] = useState('');
-  const [remitosSeleccionados, setRemitosSeleccionados] = useState<{[key: string]: number}>({});
+
+  // Para facturas con remitos
+  const [remitosSeleccionados, setRemitosSeleccionados] = useState<string[]>([]);
+  const [productosPrecios, setProductosPrecios] = useState<{[remitoId: string]: {[stockId: string]: ProductoPrecio}}>({});
+
+  // Para facturas con servicios
+  const [serviciosSeleccionados, setServiciosSeleccionados] = useState<string[]>([]);
+
+  // Para facturas simples (sin remitos ni servicios)
+  const [subtotal, setSubtotal] = useState('');
+  const [tipoIva, setTipoIva] = useState<'SIN_IVA' | 'IVA_105' | 'IVA_21'>('SIN_IVA');
+  const [tipoCambio, setTipoCambio] = useState('');
 
   useEffect(() => {
     fetchFacturas();
     fetchRemitosSinFactura();
+    fetchServiciosSinFactura();
   }, []);
 
   const fetchFacturas = async () => {
@@ -87,34 +149,207 @@ export default function Facturas() {
     }
   };
 
+  const fetchServiciosSinFactura = async () => {
+    try {
+      const response = await api.get('/facturas/servicios/sin-factura');
+      setServiciosSinFactura(response.data);
+    } catch (error) {
+      console.error('Error al cargar servicios sin factura:', error);
+    }
+  };
+
+  const handleToggleRemito = (remitoId: string) => {
+    setRemitosSeleccionados(prev => {
+      if (prev.includes(remitoId)) {
+        // Remover remito
+        const newProductosPrecios = { ...productosPrecios };
+        delete newProductosPrecios[remitoId];
+        setProductosPrecios(newProductosPrecios);
+        return prev.filter(id => id !== remitoId);
+      } else {
+        // Agregar remito e inicializar sus productos
+        const remito = remitosSinFactura.find(r => r.id === remitoId);
+        if (remito) {
+          const newProductosPrecios = { ...productosPrecios };
+          newProductosPrecios[remitoId] = {
+            [remito.stockId]: {
+              stockId: remito.stockId,
+              nombre: remito.stock.nombre,
+              cantidad: remito.cantidad,
+              unidad: remito.stock.unidad,
+              precioUnitario: 0
+            }
+          };
+          setProductosPrecios(newProductosPrecios);
+        }
+        return [...prev, remitoId];
+      }
+    });
+  };
+
+  const handleCambiarPrecioProducto = (remitoId: string, stockId: string, precioUnitario: number) => {
+    setProductosPrecios(prev => ({
+      ...prev,
+      [remitoId]: {
+        ...prev[remitoId],
+        [stockId]: {
+          ...prev[remitoId][stockId],
+          precioUnitario
+        }
+      }
+    }));
+  };
+
+  const handleToggleServicio = (servicioId: string) => {
+    setServiciosSeleccionados(prev => {
+      if (prev.includes(servicioId)) {
+        return prev.filter(id => id !== servicioId);
+      } else {
+        return [...prev, servicioId];
+      }
+    });
+  };
+
+  const calcularIva = (subtotalBase: number) => {
+    if (tipoIva === 'IVA_105') {
+      return subtotalBase * 0.105;
+    } else if (tipoIva === 'IVA_21') {
+      return subtotalBase * 0.21;
+    }
+    return 0;
+  };
+
+  const calcularTotalFactura = () => {
+    if (modoFactura === 'remitos') {
+      let total = 0;
+      Object.entries(productosPrecios).forEach(([_, productos]) => {
+        Object.values(productos).forEach(prod => {
+          total += prod.cantidad * prod.precioUnitario;
+        });
+      });
+      return total;
+    } else if (modoFactura === 'servicios') {
+      let totalServicios = 0;
+      serviciosSeleccionados.forEach(servicioId => {
+        const servicio = serviciosSinFactura.find(s => s.id === servicioId);
+        if (servicio && servicio.total) {
+          totalServicios += servicio.total;
+        }
+      });
+
+      // Si es USD, aplicar tipo de cambio al total de servicios
+      if (moneda === 'USD') {
+        const tc = parseFloat(tipoCambio) || 0;
+        totalServicios = totalServicios * tc;
+      }
+
+      const iva = calcularIva(totalServicios);
+      return totalServicios + iva;
+    } else {
+      let sub = parseFloat(subtotal) || 0;
+
+      // Si es USD, aplicar tipo de cambio al subtotal
+      if (moneda === 'USD') {
+        const tc = parseFloat(tipoCambio) || 0;
+        sub = sub * tc;
+      }
+
+      const iva = calcularIva(sub);
+      return sub + iva;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (Object.keys(remitosSeleccionados).length === 0) {
-      alert('Debes seleccionar al menos un remito');
-      return;
-    }
-
-    const totalCalculado = Object.values(remitosSeleccionados).reduce((sum, val) => sum + val, 0);
-
-    const items = Object.entries(remitosSeleccionados).map(([movimientoStockId, precioTotal]) => ({
-      movimientoStockId,
-      precioTotal
-    }));
-
-    const data = {
+    let data: any = {
       numeroFactura,
       fechaEmision,
       proveedor,
       tipoFactura,
       moneda,
-      total: totalCalculado,
       formaPago,
       fechaPago: formaPago === 'A pagar en fecha' ? fechaPago : null,
       estado,
       observaciones,
-      items
+      tieneRemitos: modoFactura === 'remitos',
+      serviciosIds: []
     };
+
+    if (modoFactura === 'remitos') {
+      // Factura con remitos
+      if (remitosSeleccionados.length === 0) {
+        alert('Debes seleccionar al menos un remito');
+        return;
+      }
+
+      const items: any[] = [];
+      Object.entries(productosPrecios).forEach(([remitoId, productos]) => {
+        Object.values(productos).forEach(prod => {
+          items.push({
+            movimientoStockId: remitoId,
+            stockId: prod.stockId,
+            cantidad: prod.cantidad,
+            precioUnitario: prod.precioUnitario
+          });
+        });
+      });
+
+      data.items = items;
+      data.subtotal = 0;
+      data.iva105 = 0;
+      data.iva21 = 0;
+      data.total = calcularTotalFactura();
+    } else if (modoFactura === 'servicios') {
+      // Factura con servicios
+      if (serviciosSeleccionados.length === 0) {
+        alert('Debes seleccionar al menos un servicio');
+        return;
+      }
+
+      let totalServicios = 0;
+      serviciosSeleccionados.forEach(servicioId => {
+        const servicio = serviciosSinFactura.find(s => s.id === servicioId);
+        if (servicio && servicio.total) {
+          totalServicios += servicio.total;
+        }
+      });
+
+      // Si es USD, aplicar tipo de cambio
+      let subtotalFinal = totalServicios;
+      if (moneda === 'USD') {
+        const tc = parseFloat(tipoCambio) || 0;
+        subtotalFinal = totalServicios * tc;
+      }
+
+      const ivaCalculado = calcularIva(subtotalFinal);
+
+      data.items = [];
+      data.serviciosIds = serviciosSeleccionados;
+      data.subtotal = subtotalFinal;
+      data.iva105 = tipoIva === 'IVA_105' ? ivaCalculado : 0;
+      data.iva21 = tipoIva === 'IVA_21' ? ivaCalculado : 0;
+      data.tipoCambio = moneda === 'USD' ? (parseFloat(tipoCambio) || 0) : null;
+      data.total = calcularTotalFactura();
+    } else {
+      // Factura simple (sin remitos ni servicios)
+      let sub = parseFloat(subtotal) || 0;
+
+      // Si es USD, aplicar tipo de cambio
+      if (moneda === 'USD') {
+        const tc = parseFloat(tipoCambio) || 0;
+        sub = sub * tc;
+      }
+
+      const ivaCalculado = calcularIva(sub);
+
+      data.items = [];
+      data.subtotal = sub;
+      data.iva105 = tipoIva === 'IVA_105' ? ivaCalculado : 0;
+      data.iva21 = tipoIva === 'IVA_21' ? ivaCalculado : 0;
+      data.tipoCambio = moneda === 'USD' ? (parseFloat(tipoCambio) || 0) : null;
+      data.total = calcularTotalFactura();
+    }
 
     try {
       if (editando) {
@@ -125,6 +360,7 @@ export default function Facturas() {
       resetFormulario();
       fetchFacturas();
       fetchRemitosSinFactura();
+      fetchServiciosSinFactura();
     } catch (error) {
       alert('Error al guardar factura');
       console.error('Error al guardar factura:', error);
@@ -143,11 +379,63 @@ export default function Facturas() {
     setEstado(factura.estado);
     setObservaciones(factura.observaciones || '');
 
-    const remitos: {[key: string]: number} = {};
-    factura.items.forEach(item => {
-      remitos[item.movimientoStockId] = item.precioTotal;
-    });
-    setRemitosSeleccionados(remitos);
+    // Determinar el modo según el contenido de la factura
+    if (factura.tieneRemitos && factura.items && factura.items.length > 0) {
+      setModoFactura('remitos');
+      // Reconstruir remitos seleccionados y precios
+      const remitosIds: string[] = [];
+      const productosData: {[remitoId: string]: {[stockId: string]: ProductoPrecio}} = {};
+
+      factura.items.forEach(item => {
+        if (item.movimientoStockId && item.stockId && item.stock) {
+          if (!remitosIds.includes(item.movimientoStockId)) {
+            remitosIds.push(item.movimientoStockId);
+          }
+
+          if (!productosData[item.movimientoStockId]) {
+            productosData[item.movimientoStockId] = {};
+          }
+
+          productosData[item.movimientoStockId][item.stockId] = {
+            stockId: item.stockId,
+            nombre: item.stock.nombre,
+            cantidad: item.cantidad,
+            unidad: item.stock.unidad,
+            precioUnitario: item.precioUnitario
+          };
+        }
+      });
+
+      setRemitosSeleccionados(remitosIds);
+      setProductosPrecios(productosData);
+    } else if (factura.servicios && factura.servicios.length > 0) {
+      setModoFactura('servicios');
+      setServiciosSeleccionados(factura.servicios.map(s => s.id));
+      setSubtotal(factura.subtotal ? factura.subtotal.toString() : '');
+      setTipoCambio(factura.tipoCambio ? factura.tipoCambio.toString() : '');
+
+      // Determinar tipo de IVA
+      if (factura.iva105 > 0) {
+        setTipoIva('IVA_105');
+      } else if (factura.iva21 > 0) {
+        setTipoIva('IVA_21');
+      } else {
+        setTipoIva('SIN_IVA');
+      }
+    } else {
+      setModoFactura('simple');
+      setSubtotal(factura.subtotal ? factura.subtotal.toString() : '');
+      setTipoCambio(factura.tipoCambio ? factura.tipoCambio.toString() : '');
+
+      // Determinar tipo de IVA
+      if (factura.iva105 > 0) {
+        setTipoIva('IVA_105');
+      } else if (factura.iva21 > 0) {
+        setTipoIva('IVA_21');
+      } else {
+        setTipoIva('SIN_IVA');
+      }
+    }
 
     setMostrarFormulario(true);
   };
@@ -159,6 +447,7 @@ export default function Facturas() {
       await api.delete(`/facturas/${id}`);
       fetchFacturas();
       fetchRemitosSinFactura();
+      fetchServiciosSinFactura();
     } catch (error) {
       alert('Error al eliminar factura');
       console.error('Error al eliminar factura:', error);
@@ -193,25 +482,13 @@ export default function Facturas() {
     setFechaPago('');
     setEstado('PENDIENTE');
     setObservaciones('');
-    setRemitosSeleccionados({});
-  };
-
-  const handleToggleRemito = (remitoId: string, precioInicial: number = 0) => {
-    setRemitosSeleccionados(prev => {
-      if (prev[remitoId]) {
-        const { [remitoId]: _, ...rest } = prev;
-        return rest;
-      } else {
-        return { ...prev, [remitoId]: precioInicial };
-      }
-    });
-  };
-
-  const handleCambiarPrecio = (remitoId: string, precio: number) => {
-    setRemitosSeleccionados(prev => ({
-      ...prev,
-      [remitoId]: precio
-    }));
+    setRemitosSeleccionados([]);
+    setProductosPrecios({});
+    setServiciosSeleccionados([]);
+    setModoFactura('simple');
+    setSubtotal('');
+    setTipoIva('SIN_IVA');
+    setTipoCambio('');
   };
 
   const formatFecha = (fecha: string) => {
@@ -290,6 +567,42 @@ export default function Facturas() {
               </h2>
 
               <form onSubmit={handleSubmit}>
+                {/* Selector de modo */}
+                {!editando && (
+                  <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                    <label className="label">Tipo de Factura</label>
+                    <div className="flex space-x-4">
+                      <label className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          checked={modoFactura === 'remitos'}
+                          onChange={() => setModoFactura('remitos')}
+                          className="form-radio"
+                        />
+                        <span>Con Remitos (agroquímicos)</span>
+                      </label>
+                      <label className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          checked={modoFactura === 'servicios'}
+                          onChange={() => setModoFactura('servicios')}
+                          className="form-radio"
+                        />
+                        <span>Con Servicios (siembra, pulverización, etc.)</span>
+                      </label>
+                      <label className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          checked={modoFactura === 'simple'}
+                          onChange={() => setModoFactura('simple')}
+                          className="form-radio"
+                        />
+                        <span>Simple (sin vincular)</span>
+                      </label>
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   <div>
                     <label className="label">Número de Factura</label>
@@ -399,78 +712,306 @@ export default function Facturas() {
                   />
                 </div>
 
-                {/* Selección de Remitos */}
-                <div className="mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center space-x-2">
-                    <Receipt className="w-5 h-5" />
-                    <span>Remitos a incluir</span>
-                  </h3>
+                {/* Tipo de Cambio (solo para USD en modos servicios o simple) */}
+                {moneda === 'USD' && modoFactura !== 'remitos' && (
+                  <div className="mb-4">
+                    <label className="label">Tipo de Cambio (USD → ARS)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={tipoCambio}
+                      onChange={(e) => setTipoCambio(e.target.value)}
+                      className="input"
+                      placeholder="0.00"
+                      required
+                    />
+                  </div>
+                )}
 
-                  {remitosSinFactura.length === 0 ? (
-                    <div className="text-center py-4 text-gray-500">
-                      No hay remitos sin factura asignada
-                    </div>
-                  ) : (
-                    <div className="space-y-2 max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-3">
-                      {remitosSinFactura.map(remito => (
-                        <div
-                          key={remito.id}
-                          className={`p-3 border rounded-lg transition-colors ${
-                            remitosSeleccionados[remito.id]
-                              ? 'border-primary-500 bg-primary-50'
-                              : 'border-gray-200 hover:bg-gray-50'
-                          }`}
-                        >
-                          <div className="flex items-start space-x-3">
-                            <input
-                              type="checkbox"
-                              checked={!!remitosSeleccionados[remito.id]}
-                              onChange={() => handleToggleRemito(remito.id, 0)}
-                              className="mt-1"
-                            />
-                            <div className="flex-1">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <p className="font-medium text-gray-900">{remito.stock.nombre}</p>
-                                  <p className="text-sm text-gray-600">
-                                    Remito: {remito.numeroRemito} | Proveedor: {remito.proveedor}
-                                  </p>
-                                  <p className="text-sm text-gray-600">
-                                    Cantidad: {remito.cantidad} {remito.stock.unidad}
-                                  </p>
+                {/* Contenido según el modo */}
+                {modoFactura === 'remitos' ? (
+                  // MODO CON REMITOS
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center space-x-2">
+                      <Receipt className="w-5 h-5" />
+                      <span>Remitos y Productos a incluir</span>
+                    </h3>
+
+                    {remitosSinFactura.length === 0 ? (
+                      <div className="text-center py-4 text-gray-500">
+                        No hay remitos sin factura asignada
+                      </div>
+                    ) : (
+                      <div className="space-y-3 max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-3">
+                        {remitosSinFactura.map(remito => (
+                          <div
+                            key={remito.id}
+                            className={`p-3 border rounded-lg transition-colors ${
+                              remitosSeleccionados.includes(remito.id)
+                                ? 'border-primary-500 bg-primary-50'
+                                : 'border-gray-200 hover:bg-gray-50'
+                            }`}
+                          >
+                            <div className="flex items-start space-x-3">
+                              <input
+                                type="checkbox"
+                                checked={remitosSeleccionados.includes(remito.id)}
+                                onChange={() => handleToggleRemito(remito.id)}
+                                className="mt-1"
+                              />
+                              <div className="flex-1">
+                                <div className="flex items-center justify-between mb-2">
+                                  <div>
+                                    <p className="font-medium text-gray-900">
+                                      Remito: {remito.numeroRemito}
+                                    </p>
+                                    <p className="text-sm text-gray-600">
+                                      Proveedor: {remito.proveedor} | Fecha: {formatFecha(remito.fecha)}
+                                    </p>
+                                  </div>
                                 </div>
-                                {remitosSeleccionados[remito.id] !== undefined && (
-                                  <div className="w-48">
-                                    <label className="text-xs text-gray-600">Precio Total</label>
-                                    <input
-                                      type="number"
-                                      step="0.01"
-                                      value={remitosSeleccionados[remito.id]}
-                                      onChange={(e) => handleCambiarPrecio(remito.id, parseFloat(e.target.value) || 0)}
-                                      className="input mt-1"
-                                      placeholder="0.00"
-                                    />
+
+                                {remitosSeleccionados.includes(remito.id) && productosPrecios[remito.id] && (
+                                  <div className="mt-3 space-y-2 bg-white rounded p-3 border border-gray-200">
+                                    <p className="text-sm font-medium text-gray-700 mb-2">Productos en este remito:</p>
+                                    {Object.values(productosPrecios[remito.id]).map(producto => (
+                                      <div key={producto.stockId} className="flex items-center space-x-3 bg-gray-50 p-2 rounded">
+                                        <div className="flex-1">
+                                          <p className="text-sm font-medium text-gray-900">{producto.nombre}</p>
+                                          <p className="text-xs text-gray-600">
+                                            Cantidad: {producto.cantidad} {producto.unidad}
+                                          </p>
+                                        </div>
+                                        <div className="w-32">
+                                          <label className="text-xs text-gray-600">Precio Unitario</label>
+                                          <input
+                                            type="number"
+                                            step="0.01"
+                                            value={producto.precioUnitario}
+                                            onChange={(e) => handleCambiarPrecioProducto(
+                                              remito.id,
+                                              producto.stockId,
+                                              parseFloat(e.target.value) || 0
+                                            )}
+                                            className="input mt-1 text-sm"
+                                            placeholder="0.00"
+                                          />
+                                        </div>
+                                        <div className="w-32 text-right">
+                                          <p className="text-xs text-gray-600">Total</p>
+                                          <p className="text-sm font-semibold text-gray-900">
+                                            {formatMoneda(producto.cantidad * producto.precioUnitario, moneda)}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    ))}
                                   </div>
                                 )}
                               </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                        ))}
+                      </div>
+                    )}
 
-                  {Object.keys(remitosSeleccionados).length > 0 && (
-                    <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                      <p className="text-lg font-semibold text-gray-900">
-                        Total de la Factura: {formatMoneda(
-                          Object.values(remitosSeleccionados).reduce((sum, val) => sum + val, 0),
-                          moneda
-                        )}
-                      </p>
+                    {remitosSeleccionados.length > 0 && (
+                      <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                        <p className="text-lg font-semibold text-gray-900">
+                          Total de la Factura: {formatMoneda(calcularTotalFactura(), moneda)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ) : modoFactura === 'servicios' ? (
+                  // MODO CON SERVICIOS
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center space-x-2">
+                      <Receipt className="w-5 h-5" />
+                      <span>Servicios Realizados a Facturar</span>
+                    </h3>
+
+                    {serviciosSinFactura.length === 0 ? (
+                      <div className="text-center py-4 text-gray-500">
+                        No hay servicios realizados sin facturar
+                      </div>
+                    ) : (
+                      <div className="space-y-3 max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-3">
+                        {serviciosSinFactura.map(servicio => (
+                          <div
+                            key={servicio.id}
+                            className={`p-3 border rounded-lg transition-colors ${
+                              serviciosSeleccionados.includes(servicio.id)
+                                ? 'border-primary-500 bg-primary-50'
+                                : 'border-gray-200 hover:bg-gray-50'
+                            }`}
+                          >
+                            <div className="flex items-start space-x-3">
+                              <input
+                                type="checkbox"
+                                checked={serviciosSeleccionados.includes(servicio.id)}
+                                onChange={() => handleToggleServicio(servicio.id)}
+                                className="mt-1"
+                              />
+                              <div className="flex-1">
+                                <div className="flex items-center justify-between mb-2">
+                                  <div>
+                                    <p className="font-medium text-gray-900">
+                                      {servicio.tipo}
+                                    </p>
+                                    <p className="text-sm text-gray-600">
+                                      Campo: {servicio.campo.nombre} {servicio.lote ? `| Lote: ${servicio.lote.nombre}` : ''}
+                                    </p>
+                                    <p className="text-sm text-gray-600">
+                                      Fecha: {formatFecha(servicio.fecha)}
+                                      {servicio.contratista && ` | Contratista: ${servicio.contratista.nombre} ${servicio.contratista.apellido || ''}`}
+                                    </p>
+                                    {servicio.hectareas && servicio.costoPorHa && (
+                                      <p className="text-sm text-gray-600">
+                                        {servicio.hectareas} ha × {formatMoneda(servicio.costoPorHa, servicio.moneda)}/ha
+                                      </p>
+                                    )}
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-lg font-bold text-gray-900">
+                                      {servicio.total ? formatMoneda(servicio.total, servicio.moneda) : 'Sin precio'}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {serviciosSeleccionados.length > 0 && (
+                      <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                        <h4 className="text-md font-semibold text-gray-900 mb-2">Desglose de Facturación</h4>
+
+                        <div className="mb-4">
+                          <label className="label">Tipo de IVA</label>
+                          <select
+                            value={tipoIva}
+                            onChange={(e) => setTipoIva(e.target.value as 'SIN_IVA' | 'IVA_105' | 'IVA_21')}
+                            className="input"
+                          >
+                            <option value="SIN_IVA">Sin IVA</option>
+                            <option value="IVA_105">IVA 10.5%</option>
+                            <option value="IVA_21">IVA 21%</option>
+                          </select>
+                        </div>
+
+                        <div className="border-t pt-3">
+                          {(() => {
+                            let totalServicios = 0;
+                            serviciosSeleccionados.forEach(servicioId => {
+                              const servicio = serviciosSinFactura.find(s => s.id === servicioId);
+                              if (servicio && servicio.total) {
+                                totalServicios += servicio.total;
+                              }
+                            });
+
+                            let subtotalFinal = totalServicios;
+                            if (moneda === 'USD') {
+                              const tc = parseFloat(tipoCambio) || 0;
+                              subtotalFinal = totalServicios * tc;
+                            }
+
+                            const ivaCalculado = calcularIva(subtotalFinal);
+
+                            return (
+                              <>
+                                <div className="flex justify-between items-center text-sm mb-1">
+                                  <span className="text-gray-600">Subtotal:</span>
+                                  <span className="font-medium">{formatMoneda(subtotalFinal, 'ARS')}</span>
+                                </div>
+                                {tipoIva !== 'SIN_IVA' && (
+                                  <div className="flex justify-between items-center text-sm mb-1">
+                                    <span className="text-gray-600">
+                                      {tipoIva === 'IVA_105' ? 'IVA 10.5%:' : 'IVA 21%:'}
+                                    </span>
+                                    <span className="font-medium">{formatMoneda(ivaCalculado, 'ARS')}</span>
+                                  </div>
+                                )}
+                                <div className="flex justify-between items-center text-lg font-bold border-t pt-2">
+                                  <span>Total:</span>
+                                  <span className="text-primary-600">{formatMoneda(calcularTotalFactura(), 'ARS')}</span>
+                                </div>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  // MODO SIMPLE (SIN REMITOS NI SERVICIOS)
+                  <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Montos de la Factura</h3>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <label className="label">Subtotal (sin IVA)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={subtotal}
+                          onChange={(e) => setSubtotal(e.target.value)}
+                          className="input"
+                          placeholder="0.00"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="label">Tipo de IVA</label>
+                        <select
+                          value={tipoIva}
+                          onChange={(e) => setTipoIva(e.target.value as 'SIN_IVA' | 'IVA_105' | 'IVA_21')}
+                          className="input"
+                        >
+                          <option value="SIN_IVA">Sin IVA</option>
+                          <option value="IVA_105">IVA 10.5%</option>
+                          <option value="IVA_21">IVA 21%</option>
+                        </select>
+                      </div>
                     </div>
-                  )}
-                </div>
+
+                    <div className="border-t pt-3">
+                      {(() => {
+                        let sub = parseFloat(subtotal) || 0;
+
+                        // Si es USD, aplicar tipo de cambio
+                        if (moneda === 'USD') {
+                          const tc = parseFloat(tipoCambio) || 0;
+                          sub = sub * tc;
+                        }
+
+                        const ivaCalculado = calcularIva(sub);
+
+                        return (
+                          <>
+                            <div className="flex justify-between items-center text-sm mb-1">
+                              <span className="text-gray-600">Subtotal:</span>
+                              <span className="font-medium">{formatMoneda(sub, 'ARS')}</span>
+                            </div>
+                            {tipoIva !== 'SIN_IVA' && (
+                              <div className="flex justify-between items-center text-sm mb-1">
+                                <span className="text-gray-600">
+                                  {tipoIva === 'IVA_105' ? 'IVA 10.5%:' : 'IVA 21%:'}
+                                </span>
+                                <span className="font-medium">{formatMoneda(ivaCalculado, 'ARS')}</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between items-center text-lg font-bold border-t pt-2">
+                              <span>Total:</span>
+                              <span className="text-primary-600">{formatMoneda(calcularTotalFactura(), 'ARS')}</span>
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex justify-end space-x-3">
                   <button
@@ -519,16 +1060,13 @@ export default function Facturas() {
                     Tipo
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Total
+                    Montos
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Forma de Pago
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Estado
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Remitos
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Acciones
@@ -540,6 +1078,11 @@ export default function Facturas() {
                   <tr key={factura.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
                       {factura.numeroFactura}
+                      {factura.tieneRemitos && (
+                        <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                          Con Remitos
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm">
                       <div className="flex items-center space-x-1">
@@ -553,8 +1096,27 @@ export default function Facturas() {
                     <td className="px-4 py-3 whitespace-nowrap text-sm">
                       {factura.tipoFactura}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold">
-                      {formatMoneda(factura.total, factura.moneda)}
+                    <td className="px-4 py-3 text-sm">
+                      <div className="space-y-1">
+                        {factura.subtotal > 0 && (
+                          <div className="text-xs text-gray-600">
+                            Subtotal: {formatMoneda(factura.subtotal, factura.moneda)}
+                          </div>
+                        )}
+                        {factura.iva105 > 0 && (
+                          <div className="text-xs text-gray-600">
+                            IVA 10.5%: {formatMoneda(factura.iva105, factura.moneda)}
+                          </div>
+                        )}
+                        {factura.iva21 > 0 && (
+                          <div className="text-xs text-gray-600">
+                            IVA 21%: {formatMoneda(factura.iva21, factura.moneda)}
+                          </div>
+                        )}
+                        <div className="font-semibold">
+                          Total: {formatMoneda(factura.total, factura.moneda)}
+                        </div>
+                      </div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm">
                       {factura.formaPago}
@@ -582,19 +1144,6 @@ export default function Facturas() {
                           <><XCircle className="w-3 h-3" /><span>Pendiente</span></>
                         )}
                       </button>
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      <div className="space-y-1">
-                        {factura.items.map(item => (
-                          <div key={item.id} className="text-xs">
-                            <span className="font-medium">{item.movimientoStock.stock.nombre}</span>
-                            <span className="text-gray-500"> (Remito: {item.movimientoStock.numeroRemito})</span>
-                            <div className="text-gray-600">
-                              {item.movimientoStock.cantidad} {item.movimientoStock.stock.unidad} × {formatMoneda(item.precioUnitario, factura.moneda)} = {formatMoneda(item.precioTotal, factura.moneda)}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm">
                       <div className="flex items-center space-x-2">

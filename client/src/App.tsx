@@ -17,6 +17,7 @@ import CuentaDetalle from './pages/CuentaDetalle';
 import Contabilidad from './pages/Contabilidad';
 import Facturas from './pages/Facturas';
 import PagoProveedores from './pages/PagoProveedores';
+import Chequera from './pages/Chequera';
 import Rendimientos from './pages/Rendimientos';
 import Reportes from './pages/Reportes';
 import Usuarios from './pages/Usuarios';
@@ -154,6 +155,14 @@ function App() {
             element={
               <PrivateRoute>
                 <PagoProveedores />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/contabilidad/chequera"
+            element={
+              <PrivateRoute>
+                <Chequera />
               </PrivateRoute>
             }
           />

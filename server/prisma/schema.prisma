@@ -135,6 +135,8 @@ model Servicio {
   total         Float?    // Total calculado (hectareas * costoPorHa)
   moneda        String    @default("ARS") // ARS o USD
   estado        String    @default("PENDIENTE") // PENDIENTE o REALIZADO
+  facturable    Boolean   @default(true) // true = facturable, false = interno
+  facturaId     String?   // Vincula el servicio a una factura cuando está facturado
   variedad      String?   // Variedad de semilla (para Siembra)
   tipoFertilizante String? // Tipo de fertilizante (para Fertilización)
   dosisKgHa     Float?    // Dosis cantidad (para Fertilización)
@@ -155,6 +157,7 @@ model Servicio {
   maquinaria  Maquinaria?  @relation(fields: [maquinariaId], references: [id], onDelete: SetNull)
   contratista Contratista? @relation(fields: [contratistaId], references: [id], onDelete: SetNull)
   usuario     User?        @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  factura     Factura?     @relation(fields: [facturaId], references: [id], onDelete: SetNull)
 
   @@map("servicios")
 }
@@ -175,7 +178,8 @@ model Stock {
   updatedAt     DateTime @updatedAt
 
   // Relaciones
-  movimientos MovimientoStock[]
+  movimientos   MovimientoStock[]
+  facturasItems FacturaItem[]
 
   @@index([categoria])
   @@map("stock")
@@ -226,17 +230,23 @@ model Factura {
   proveedor      String
   tipoFactura    String   // A, B, C
   moneda         String   // ARS, USD
-  total          Float
+  tipoCambio     Float?   // Tipo de cambio USD → ARS (solo para facturas en USD)
+  subtotal       Float    @default(0) // Subtotal sin IVA
+  iva105         Float    @default(0) // Monto de IVA 10.5%
+  iva21          Float    @default(0) // Monto de IVA 21%
+  total          Float    // Total final (subtotal + iva105 + iva21)
   formaPago      String   // Contado, Cheque, Canje de granos, A pagar en fecha
   fechaPago      DateTime? // Solo si formaPago es "A pagar en fecha"
   estado         String   @default("PENDIENTE") // PENDIENTE, PAGADA
+  tieneRemitos   Boolean  @default(false) // true = vinculada a remitos, false = factura simple
   observaciones  String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
   // Relaciones
-  items FacturaItem[]
-  pagos PagoFactura[]
+  items     FacturaItem[]
+  pagos     PagoFactura[]
+  servicios Servicio[]
 
   @@map("facturas")
 }
@@ -244,16 +254,18 @@ model Factura {
 model FacturaItem {
   id                String   @id @default(uuid())
   facturaId         String
-  movimientoStockId String
-  precioUnitario    Float    // Precio calculado por unidad para este producto
-  precioTotal       Float    // Precio total para este producto en la factura
+  movimientoStockId String?  // Remito al que pertenece (opcional)
+  stockId           String?  // Producto específico del remito (opcional)
+  cantidad          Float    // Cantidad del producto en esta factura
+  precioUnitario    Float    // Precio por unidad para este producto
+  precioTotal       Float    // Precio total para este producto en la factura (cantidad * precioUnitario)
   createdAt         DateTime @default(now())
 
   // Relaciones
-  factura         Factura         @relation(fields: [facturaId], references: [id], onDelete: Cascade)
-  movimientoStock MovimientoStock @relation(fields: [movimientoStockId], references: [id], onDelete: Cascade)
+  factura         Factura          @relation(fields: [facturaId], references: [id], onDelete: Cascade)
+  movimientoStock MovimientoStock? @relation(fields: [movimientoStockId], references: [id], onDelete: Cascade)
+  stock           Stock?           @relation(fields: [stockId], references: [id], onDelete: Cascade)
 
-  @@unique([facturaId, movimientoStockId])
   @@map("facturas_items")
 }
 
@@ -389,4 +401,24 @@ model Reporte {
   usuario User? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
 
   @@map("reportes")
+}
+
+// ========== CHEQUERA ==========
+
+model Cheque {
+  id              String   @id @default(uuid())
+  numeroCheque    String
+  fechaEmision    DateTime
+  fechaVencimiento DateTime
+  monto           Float
+  moneda          String   @default("ARS") // ARS o USD
+  banco           String
+  beneficiario    String
+  cruzado         Boolean  @default(false)
+  estado          String   @default("PENDIENTE") // PENDIENTE, PAGADO
+  observaciones   String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("cheques")
 }
