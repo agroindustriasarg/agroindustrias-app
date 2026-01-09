@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BookCheck, Plus, Search, X, Check } from 'lucide-react';
-import api from '../services/apiWithCache';
+import api from '../services/api';
 
 interface Cheque {
   id: string;
