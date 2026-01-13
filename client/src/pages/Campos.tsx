@@ -10,6 +10,7 @@ export default function Campos() {
   const [showLotesModal, setShowLotesModal] = useState<string | null>(null);
   const [showLoteForm, setShowLoteForm] = useState(false);
   const [editingCampo, setEditingCampo] = useState<string | null>(null);
+  const [editingLote, setEditingLote] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     nombre: '',
     ubicacion: '',
@@ -86,16 +87,33 @@ export default function Campos() {
     if (!showLotesModal) return;
 
     try {
-      await api.post(`/campos/${showLotesModal}/lotes`, {
-        nombre: loteFormData.nombre,
-        hectareas: parseFloat(loteFormData.superficie),
-      });
+      if (editingLote) {
+        await api.put(`/campos/lotes/${editingLote}`, {
+          nombre: loteFormData.nombre,
+          hectareas: parseFloat(loteFormData.superficie),
+        });
+      } else {
+        await api.post(`/campos/${showLotesModal}/lotes`, {
+          nombre: loteFormData.nombre,
+          hectareas: parseFloat(loteFormData.superficie),
+        });
+      }
       setShowLoteForm(false);
+      setEditingLote(null);
       setLoteFormData({ nombre: '', superficie: '' });
       fetchCampos();
     } catch (error: any) {
-      alert(error.response?.data?.error || 'Error al crear lote');
+      alert(error.response?.data?.error || 'Error al guardar lote');
     }
+  };
+
+  const handleEditLote = (lote: any) => {
+    setLoteFormData({
+      nombre: lote.nombre,
+      superficie: lote.hectareas.toString(),
+    });
+    setEditingLote(lote.id);
+    setShowLoteForm(true);
   };
 
   const handleDeleteLote = async (loteId: string) => {
@@ -294,6 +312,7 @@ export default function Campos() {
                   onClick={() => {
                     setShowLotesModal(null);
                     setShowLoteForm(false);
+                    setEditingLote(null);
                     setLoteFormData({ nombre: '', superficie: '' });
                   }}
                   className="text-gray-500 hover:text-gray-700"
@@ -316,7 +335,7 @@ export default function Campos() {
 
               {showLoteForm && (
                 <div className="card mb-4 bg-gray-50">
-                  <h3 className="font-semibold mb-3">Nuevo Lote</h3>
+                  <h3 className="font-semibold mb-3">{editingLote ? 'Editar Lote' : 'Nuevo Lote'}</h3>
                   <form onSubmit={handleAddLote} className="space-y-3">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
@@ -355,6 +374,7 @@ export default function Campos() {
                         type="button"
                         onClick={() => {
                           setShowLoteForm(false);
+                          setEditingLote(null);
                           setLoteFormData({ nombre: '', superficie: '' });
                         }}
                         className="btn-secondary"
@@ -380,12 +400,20 @@ export default function Campos() {
                             <p className="text-sm text-gray-600">{lote.hectareas} ha</p>
                           </div>
                         </div>
-                        <button
-                          onClick={() => handleDeleteLote(lote.id)}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleEditLote(lote)}
+                            className="text-blue-500 hover:text-blue-700"
+                          >
+                            <Edit className="w-5 h-5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteLote(lote.id)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))
