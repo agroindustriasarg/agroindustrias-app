@@ -31,12 +31,12 @@ import {
   Cell
 } from 'recharts';
 
-type ReportType = 'resumen' | 'categoria' | 'cuenta' | 'campo' | 'servicios' | 'stock' | 'rendimientos';
+type ReportType = 'campos' | 'servicios' | 'stock' | 'gastos' | 'rendimientos' | 'contabilidad';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
 
 export default function Reportes() {
-  const [selectedReport, setSelectedReport] = useState<ReportType>('resumen');
+  const [selectedReport, setSelectedReport] = useState<ReportType>('campos');
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin] = useState('');
   const [loading, setLoading] = useState(false);
@@ -152,19 +152,7 @@ export default function Reportes() {
         }
 
         switch (selectedReport) {
-          case 'resumen':
-            const resumen = await api.get(`/reportes/resumen-general${params}`);
-            setResumenData(resumen.data);
-            break;
-          case 'categoria':
-            const categoria = await api.get(`/reportes/gastos-por-categoria${params}`);
-            setCategoriaData(categoria.data);
-            break;
-          case 'cuenta':
-            const cuenta = await api.get(`/reportes/gastos-por-cuenta${params}`);
-            setCuentaData(cuenta.data);
-            break;
-          case 'campo':
+          case 'campos':
             const campo = await api.get(`/reportes/gastos-por-campo${params}`);
             setCampoData(campo.data);
             break;
@@ -176,9 +164,17 @@ export default function Reportes() {
             const stock = await api.get(`/reportes/consumo-stock${params}`);
             setStockData(stock.data);
             break;
+          case 'gastos':
+            const categoria = await api.get(`/reportes/gastos-por-categoria${params}`);
+            setCategoriaData(categoria.data);
+            break;
           case 'rendimientos':
             const rendimientos = await api.get(`/reportes/rendimientos${params}`);
             setRendimientosData(rendimientos.data);
+            break;
+          case 'contabilidad':
+            const resumen = await api.get(`/reportes/resumen-general${params}`);
+            setResumenData(resumen.data);
             break;
         }
       } catch (error) {
@@ -192,13 +188,12 @@ export default function Reportes() {
   }, [selectedReport, fechaInicio, fechaFin, selectedCampos, selectedLotes, selectedMaquinarias, selectedContratistas, selectedCultivos]);
 
   const menuItems = [
-    { id: 'resumen' as ReportType, label: 'Resumen General', icon: BarChart3 },
-    { id: 'categoria' as ReportType, label: 'Por Categoría', icon: PieChart },
-    { id: 'cuenta' as ReportType, label: 'Por Cuenta', icon: TrendingUp },
-    { id: 'campo' as ReportType, label: 'Por Campo', icon: MapPin },
-    { id: 'servicios' as ReportType, label: 'Servicios Realizados', icon: Wrench },
-    { id: 'stock' as ReportType, label: 'Consumo de Stock', icon: Package },
-    { id: 'rendimientos' as ReportType, label: 'Rendimientos', icon: TrendingUp },
+    { id: 'campos' as ReportType, label: 'Campos', icon: MapPin },
+    { id: 'servicios' as ReportType, label: 'Servicios', icon: Wrench },
+    { id: 'stock' as ReportType, label: 'Stock', icon: Package },
+    { id: 'gastos' as ReportType, label: 'Gastos', icon: TrendingUp },
+    { id: 'rendimientos' as ReportType, label: 'Rendimientos', icon: BarChart3 },
+    { id: 'contabilidad' as ReportType, label: 'Contabilidad', icon: PieChart },
   ];
 
   return (
@@ -526,10 +521,7 @@ export default function Reportes() {
           </div>
         ) : (
           <>
-            {selectedReport === 'resumen' && resumenData && <ResumenGeneral data={resumenData} />}
-            {selectedReport === 'categoria' && <GastosPorCategoria data={categoriaData} />}
-            {selectedReport === 'cuenta' && <GastosPorCuenta data={cuentaData} />}
-            {selectedReport === 'campo' && <GastosPorCampo data={campoData} />}
+            {selectedReport === 'campos' && <GastosPorCampo data={campoData} />}
             {selectedReport === 'servicios' && (
               <ServiciosRealizados
                 data={serviciosData}
@@ -543,6 +535,7 @@ export default function Reportes() {
               />
             )}
             {selectedReport === 'stock' && <ConsumoStock data={stockData} />}
+            {selectedReport === 'gastos' && <GastosPorCategoria data={categoriaData} />}
             {selectedReport === 'rendimientos' && (
               <ReporteRendimientos
                 data={rendimientosData}
@@ -555,6 +548,7 @@ export default function Reportes() {
                 }}
               />
             )}
+            {selectedReport === 'contabilidad' && resumenData && <ResumenGeneral data={resumenData} />}
           </>
         )}
       </div>
