@@ -1,5 +1,4 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Layout from './components/Layout';
 import Login from './pages/Login';
@@ -21,8 +20,6 @@ import Chequera from './pages/Chequera';
 import Rendimientos from './pages/Rendimientos';
 import Reportes from './pages/Reportes';
 import Usuarios from './pages/Usuarios';
-import OfflineIndicator from './components/OfflineIndicator';
-import syncService from './services/syncService';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -35,15 +32,9 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
-  useEffect(() => {
-    // Inicializar servicio de sincronización offline
-    syncService.init().catch(console.error);
-  }, []);
-
   return (
     <AuthProvider>
       <BrowserRouter>
-        <OfflineIndicator />
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route
