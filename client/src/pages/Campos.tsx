@@ -116,7 +116,12 @@ export default function Campos() {
     if (!campo.lotes || campo.lotes.length === 0) {
       return campo.hectareas;
     }
-    return campo.lotes.reduce((sum, lote: any) => sum + (lote.hectareas || 0), 0);
+    const total = campo.lotes.reduce((sum, lote: any) => {
+      console.log('Lote:', lote.nombre, 'Hectareas:', lote.hectareas);
+      return sum + (Number(lote.hectareas) || 0);
+    }, 0);
+    console.log('Total calculado para', campo.nombre, ':', total);
+    return total;
   };
 
   if (loading) {
