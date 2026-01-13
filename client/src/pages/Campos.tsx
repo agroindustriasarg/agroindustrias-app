@@ -357,7 +357,7 @@ export default function Campos() {
                           </div>
                           <div>
                             <h4 className="font-semibold">{lote.nombre}</h4>
-                            <p className="text-sm text-gray-600">{lote.superficie} hectáreas</p>
+                            <p className="text-sm text-gray-600">{lote.hectareas} ha</p>
                           </div>
                         </div>
                         <button
