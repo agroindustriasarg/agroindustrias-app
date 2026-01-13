@@ -112,6 +112,13 @@ export default function Campos() {
     return campos.find(c => c.id === showLotesModal);
   };
 
+  const calcularHectareasTotales = (campo: Campo) => {
+    if (!campo.lotes || campo.lotes.length === 0) {
+      return campo.hectareas;
+    }
+    return campo.lotes.reduce((sum, lote: any) => sum + (lote.hectareas || 0), 0);
+  };
+
   if (loading) {
     return <div className="text-center py-12">Cargando...</div>;
   }
@@ -239,7 +246,7 @@ export default function Campos() {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Hectáreas:</span>
-                <span className="font-medium">{campo.hectareas} ha</span>
+                <span className="font-medium">{calcularHectareasTotales(campo).toFixed(2)} ha</span>
               </div>
               {campo.lotes && campo.lotes.length > 0 && (
                 <div className="flex justify-between text-sm">
