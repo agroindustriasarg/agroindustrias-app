@@ -35,6 +35,7 @@ export default function Servicios() {
     unidad: 'litros',
     precioUnitario: '',
   });
+  const [esParcial, setEsParcial] = useState(false);
   const [formData, setFormData] = useState({
     tipo: '',
     fecha: new Date().toISOString().split('T')[0],
@@ -83,12 +84,12 @@ export default function Servicios() {
 
   useEffect(() => {
     const tiposConLotesMultiples = ['Siembra', 'Cosecha', 'Fertilización', 'Picado', 'Rastra', 'Pulverización'];
-    if (formData.lotesIds.length > 0 && tiposConLotesMultiples.includes(formData.tipo)) {
+    if (!esParcial && formData.lotesIds.length > 0 && tiposConLotesMultiples.includes(formData.tipo)) {
       const lotesSeleccionados = lotes.filter(l => formData.lotesIds.includes(l.id));
       const totalHectareas = lotesSeleccionados.reduce((sum, lote) => sum + lote.hectareas, 0);
       setFormData(prev => ({ ...prev, hectareas: totalHectareas.toString() }));
     }
-  }, [formData.lotesIds, formData.tipo, lotes]);
+  }, [formData.lotesIds, formData.tipo, lotes, esParcial]);
 
   const fetchData = async () => {
     try {
@@ -264,6 +265,7 @@ export default function Servicios() {
 
       setShowForm(false);
       setEditingId(null);
+      setEsParcial(false);
       setFormData({
         tipo: '',
         fecha: new Date().toISOString().split('T')[0],
@@ -833,9 +835,21 @@ export default function Servicios() {
                   onChange={(e) => setFormData({ ...formData, hectareas: e.target.value })}
                   className="input"
                   placeholder="0.00"
-                  readOnly={['Siembra', 'Cosecha', 'Fertilización', 'Picado', 'Rastra', 'Pulverización'].includes(formData.tipo)}
-                  disabled={['Siembra', 'Cosecha', 'Fertilización', 'Picado', 'Rastra', 'Pulverización'].includes(formData.tipo)}
+                  readOnly={!esParcial && ['Siembra', 'Cosecha', 'Fertilización', 'Picado', 'Rastra', 'Pulverización'].includes(formData.tipo)}
+                  disabled={!esParcial && ['Siembra', 'Cosecha', 'Fertilización', 'Picado', 'Rastra', 'Pulverización'].includes(formData.tipo)}
                 />
+                <div className="flex items-center space-x-2 mt-2">
+                  <input
+                    type="checkbox"
+                    id="parcial"
+                    checked={esParcial}
+                    onChange={(e) => setEsParcial(e.target.checked)}
+                    className="rounded border-gray-300"
+                  />
+                  <label htmlFor="parcial" className="text-sm text-gray-600">
+                    Parcial (trabajar sobre una fracción del lote)
+                  </label>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -909,6 +923,7 @@ export default function Servicios() {
                 onClick={() => {
                   setShowForm(false);
                   setEditingId(null);
+                  setEsParcial(false);
                   setFormData({
                     tipo: '',
                     fecha: new Date().toISOString().split('T')[0],
