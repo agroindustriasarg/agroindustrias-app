@@ -1069,7 +1069,13 @@ export default function Servicios() {
                           const stockActual = stock ? stock.cantidad : 0;
 
                           // DEBUG: Ver qué stock está encontrando
-                          console.log('Producto:', item.producto, 'Stock ID:', item.stockId, 'Stock actual:', stockActual);
+                          console.log('=== DEBUG STOCK ===');
+                          console.log('Producto:', item.producto);
+                          console.log('Stock ID:', item.stockId);
+                          console.log('Stock encontrado:', stock);
+                          console.log('Stock actual cantidad:', stockActual);
+                          console.log('Es negativo?:', stockActual < 0);
+                          console.log('==================');
 
                           // Si el stock es negativo, calcular cuánto falta para llegar a 0
                           const faltante = stockActual < 0 ? Math.abs(stockActual) : 0;
