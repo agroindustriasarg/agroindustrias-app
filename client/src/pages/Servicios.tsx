@@ -366,7 +366,9 @@ export default function Servicios() {
   };
 
   // Calcular si hay stock suficiente para un servicio de pulverización
-  // Considera las órdenes anteriores (más antiguas) que tienen prioridad sobre el stock
+  // Verifica si hay stock disponible para realizar este servicio
+  // IMPORTANTE: El stock ya fue descontado cuando se creó la orden pendiente
+  // Esta función solo muestra si el stock actual es positivo o negativo
   const calcularStockDisponible = (servicio: Servicio) => {
     if (servicio.tipo !== 'Pulverización' || !servicio.receta || !servicio.hectareas) {
       return { suficiente: true, detalles: [] };
@@ -377,14 +379,6 @@ export default function Servicios() {
       const detalles: Array<{ producto: string; necesario: number; disponible: number; unidad: string; suficiente: boolean }> = [];
       let todoSuficiente = true;
 
-      // Obtener todas las órdenes de pulverización pendientes ordenadas por fecha
-      const ordenesPendientes = servicios
-        .filter(s => s.tipo === 'Pulverización' && s.estado === 'PENDIENTE' && s.receta)
-        .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
-
-      // Encontrar el índice de esta orden en la lista
-      const indiceOrden = ordenesPendientes.findIndex(o => o.id === servicio.id);
-
       for (const item of receta) {
         if (item.stockId) {
           const stock = stockItems.find(s => s.id === item.stockId);
@@ -393,32 +387,14 @@ export default function Servicios() {
             const cantidadNecesaria = dosisHa * servicio.hectareas;
             const unidadBase = item.unidad.split('/')[0];
 
-            // Calcular cuánto stock ya está "reservado" por órdenes anteriores
-            let stockReservado = 0;
-            if (indiceOrden > 0) {
-              for (let i = 0; i < indiceOrden; i++) {
-                const ordenAnterior = ordenesPendientes[i];
-                try {
-                  const recetaAnterior = JSON.parse(ordenAnterior.receta || '[]');
-                  const itemAnterior = recetaAnterior.find((r: any) => r.stockId === item.stockId);
-                  if (itemAnterior && ordenAnterior.hectareas) {
-                    const dosisAnterior = parseFloat(itemAnterior.cantidad);
-                    stockReservado += dosisAnterior * ordenAnterior.hectareas;
-                  }
-                } catch (e) {
-                  // Ignorar errores de parsing
-                }
-              }
-            }
-
-            // Stock disponible para esta orden = Stock total - Stock reservado por órdenes anteriores
-            const stockDisponibleParaEsta = Math.max(0, stock.cantidad - stockReservado);
-            const suficiente = stockDisponibleParaEsta >= cantidadNecesaria;
+            // El stock ya fue descontado cuando se creó esta orden
+            // Si el stock es negativo, significa que falta reponerlo
+            const suficiente = stock.cantidad >= 0;
 
             detalles.push({
               producto: item.producto,
               necesario: cantidadNecesaria,
-              disponible: stockDisponibleParaEsta,
+              disponible: stock.cantidad,
               unidad: unidadBase,
               suficiente,
             });
@@ -1086,34 +1062,14 @@ export default function Servicios() {
                           const totalCantidad = cantidadPorHa * totalHectareas;
                           const unidadBase = item.unidad.split('/')[0];
 
-                          // Calcular stock disponible en el momento de creación de esta orden
+                          // El stock actual ya tiene descontada esta orden
+                          // Si el stock es negativo, significa que falta reponerlo
                           const stock = stockItems.find(s => s.id === item.stockId);
                           const stockActual = stock ? stock.cantidad : 0;
 
-                          // Obtener todos los movimientos de este producto ordenados por fecha
-                          const movimientosProducto = movimientosStock
-                            .filter(m => m.stockId === item.stockId)
-                            .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-
-                          // Reconstruir el stock en el momento ANTES de crear esta orden
-                          const fechaOrden = new Date(servicio.createdAt);
-                          let stockEnMomentoCreacion = 0;
-
-                          for (const mov of movimientosProducto) {
-                            const fechaMov = new Date(mov.createdAt);
-                            if (fechaMov < fechaOrden) {
-                              // Movimiento anterior a esta orden
-                              if (mov.tipo === 'ENTRADA') {
-                                stockEnMomentoCreacion += mov.cantidad;
-                              } else {
-                                stockEnMomentoCreacion -= mov.cantidad;
-                              }
-                            }
-                          }
-
-                          // Verificar si había suficiente stock cuando se creó
-                          const faltante = Math.max(0, totalCantidad - stockEnMomentoCreacion);
-                          const hayInsuficiente = faltante > 0;
+                          // Si el stock es negativo, calcular cuánto falta para llegar a 0
+                          const faltante = stockActual < 0 ? Math.abs(stockActual) : 0;
+                          const hayInsuficiente = stockActual < 0;
 
                           return (
                             <div key={index} className={`flex justify-between items-center text-xs px-1.5 py-1 rounded ${hayInsuficiente ? 'bg-red-50 border border-red-200' : 'bg-gray-50'}`}>

@@ -43,7 +43,19 @@
       "Bash(findstr:*)",
       "Bash(del servercreate-admin.ts)",
       "Bash(npx tsc:*)",
-      "Bash(npm run dev:server:*)"
+      "Bash(npm run dev:server:*)",
+      "Bash(start /b npm run dev:server)",
+      "Bash(npm init:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(del prismaprisma.config.ts)",
+      "Bash(npm create:*)",
+      "Bash(psql:*)",
+      "Bash(npm run seed:*)",
+      "Bash(npm run prisma:migrate:*)",
+      "Bash(tasklist:*)",
+      "Bash(PGPASSWORD=mistolancho psql:*)",
+      "Bash(\"/c/Program Files/PostgreSQL/18/bin/psql.exe\" --version)",
+      "Bash(PGPASSWORD=mistolancho \"/c/Program Files/PostgreSQL/18/bin/psql.exe\":*)"
     ]
   }
 }
