@@ -112,6 +112,7 @@ export default function Servicios() {
       setContratistas(contratistasRes.data);
 
       const agroquimicos = stockRes.data.filter((item: Stock) => item.categoria === 'Agroquímicos');
+      console.log('DEBUG: Stock de agroquímicos cargado:', agroquimicos);
       setStockItems(agroquimicos);
       setMovimientosStock(movimientosRes.data);
     } catch (error) {
