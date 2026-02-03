@@ -366,6 +366,7 @@ export default function Servicios() {
   };
 
   // Calcular si hay stock suficiente para un servicio de pulverización
+  // Considera las órdenes anteriores (más antiguas) que tienen prioridad sobre el stock
   const calcularStockDisponible = (servicio: Servicio) => {
     if (servicio.tipo !== 'Pulverización' || !servicio.receta || !servicio.hectareas) {
       return { suficiente: true, detalles: [] };
@@ -376,6 +377,14 @@ export default function Servicios() {
       const detalles: Array<{ producto: string; necesario: number; disponible: number; unidad: string; suficiente: boolean }> = [];
       let todoSuficiente = true;
 
+      // Obtener todas las órdenes de pulverización pendientes ordenadas por fecha
+      const ordenesPendientes = servicios
+        .filter(s => s.tipo === 'Pulverización' && s.estado === 'PENDIENTE' && s.receta)
+        .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
+
+      // Encontrar el índice de esta orden en la lista
+      const indiceOrden = ordenesPendientes.findIndex(o => o.id === servicio.id);
+
       for (const item of receta) {
         if (item.stockId) {
           const stock = stockItems.find(s => s.id === item.stockId);
@@ -383,12 +392,33 @@ export default function Servicios() {
             const dosisHa = parseFloat(item.cantidad);
             const cantidadNecesaria = dosisHa * servicio.hectareas;
             const unidadBase = item.unidad.split('/')[0];
-            const suficiente = stock.cantidad >= cantidadNecesaria;
+
+            // Calcular cuánto stock ya está "reservado" por órdenes anteriores
+            let stockReservado = 0;
+            if (indiceOrden > 0) {
+              for (let i = 0; i < indiceOrden; i++) {
+                const ordenAnterior = ordenesPendientes[i];
+                try {
+                  const recetaAnterior = JSON.parse(ordenAnterior.receta || '[]');
+                  const itemAnterior = recetaAnterior.find((r: any) => r.stockId === item.stockId);
+                  if (itemAnterior && ordenAnterior.hectareas) {
+                    const dosisAnterior = parseFloat(itemAnterior.cantidad);
+                    stockReservado += dosisAnterior * ordenAnterior.hectareas;
+                  }
+                } catch (e) {
+                  // Ignorar errores de parsing
+                }
+              }
+            }
+
+            // Stock disponible para esta orden = Stock total - Stock reservado por órdenes anteriores
+            const stockDisponibleParaEsta = Math.max(0, stock.cantidad - stockReservado);
+            const suficiente = stockDisponibleParaEsta >= cantidadNecesaria;
 
             detalles.push({
               producto: item.producto,
               necesario: cantidadNecesaria,
-              disponible: stock.cantidad,
+              disponible: stockDisponibleParaEsta,
               unidad: unidadBase,
               suficiente,
             });
