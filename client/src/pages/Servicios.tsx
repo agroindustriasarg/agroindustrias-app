@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { useState, useEffect } from 'react';
-import api from '../services/apiWithCache';
+import api from '../services/api';
 import { Servicio, Campo, Maquinaria, Contratista, Stock } from '../types';
 import { Plus, Wrench, Trash2, Calendar, MapPin, Sprout, Droplet, Wheat, BarChart3, HandMetal, Beaker, Scissors, Move, Leaf, Check, Clock, Edit } from 'lucide-react';
 
