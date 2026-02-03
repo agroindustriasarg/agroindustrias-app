@@ -1067,6 +1067,9 @@ export default function Servicios() {
                           const stock = stockItems.find(s => s.id === item.stockId);
                           const stockActual = stock ? stock.cantidad : 0;
 
+                          // DEBUG: Ver qué stock está encontrando
+                          console.log('Producto:', item.producto, 'Stock ID:', item.stockId, 'Stock actual:', stockActual);
+
                           // Si el stock es negativo, calcular cuánto falta para llegar a 0
                           const faltante = stockActual < 0 ? Math.abs(stockActual) : 0;
                           const hayInsuficiente = stockActual < 0;
