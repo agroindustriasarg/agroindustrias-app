@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, DollarSign, FileText, ArrowLeft, Briefcase } from 'lucide-react';
+import { Wallet, Search, DollarSign, FileText, ArrowLeft, Briefcase } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
