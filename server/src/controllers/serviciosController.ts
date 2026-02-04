@@ -26,7 +26,27 @@ const servicioSchema = z.object({
 
 export const getServicios = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    const { facturable, estado, sinFacturar } = req.query;
+
+    const whereClause: any = {};
+
+    // Filtrar por facturable si se especifica
+    if (facturable !== undefined) {
+      whereClause.facturable = facturable === 'true';
+    }
+
+    // Filtrar por estado si se especifica
+    if (estado && typeof estado === 'string') {
+      whereClause.estado = estado;
+    }
+
+    // Filtrar servicios sin facturar (que no tienen facturaId)
+    if (sinFacturar === 'true') {
+      whereClause.facturaId = null;
+    }
+
     const servicios = await prisma.servicio.findMany({
+      where: whereClause,
       include: {
         campo: { select: { nombre: true } },
         lote: { select: { nombre: true } },

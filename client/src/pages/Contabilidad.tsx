@@ -1,4 +1,4 @@
-import { Calculator, FileText, CreditCard, BookCheck } from 'lucide-react';
+import { Calculator, FileText, CreditCard, BookCheck, Wallet } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function Contabilidad() {
@@ -64,6 +64,23 @@ export default function Contabilidad() {
                 Chequera
               </h3>
               <p className="text-gray-600 mt-1">Gestión y control de cheques</p>
+            </div>
+          </div>
+        </Link>
+
+        <Link
+          to="/contabilidad/cuentas-corrientes"
+          className="card group cursor-pointer"
+        >
+          <div className="flex items-start space-x-4">
+            <div className="bg-orange-500 p-3 rounded-lg">
+              <Wallet className="w-6 h-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-xl font-semibold text-gray-900 group-hover:text-primary-600 transition-colors">
+                Cuentas Corrientes
+              </h3>
+              <p className="text-gray-600 mt-1">Gestión de cuentas corrientes</p>
             </div>
           </div>
         </Link>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { BookCheck, Plus, Search, X, Check } from 'lucide-react';
+import { BookCheck, Plus, Search, X, Check, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
 interface Cheque {
@@ -17,6 +18,7 @@ interface Cheque {
 }
 
 export default function Chequera() {
+  const navigate = useNavigate();
   const [cheques, setCheques] = useState<Cheque[]>([]);
   const [filteredCheques, setFilteredCheques] = useState<Cheque[]>([]);
   const [loading, setLoading] = useState(true);
@@ -194,16 +196,25 @@ export default function Chequera() {
           </h1>
           <p className="text-gray-600 mt-1">Gestión y control de cheques</p>
         </div>
-        <button
-          onClick={() => {
-            resetForm();
-            setShowForm(true);
-          }}
-          className="btn-primary flex items-center space-x-2"
-        >
-          <Plus className="w-5 h-5" />
-          <span>Nuevo Cheque</span>
-        </button>
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={() => navigate('/contabilidad')}
+            className="btn-secondary flex items-center space-x-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Volver a Contabilidad</span>
+          </button>
+          <button
+            onClick={() => {
+              resetForm();
+              setShowForm(true);
+            }}
+            className="btn-primary flex items-center space-x-2"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Nuevo Cheque</span>
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
