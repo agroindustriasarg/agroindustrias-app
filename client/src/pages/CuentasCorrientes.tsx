@@ -119,7 +119,13 @@ export default function CuentasCorrientes() {
     .filter((f) => f.estado === 'PAGADA')
     .reduce((sum, f) => sum + f.total, 0);
 
-  const totalServiciosSinFacturar = serviciosFiltrados.reduce((sum, s) => sum + (s.total || 0), 0);
+  const totalServiciosSinFacturarARS = serviciosFiltrados
+    .filter((s) => s.moneda === 'ARS')
+    .reduce((sum, s) => sum + (s.total || 0), 0);
+
+  const totalServiciosSinFacturarUSD = serviciosFiltrados
+    .filter((s) => s.moneda === 'USD')
+    .reduce((sum, s) => sum + (s.total || 0), 0);
 
   if (loading) {
     return (
@@ -301,12 +307,24 @@ export default function CuentasCorrientes() {
           <div className="card bg-yellow-50 border-yellow-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-yellow-600 font-medium">Total a Facturar</p>
+                <p className="text-sm text-yellow-600 font-medium">Total a Facturar (ARS)</p>
                 <p className="text-2xl font-bold text-yellow-900 mt-1">
-                  $ {totalServiciosSinFacturar.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                  $ {totalServiciosSinFacturarARS.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
                 </p>
               </div>
               <DollarSign className="w-8 h-8 text-yellow-600" />
+            </div>
+          </div>
+
+          <div className="card bg-green-50 border-green-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-green-600 font-medium">Total a Facturar (USD)</p>
+                <p className="text-2xl font-bold text-green-900 mt-1">
+                  USD {totalServiciosSinFacturarUSD.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                </p>
+              </div>
+              <DollarSign className="w-8 h-8 text-green-600" />
             </div>
           </div>
         </div>
