@@ -71,14 +71,20 @@ export const createGasto = async (req: AuthRequest, res: Response): Promise<void
 
           return prisma.gasto.create({
             data: {
-              ...rest,
+              concepto: rest.concepto,
+              categoria: rest.categoria,
               monto: montoProporcional,
               fecha: new Date(fecha),
-              campoId: campo.id,
-              usuarioId: req.user?.userId,
               descripcion: rest.descripcion
                 ? `${rest.descripcion} (${campo.nombre} - ${(proporcion * 100).toFixed(1)}% del total)`
                 : `${campo.nombre} - ${(proporcion * 100).toFixed(1)}% del total`,
+              tipoFactura: rest.tipoFactura || undefined,
+              numeroFactura: rest.numeroFactura || undefined,
+              campoId: campo.id,
+              maquinariaId: rest.maquinariaId || undefined,
+              implementoId: rest.implementoId || undefined,
+              cuentaId: rest.cuentaId || undefined,
+              usuarioId: req.user?.userId,
             },
             include: {
               cuenta: { select: { nombre: true, tipo: true } },
