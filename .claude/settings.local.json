@@ -55,7 +55,10 @@
       "Bash(tasklist:*)",
       "Bash(PGPASSWORD=mistolancho psql:*)",
       "Bash(\"/c/Program Files/PostgreSQL/18/bin/psql.exe\" --version)",
-      "Bash(PGPASSWORD=mistolancho \"/c/Program Files/PostgreSQL/18/bin/psql.exe\":*)"
+      "Bash(PGPASSWORD=mistolancho \"/c/Program Files/PostgreSQL/18/bin/psql.exe\":*)",
+      "Bash(node --version:*)",
+      "Bash(npm --version:*)",
+      "Bash(npx prisma db execute:*)"
     ]
   }
 }

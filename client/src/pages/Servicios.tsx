@@ -83,13 +83,16 @@ export default function Servicios() {
   }, [formData.campoId]);
 
   useEffect(() => {
-    const tiposConLotesMultiples = ['Siembra', 'Cosecha', 'Fertilización', 'Picado', 'Rastra', 'Pulverización'];
-    if (!esParcial && formData.lotesIds.length > 0 && tiposConLotesMultiples.includes(formData.tipo)) {
+    // Calcular hectáreas automáticamente cuando se seleccionan lotes, a menos que sea Parcial
+    if (!esParcial && formData.lotesIds.length > 0) {
       const lotesSeleccionados = lotes.filter(l => formData.lotesIds.includes(l.id));
       const totalHectareas = lotesSeleccionados.reduce((sum, lote) => sum + lote.hectareas, 0);
       setFormData(prev => ({ ...prev, hectareas: totalHectareas.toString() }));
+    } else if (esParcial && formData.lotesIds.length === 0) {
+      // Si cambia a Parcial y no hay lotes seleccionados, limpiar hectáreas
+      setFormData(prev => ({ ...prev, hectareas: '' }));
     }
-  }, [formData.lotesIds, formData.tipo, lotes, esParcial]);
+  }, [formData.lotesIds, lotes, esParcial]);
 
   const fetchData = async () => {
     try {
@@ -1063,23 +1066,59 @@ export default function Servicios() {
                           const totalCantidad = cantidadPorHa * totalHectareas;
                           const unidadBase = item.unidad.split('/')[0];
 
-                          // El stock actual ya tiene descontada esta orden
-                          // Si el stock es negativo, significa que falta reponerlo
+                          // Calcular stock disponible considerando prioridad de órdenes
                           const stock = stockItems.find(s => s.id === item.stockId);
                           const stockActual = stock ? stock.cantidad : 0;
 
-                          // DEBUG: Ver qué stock está encontrando
-                          console.log('=== DEBUG STOCK ===');
-                          console.log('Producto:', item.producto);
-                          console.log('Stock ID:', item.stockId);
-                          console.log('Stock encontrado:', stock);
-                          console.log('Stock actual cantidad:', stockActual);
-                          console.log('Es negativo?:', stockActual < 0);
-                          console.log('==================');
+                          // Obtener todas las órdenes de pulverización pendientes ordenadas por fecha
+                          const ordenesPendientes = servicios
+                            .filter(s => s.tipo === 'Pulverización' && s.estado === 'PENDIENTE' && s.receta)
+                            .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
 
-                          // Si el stock es negativo, calcular cuánto falta para llegar a 0
-                          const faltante = stockActual < 0 ? Math.abs(stockActual) : 0;
-                          const hayInsuficiente = stockActual < 0;
+                          // Encontrar el índice de esta orden en la lista
+                          const indiceOrden = ordenesPendientes.findIndex(o => o.id === servicio.id);
+
+                          // Calcular cuánto stock necesitan las órdenes ANTERIORES (más antiguas)
+                          let stockReservadoPorAnteriores = 0;
+                          if (indiceOrden > 0) {
+                            for (let i = 0; i < indiceOrden; i++) {
+                              const ordenAnterior = ordenesPendientes[i];
+                              try {
+                                const recetaAnterior = JSON.parse(ordenAnterior.receta || '[]');
+                                const itemAnterior = recetaAnterior.find((r: any) => r.stockId === item.stockId);
+                                if (itemAnterior && ordenAnterior.hectareas) {
+                                  const dosisAnterior = parseFloat(itemAnterior.cantidad);
+                                  stockReservadoPorAnteriores += dosisAnterior * ordenAnterior.hectareas;
+                                }
+                              } catch (e) {
+                                // Ignorar errores de parsing
+                              }
+                            }
+                          }
+
+                          // Stock disponible para ESTA orden = Stock actual (sin descuentos) - Lo reservado por órdenes anteriores
+                          // El stock actual ya tiene TODAS las órdenes pendientes descontadas, así que necesitamos
+                          // sumar de vuelta TODAS las necesidades y luego solo restar las anteriores
+                          let stockSinDescuentos = stockActual;
+                          ordenesPendientes.forEach(orden => {
+                            try {
+                              const recetaOrden = JSON.parse(orden.receta || '[]');
+                              const itemOrden = recetaOrden.find((r: any) => r.stockId === item.stockId);
+                              if (itemOrden && orden.hectareas) {
+                                const dosisOrden = parseFloat(itemOrden.cantidad);
+                                stockSinDescuentos += dosisOrden * orden.hectareas;
+                              }
+                            } catch (e) {
+                              // Ignorar errores de parsing
+                            }
+                          });
+
+                          const stockDisponibleParaEsta = stockSinDescuentos - stockReservadoPorAnteriores;
+
+                          // Solo mostrar advertencia de stock insuficiente si el servicio está PENDIENTE
+                          // Si ya está REALIZADO, el stock ya fue consumido y no hay que mostrar advertencia
+                          const hayInsuficiente = servicio.estado === 'PENDIENTE' && stockDisponibleParaEsta < totalCantidad;
+                          const faltante = hayInsuficiente ? totalCantidad - stockDisponibleParaEsta : 0;
 
                           return (
                             <div key={index} className={`flex justify-between items-center text-xs px-1.5 py-1 rounded ${hayInsuficiente ? 'bg-red-50 border border-red-200' : 'bg-gray-50'}`}>

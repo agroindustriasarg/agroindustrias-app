@@ -57,6 +57,9 @@ export interface Stock {
   stockMinimo?: number;
   ubicacion?: string;
   descripcion?: string;
+  droga?: string;
+  nombreComercial?: string;
+  tipo?: string;
 }
 
 export interface Cuenta {

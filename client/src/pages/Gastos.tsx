@@ -25,6 +25,7 @@ export default function Gastos() {
     tipoFactura: '',
     numeroFactura: '',
     campoId: '',
+    campoIds: [] as string[],
     loteIds: [] as string[],
     maquinariaId: '',
     implementoId: '',
@@ -101,6 +102,7 @@ export default function Gastos() {
         tipoFactura: formData.tipoFactura || undefined,
         numeroFactura: formData.numeroFactura || undefined,
         campoId: formData.campoId || undefined,
+        campoIds: formData.campoIds.length > 0 ? formData.campoIds : undefined,
         loteIds: formData.loteIds.length > 0 ? formData.loteIds : undefined,
         maquinariaId: formData.maquinariaId || undefined,
         implementoId: formData.implementoId || undefined,
@@ -124,6 +126,7 @@ export default function Gastos() {
         tipoFactura: '',
         numeroFactura: '',
         campoId: '',
+        campoIds: [],
         loteIds: [],
         maquinariaId: '',
         implementoId: '',
@@ -147,6 +150,7 @@ export default function Gastos() {
       tipoFactura: gasto.tipoFactura || '',
       numeroFactura: gasto.numeroFactura || '',
       campoId: gasto.campoId || '',
+      campoIds: [],
       loteIds: gasto.lotes?.map(gl => gl.lote.id) || [],
       maquinariaId: gasto.maquinariaId || '',
       implementoId: gasto.implementoId || '',
@@ -337,7 +341,7 @@ export default function Gastos() {
                 <select
                   value={formData.campoId}
                   onChange={(e) => {
-                    setFormData({ ...formData, campoId: e.target.value, loteIds: [] });
+                    setFormData({ ...formData, campoId: e.target.value, loteIds: [], campoIds: [] });
                     fetchLotesPorCampo(e.target.value);
                   }}
                   className="input"
@@ -349,6 +353,63 @@ export default function Gastos() {
                     </option>
                   ))}
                 </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Campos (opcional - seleccionar múltiples)
+                </label>
+                <div className="border rounded-md p-3 bg-white">
+                  {campos.length === 0 ? (
+                    <p className="text-sm text-gray-500">No hay campos disponibles</p>
+                  ) : (
+                    <div className="space-y-2 max-h-32 overflow-y-auto">
+                      {campos.map((campo) => (
+                        <label key={campo.id} className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-1 rounded">
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              checked={formData.campoIds.includes(campo.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setFormData({ ...formData, campoIds: [...formData.campoIds, campo.id], campoId: '' });
+                                } else {
+                                  setFormData({ ...formData, campoIds: formData.campoIds.filter(id => id !== campo.id) });
+                                }
+                              }}
+                              className="rounded text-green-600 focus:ring-green-500"
+                            />
+                            <span className="text-sm font-medium">{campo.nombre}</span>
+                          </div>
+                          <span className="text-xs text-gray-500">{campo.hectareas} ha</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {formData.campoIds.length > 0 && (
+                  <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200">
+                    <p className="text-xs font-medium text-blue-900 mb-1">Distribución del gasto:</p>
+                    <div className="text-xs text-blue-700 space-y-1">
+                      {(() => {
+                        const camposSeleccionados = campos.filter(c => formData.campoIds.includes(c.id));
+                        const totalHectareas = camposSeleccionados.reduce((sum, c) => sum + c.hectareas, 0);
+                        const montoTotal = parseFloat(formData.monto) || 0;
+                        return camposSeleccionados.map(campo => {
+                          const proporcion = campo.hectareas / totalHectareas;
+                          const montoAsignado = montoTotal * proporcion;
+                          return (
+                            <div key={campo.id} className="flex justify-between">
+                              <span>{campo.nombre}:</span>
+                              <span className="font-medium">
+                                ${montoAsignado.toFixed(2)} ({(proporcion * 100).toFixed(1)}%)
+                              </span>
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

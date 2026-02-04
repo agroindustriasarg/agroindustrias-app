@@ -13,6 +13,9 @@ const stockSchema = z.object({
   stockMinimo: z.number().optional(),
   ubicacion: z.string().optional(),
   descripcion: z.string().optional(),
+  droga: z.string().optional(),
+  nombreComercial: z.string().optional(),
+  tipo: z.string().optional(),
 });
 
 const movimientoSchema = z.object({

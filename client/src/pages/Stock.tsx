@@ -31,6 +31,9 @@ export default function StockPage() {
     nombre: '',
     categoria: '',
     unidad: '',
+    droga: '',
+    nombreComercial: '',
+    tipo: '',
   });
   const [movimientoData, setMovimientoData] = useState({
     tipo: 'ENTRADA',
@@ -131,6 +134,9 @@ export default function StockPage() {
         nombre: '',
         categoria: '',
         unidad: '',
+        droga: '',
+        nombreComercial: '',
+        tipo: '',
       });
       fetchStock();
     } catch (error: any) {
@@ -308,6 +314,52 @@ export default function StockPage() {
                 </select>
               </div>
             </div>
+
+            {formData.categoria === 'Agroquímicos' && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-200">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Droga *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.droga}
+                    onChange={(e) => setFormData({ ...formData, droga: e.target.value })}
+                    className="input"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nombre Comercial *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.nombreComercial}
+                    onChange={(e) => setFormData({ ...formData, nombreComercial: e.target.value })}
+                    className="input"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tipo *
+                  </label>
+                  <select
+                    value={formData.tipo}
+                    onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
+                    className="input"
+                    required
+                  >
+                    <option value="">Seleccionar...</option>
+                    <option value="Herbicida">Herbicida</option>
+                    <option value="Insecticida">Insecticida</option>
+                    <option value="Fertilizante">Fertilizante</option>
+                    <option value="Fungicida">Fungicida</option>
+                  </select>
+                </div>
+              </div>
+            )}
             <div className="flex space-x-3">
               <button type="submit" className="btn-primary">
                 Guardar

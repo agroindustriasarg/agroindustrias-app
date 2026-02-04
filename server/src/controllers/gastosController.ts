@@ -14,6 +14,7 @@ const gastoSchema = z.object({
   numeroFactura: z.string().optional(),
   cuentaId: z.string().optional(),
   campoId: z.string().optional(),
+  campoIds: z.array(z.string()).optional(),
   loteIds: z.array(z.string()).optional(),
   maquinariaId: z.string().optional(),
   implementoId: z.string().optional(),
@@ -49,34 +50,77 @@ export const getGastos = async (req: AuthRequest, res: Response): Promise<void> 
 
 export const createGasto = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { fecha, loteIds, ...rest } = gastoSchema.parse(req.body);
+    const { fecha, loteIds, campoIds, ...rest } = gastoSchema.parse(req.body);
 
-    const gasto = await prisma.gasto.create({
-      data: {
-        ...rest,
-        fecha: new Date(fecha),
-        usuarioId: req.user?.userId,
-        lotes: loteIds && loteIds.length > 0 ? {
-          create: loteIds.map(loteId => ({
-            lote: { connect: { id: loteId } }
-          }))
-        } : undefined,
-      },
-      include: {
-        cuenta: { select: { nombre: true, tipo: true } },
-        campo: { select: { nombre: true } },
-        lotes: {
-          include: {
-            lote: { select: { id: true, nombre: true } }
-          }
+    // Si hay múltiples campos seleccionados, crear un gasto por cada campo con monto proporcional
+    if (campoIds && campoIds.length > 0) {
+      // Obtener los campos con sus hectáreas
+      const campos = await prisma.campo.findMany({
+        where: { id: { in: campoIds } },
+        select: { id: true, nombre: true, hectareas: true }
+      });
+
+      // Calcular total de hectáreas
+      const totalHectareas = campos.reduce((sum, campo) => sum + campo.hectareas, 0);
+
+      // Crear un gasto por cada campo con monto proporcional
+      const gastosCreados = await Promise.all(
+        campos.map(campo => {
+          const proporcion = campo.hectareas / totalHectareas;
+          const montoProporcional = rest.monto * proporcion;
+
+          return prisma.gasto.create({
+            data: {
+              ...rest,
+              monto: montoProporcional,
+              fecha: new Date(fecha),
+              campoId: campo.id,
+              usuarioId: req.user?.userId,
+              descripcion: rest.descripcion
+                ? `${rest.descripcion} (${campo.nombre} - ${(proporcion * 100).toFixed(1)}% del total)`
+                : `${campo.nombre} - ${(proporcion * 100).toFixed(1)}% del total`,
+            },
+            include: {
+              cuenta: { select: { nombre: true, tipo: true } },
+              campo: { select: { nombre: true } },
+              maquinaria: { select: { nombre: true, tipo: true } },
+              implemento: { select: { nombre: true, tipo: true } },
+              usuario: { select: { nombre: true, apellido: true } },
+            },
+          });
+        })
+      );
+
+      res.status(201).json(gastosCreados);
+    } else {
+      // Comportamiento normal para un solo campo
+      const gasto = await prisma.gasto.create({
+        data: {
+          ...rest,
+          fecha: new Date(fecha),
+          usuarioId: req.user?.userId,
+          lotes: loteIds && loteIds.length > 0 ? {
+            create: loteIds.map(loteId => ({
+              lote: { connect: { id: loteId } }
+            }))
+          } : undefined,
         },
-        maquinaria: { select: { nombre: true, tipo: true } },
-        implemento: { select: { nombre: true, tipo: true } },
-        usuario: { select: { nombre: true, apellido: true } },
-      },
-    });
+        include: {
+          cuenta: { select: { nombre: true, tipo: true } },
+          campo: { select: { nombre: true } },
+          lotes: {
+            include: {
+              lote: { select: { id: true, nombre: true } }
+            }
+          },
+          maquinaria: { select: { nombre: true, tipo: true } },
+          implemento: { select: { nombre: true, tipo: true } },
+          usuario: { select: { nombre: true, apellido: true } },
+        },
+      });
 
-    res.status(201).json(gasto);
+      res.status(201).json(gasto);
+    }
   } catch (error) {
     if (error instanceof z.ZodError) {
       res.status(400).json({ error: error.errors });

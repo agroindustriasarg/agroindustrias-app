@@ -174,6 +174,12 @@ model Stock {
   stockMinimo   Float?
   ubicacion     String?
   descripcion   String?
+
+  // Campos específicos para Agroquímicos
+  droga         String?  // Droga activa
+  nombreComercial String? // Nombre comercial
+  tipo          String?  // Herbicida, Insecticida, Fertilizante, Fungicida
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
