@@ -101,10 +101,10 @@ export default function Gastos() {
         fecha: new Date(formData.fecha).toISOString(),
         tipoFactura: formData.tipoFactura || undefined,
         numeroFactura: formData.numeroFactura || undefined,
-        // Si hay múltiples campos, no enviar campoId
+        // Si hay múltiples campos, no enviar campoId ni loteIds
         campoId: formData.campoIds.length > 0 ? undefined : (formData.campoId || undefined),
         campoIds: formData.campoIds.length > 0 ? formData.campoIds : undefined,
-        loteIds: formData.loteIds.length > 0 ? formData.loteIds : undefined,
+        loteIds: formData.campoIds.length > 0 ? undefined : (formData.loteIds.length > 0 ? formData.loteIds : undefined),
         maquinariaId: formData.maquinariaId || undefined,
         implementoId: formData.implementoId || undefined,
         cuentaId: formData.cuentaId,
@@ -372,7 +372,7 @@ export default function Gastos() {
                               checked={formData.campoIds.includes(campo.id)}
                               onChange={(e) => {
                                 if (e.target.checked) {
-                                  setFormData({ ...formData, campoIds: [...formData.campoIds, campo.id], campoId: '' });
+                                  setFormData({ ...formData, campoIds: [...formData.campoIds, campo.id], campoId: '', loteIds: [] });
                                 } else {
                                   setFormData({ ...formData, campoIds: formData.campoIds.filter(id => id !== campo.id) });
                                 }
@@ -412,38 +412,40 @@ export default function Gastos() {
                   </div>
                 )}
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Lotes (opcional - seleccionar múltiples)
-                </label>
-                <div className={`border rounded-md p-3 ${!formData.campoId ? 'bg-gray-50' : 'bg-white'}`}>
-                  {!formData.campoId ? (
-                    <p className="text-sm text-gray-500">Selecciona un campo primero</p>
-                  ) : lotes.length === 0 ? (
-                    <p className="text-sm text-gray-500">No hay lotes disponibles</p>
-                  ) : (
-                    <div className="space-y-2 max-h-32 overflow-y-auto">
-                      {lotes.map((lote) => (
-                        <label key={lote.id} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
-                          <input
-                            type="checkbox"
-                            checked={formData.loteIds.includes(lote.id)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setFormData({ ...formData, loteIds: [...formData.loteIds, lote.id] });
-                              } else {
-                                setFormData({ ...formData, loteIds: formData.loteIds.filter(id => id !== lote.id) });
-                              }
-                            }}
-                            className="rounded text-green-600 focus:ring-green-500"
-                          />
-                          <span className="text-sm">{lote.nombre}</span>
-                        </label>
-                      ))}
-                    </div>
-                  )}
+              {formData.campoIds.length === 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Lotes (opcional - seleccionar múltiples)
+                  </label>
+                  <div className={`border rounded-md p-3 ${!formData.campoId ? 'bg-gray-50' : 'bg-white'}`}>
+                    {!formData.campoId ? (
+                      <p className="text-sm text-gray-500">Selecciona un campo primero</p>
+                    ) : lotes.length === 0 ? (
+                      <p className="text-sm text-gray-500">No hay lotes disponibles</p>
+                    ) : (
+                      <div className="space-y-2 max-h-32 overflow-y-auto">
+                        {lotes.map((lote) => (
+                          <label key={lote.id} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                            <input
+                              type="checkbox"
+                              checked={formData.loteIds.includes(lote.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setFormData({ ...formData, loteIds: [...formData.loteIds, lote.id] });
+                                } else {
+                                  setFormData({ ...formData, loteIds: formData.loteIds.filter(id => id !== lote.id) });
+                                }
+                              }}
+                              className="rounded text-green-600 focus:ring-green-500"
+                            />
+                            <span className="text-sm">{lote.nombre}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Maquinaria (opcional)
