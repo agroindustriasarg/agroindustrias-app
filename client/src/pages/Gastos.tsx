@@ -397,33 +397,32 @@ export default function Gastos() {
                       </div>
                     )}
                   </div>
+                  {formData.campoIds.length > 0 && (
+                    <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200">
+                      <p className="text-xs font-medium text-blue-900 mb-1">Distribución del gasto:</p>
+                      <div className="text-xs text-blue-700 space-y-1">
+                        {(() => {
+                          const camposSeleccionados = campos.filter(c => formData.campoIds.includes(c.id));
+                          const totalHectareas = camposSeleccionados.reduce((sum, c) => sum + c.hectareas, 0);
+                          const montoTotal = parseFloat(formData.monto) || 0;
+                          return camposSeleccionados.map(campo => {
+                            const proporcion = campo.hectareas / totalHectareas;
+                            const montoAsignado = montoTotal * proporcion;
+                            return (
+                              <div key={campo.id} className="flex justify-between">
+                                <span>{campo.nombre}:</span>
+                                <span className="font-medium">
+                                  ${montoAsignado.toFixed(2)} ({(proporcion * 100).toFixed(1)}%)
+                                </span>
+                              </div>
+                            );
+                          });
+                        })()}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
-                {formData.campoIds.length > 0 && (
-                  <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200">
-                    <p className="text-xs font-medium text-blue-900 mb-1">Distribución del gasto:</p>
-                    <div className="text-xs text-blue-700 space-y-1">
-                      {(() => {
-                        const camposSeleccionados = campos.filter(c => formData.campoIds.includes(c.id));
-                        const totalHectareas = camposSeleccionados.reduce((sum, c) => sum + c.hectareas, 0);
-                        const montoTotal = parseFloat(formData.monto) || 0;
-                        return camposSeleccionados.map(campo => {
-                          const proporcion = campo.hectareas / totalHectareas;
-                          const montoAsignado = montoTotal * proporcion;
-                          return (
-                            <div key={campo.id} className="flex justify-between">
-                              <span>{campo.nombre}:</span>
-                              <span className="font-medium">
-                                ${montoAsignado.toFixed(2)} ({(proporcion * 100).toFixed(1)}%)
-                              </span>
-                            </div>
-                          );
-                        });
-                      })()}
-                    </div>
-                  </div>
-                )}
-              </div>
               {formData.campoIds.length === 0 && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
