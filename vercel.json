@@ -1,8 +1,8 @@
 {
-  "buildCommand": "npm install --prefix client && npm run build --prefix client",
-  "outputDirectory": "client/dist",
-  "installCommand": "echo 'Skip install'",
-  "framework": null,
+  "buildCommand": "npm install && npm run build",
+  "outputDirectory": "dist",
+  "installCommand": "npm install",
+  "framework": "vite",
   "rewrites": [
     {
       "source": "/api/(.*)",
