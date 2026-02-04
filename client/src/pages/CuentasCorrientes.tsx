@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Wallet, Search, Calendar, DollarSign, FileText, ArrowLeft, Briefcase } from 'lucide-react';
+import { Search, DollarSign, FileText, ArrowLeft, Briefcase } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
@@ -63,10 +63,8 @@ export default function CuentasCorrientes() {
       setProveedores(proveedoresUnicos);
 
       // Cargar servicios sin facturar (facturable = true, estado REALIZADO y sin facturaId)
-      // Agregar timestamp para evitar caché
-      const serviciosResponse = await api.get(`/servicios?facturable=true&estado=REALIZADO&sinFacturar=true&_t=${Date.now()}`);
+      const serviciosResponse = await api.get('/servicios?facturable=true&estado=REALIZADO&sinFacturar=true');
       const serviciosData = serviciosResponse.data;
-      console.log('Servicios sin facturar recibidos:', serviciosData.length, serviciosData);
       setServicios(serviciosData);
 
       // Extraer nombres de contratistas únicos
