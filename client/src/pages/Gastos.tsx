@@ -96,9 +96,11 @@ export default function Gastos() {
     e.preventDefault();
     try {
       const data = {
-        ...formData,
+        concepto: formData.concepto,
+        categoria: formData.categoria,
         monto: parseFloat(formData.monto),
         fecha: new Date(formData.fecha).toISOString(),
+        descripcion: formData.descripcion || undefined,
         tipoFactura: formData.tipoFactura || undefined,
         numeroFactura: formData.numeroFactura || undefined,
         // Si hay múltiples campos, no enviar campoId ni loteIds
@@ -107,7 +109,7 @@ export default function Gastos() {
         loteIds: formData.campoIds.length > 0 ? undefined : (formData.loteIds.length > 0 ? formData.loteIds : undefined),
         maquinariaId: formData.maquinariaId || undefined,
         implementoId: formData.implementoId || undefined,
-        cuentaId: formData.cuentaId,
+        cuentaId: formData.cuentaId || undefined,
       };
 
       if (editingId) {
@@ -136,7 +138,14 @@ export default function Gastos() {
       setLotes([]);
       fetchData();
     } catch (error: any) {
-      alert(error.response?.data?.error || `Error al ${editingId ? 'actualizar' : 'crear'} gasto`);
+      const errorMsg = error.response?.data?.error
+        ? (typeof error.response.data.error === 'string'
+            ? error.response.data.error
+            : JSON.stringify(error.response.data.error))
+        : `Error al ${editingId ? 'actualizar' : 'crear'} gasto`;
+      alert(errorMsg);
+      console.error('Error completo:', error);
+      console.error('Response:', error.response);
     }
   };
 
