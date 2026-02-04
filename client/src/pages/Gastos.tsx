@@ -364,38 +364,41 @@ export default function Gastos() {
                   ))}
                 </select>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Campos (opcional - seleccionar múltiples)
-                </label>
-                <div className="border rounded-md p-3 bg-white">
-                  {campos.length === 0 ? (
-                    <p className="text-sm text-gray-500">No hay campos disponibles</p>
-                  ) : (
-                    <div className="space-y-2 max-h-32 overflow-y-auto">
-                      {campos.map((campo) => (
-                        <label key={campo.id} className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-1 rounded">
-                          <div className="flex items-center space-x-2">
-                            <input
-                              type="checkbox"
-                              checked={formData.campoIds.includes(campo.id)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setFormData({ ...formData, campoIds: [...formData.campoIds, campo.id], campoId: '', loteIds: [] });
-                                } else {
-                                  setFormData({ ...formData, campoIds: formData.campoIds.filter(id => id !== campo.id) });
-                                }
-                              }}
-                              className="rounded text-green-600 focus:ring-green-500"
-                            />
-                            <span className="text-sm font-medium">{campo.nombre}</span>
-                          </div>
-                          <span className="text-xs text-gray-500">{campo.hectareas} ha</span>
-                        </label>
-                      ))}
-                    </div>
-                  )}
+              {!editingId && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Campos (opcional - seleccionar múltiples)
+                  </label>
+                  <div className="border rounded-md p-3 bg-white">
+                    {campos.length === 0 ? (
+                      <p className="text-sm text-gray-500">No hay campos disponibles</p>
+                    ) : (
+                      <div className="space-y-2 max-h-32 overflow-y-auto">
+                        {campos.map((campo) => (
+                          <label key={campo.id} className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-1 rounded">
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                checked={formData.campoIds.includes(campo.id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setFormData({ ...formData, campoIds: [...formData.campoIds, campo.id], campoId: '', loteIds: [] });
+                                  } else {
+                                    setFormData({ ...formData, campoIds: formData.campoIds.filter(id => id !== campo.id) });
+                                  }
+                                }}
+                                className="rounded text-green-600 focus:ring-green-500"
+                              />
+                              <span className="text-sm font-medium">{campo.nombre}</span>
+                            </div>
+                            <span className="text-xs text-gray-500">{campo.hectareas} ha</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
+              )}
                 {formData.campoIds.length > 0 && (
                   <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200">
                     <p className="text-xs font-medium text-blue-900 mb-1">Distribución del gasto:</p>
