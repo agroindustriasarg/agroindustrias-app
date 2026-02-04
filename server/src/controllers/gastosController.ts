@@ -50,7 +50,7 @@ export const getGastos = async (req: AuthRequest, res: Response): Promise<void> 
 
 export const createGasto = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { fecha, loteIds, campoIds, ...rest } = gastoSchema.parse(req.body);
+    const { fecha, loteIds, campoIds, campoId, ...rest } = gastoSchema.parse(req.body);
 
     // Si hay múltiples campos seleccionados, crear un gasto por cada campo con monto proporcional
     if (campoIds && campoIds.length > 0) {
@@ -97,6 +97,7 @@ export const createGasto = async (req: AuthRequest, res: Response): Promise<void
       const gasto = await prisma.gasto.create({
         data: {
           ...rest,
+          campoId: campoId || undefined,
           fecha: new Date(fecha),
           usuarioId: req.user?.userId,
           lotes: loteIds && loteIds.length > 0 ? {

@@ -101,7 +101,8 @@ export default function Gastos() {
         fecha: new Date(formData.fecha).toISOString(),
         tipoFactura: formData.tipoFactura || undefined,
         numeroFactura: formData.numeroFactura || undefined,
-        campoId: formData.campoId || undefined,
+        // Si hay múltiples campos, no enviar campoId
+        campoId: formData.campoIds.length > 0 ? undefined : (formData.campoId || undefined),
         campoIds: formData.campoIds.length > 0 ? formData.campoIds : undefined,
         loteIds: formData.loteIds.length > 0 ? formData.loteIds : undefined,
         maquinariaId: formData.maquinariaId || undefined,
