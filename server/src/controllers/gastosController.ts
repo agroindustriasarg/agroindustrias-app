@@ -152,13 +152,32 @@ export const createGasto = async (req: AuthRequest, res: Response): Promise<void
 export const updateGasto = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { fecha, ...rest } = gastoSchema.partial().parse(req.body);
+    const { fecha, loteIds, campoIds, campoId, ...rest } = gastoSchema.partial().parse(req.body);
 
     const gasto = await prisma.gasto.update({
       where: { id },
       data: {
         ...rest,
+        campoId: campoId || undefined,
         fecha: fecha ? parseFecha(fecha) : undefined,
+        lotes: loteIds !== undefined ? {
+          deleteMany: {},
+          create: loteIds.filter(Boolean).map(loteId => ({
+            lote: { connect: { id: loteId } }
+          })),
+        } : undefined,
+      },
+      include: {
+        cuenta: { select: { nombre: true, tipo: true } },
+        campo: { select: { nombre: true } },
+        lotes: {
+          include: {
+            lote: { select: { id: true, nombre: true } }
+          }
+        },
+        maquinaria: { select: { nombre: true, tipo: true } },
+        implemento: { select: { nombre: true, tipo: true } },
+        usuario: { select: { nombre: true, apellido: true } },
       },
     });
 
