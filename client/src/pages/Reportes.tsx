@@ -901,7 +901,8 @@ function ServiciosRealizados({
     );
   }
 
-  const totalCosto = data.reduce((sum, srv) => sum + srv.totalCosto, 0);
+  const totalCostoARS = data.filter(s => s.moneda !== 'USD').reduce((sum, srv) => sum + srv.totalCosto, 0);
+  const totalCostoUSD = data.filter(s => s.moneda === 'USD').reduce((sum, srv) => sum + srv.totalCosto, 0);
   const totalHectareas = data.reduce((sum, srv) => sum + srv.totalHectareas, 0);
 
   const descargarPDF = async () => {
@@ -1063,8 +1064,13 @@ function ServiciosRealizados({
         <div className="card bg-gradient-to-br from-purple-50 to-purple-100">
           <p className="text-sm text-purple-700 mb-1">Total Invertido</p>
           <p className="text-3xl font-bold text-purple-900">
-            ${totalCosto.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+            ${totalCostoARS.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
           </p>
+          {totalCostoUSD > 0 && (
+            <p className="text-lg font-semibold text-blue-700 mt-1">
+              USD {totalCostoUSD.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+            </p>
+          )}
         </div>
         <div className="card bg-gradient-to-br from-green-50 to-green-100">
           <p className="text-sm text-green-700 mb-1">Total Hectáreas</p>
@@ -1075,8 +1081,13 @@ function ServiciosRealizados({
         <div className="card bg-gradient-to-br from-orange-50 to-orange-100">
           <p className="text-sm text-orange-700 mb-1">Costo Promedio/Ha</p>
           <p className="text-3xl font-bold text-orange-900">
-            ${totalHectareas > 0 ? (totalCosto / totalHectareas).toLocaleString('es-AR', { minimumFractionDigits: 2 }) : '0.00'}
+            ${totalHectareas > 0 ? (totalCostoARS / totalHectareas).toLocaleString('es-AR', { minimumFractionDigits: 2 }) : '0.00'}
           </p>
+          {totalCostoUSD > 0 && (
+            <p className="text-lg font-semibold text-blue-700 mt-1">
+              USD {totalHectareas > 0 ? (totalCostoUSD / totalHectareas).toLocaleString('es-AR', { minimumFractionDigits: 2 }) : '0.00'}
+            </p>
+          )}
         </div>
       </div>
 
@@ -1084,12 +1095,15 @@ function ServiciosRealizados({
       <div className="card">
         <h3 className="text-lg font-semibold mb-4">Costo Total por Tipo de Servicio</h3>
         <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={data}>
+          <BarChart data={data.map(d => ({ ...d, label: d.moneda === 'USD' ? `${d.tipo} (USD)` : d.tipo }))}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="tipo" />
+            <XAxis dataKey="label" />
             <YAxis />
             <Tooltip
-              formatter={(value: number) => `$${value.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`}
+              formatter={(value: number, _name: string, props: any) => {
+                const prefijo = props.payload.moneda === 'USD' ? 'USD ' : '$';
+                return `${prefijo}${value.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`;
+              }}
             />
             <Legend />
             <Bar dataKey="totalCosto" fill="#8b5cf6" name="Costo Total" />
@@ -1112,19 +1126,27 @@ function ServiciosRealizados({
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {data.map((servicio) => (
-                <tr key={servicio.tipo} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium">{servicio.tipo}</td>
+              {data.map((servicio) => {
+                const prefijo = servicio.moneda === 'USD' ? 'USD ' : '$';
+                return (
+                <tr key={`${servicio.tipo}-${servicio.moneda}`} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 font-medium">
+                    {servicio.tipo}
+                    {servicio.moneda === 'USD' && (
+                      <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">USD</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-right">{servicio.cantidad}</td>
                   <td className="px-4 py-3 text-right">{servicio.totalHectareas.toFixed(2)} ha</td>
                   <td className="px-4 py-3 text-right font-bold">
-                    ${servicio.totalCosto.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                    {prefijo}{servicio.totalCosto.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
                   </td>
                   <td className="px-4 py-3 text-right text-purple-600 font-semibold">
-                    ${servicio.costoPorHectarea.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                    {prefijo}{servicio.costoPorHectarea.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

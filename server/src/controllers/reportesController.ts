@@ -267,9 +267,9 @@ export const getServiciosRealizados = async (req: AuthRequest, res: Response): P
       whereClause.contratistaId = { in: idsArray };
     }
 
-    // Agrupar servicios por tipo
+    // Agrupar servicios por tipo y moneda
     const serviciosPorTipo = await prisma.servicio.groupBy({
-      by: ['tipo'],
+      by: ['tipo', 'moneda'],
       where: whereClause,
       _sum: { total: true, hectareas: true },
       _count: { id: true },
@@ -279,6 +279,7 @@ export const getServiciosRealizados = async (req: AuthRequest, res: Response): P
     res.json(
       serviciosPorTipo.map((srv) => ({
         tipo: srv.tipo,
+        moneda: srv.moneda,
         totalCosto: srv._sum.total || 0,
         totalHectareas: srv._sum.hectareas || 0,
         cantidad: srv._count.id,
