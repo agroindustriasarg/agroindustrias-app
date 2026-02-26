@@ -454,21 +454,6 @@ export default function Facturas() {
     }
   };
 
-  const handleCambiarEstado = async (id: string, nuevoEstado: string) => {
-    try {
-      const factura = facturas.find(f => f.id === id);
-      if (!factura) return;
-
-      await api.put(`/facturas/${id}`, {
-        ...factura,
-        estado: nuevoEstado
-      });
-      fetchFacturas();
-    } catch (error) {
-      alert('Error al cambiar estado');
-      console.error('Error al cambiar estado:', error);
-    }
-  };
 
   const resetFormulario = () => {
     setMostrarFormulario(false);
