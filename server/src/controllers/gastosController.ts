@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { Response } from 'express';
+import { randomUUID } from 'crypto';
 import { prisma } from '../utils/prisma.js';
 import { AuthRequest } from '../middleware/auth.js';
 import { z } from 'zod';
@@ -63,6 +64,9 @@ export const createGasto = async (req: AuthRequest, res: Response): Promise<void
       // Calcular total de hectáreas
       const totalHectareas = campos.reduce((sum, campo) => sum + campo.hectareas, 0);
 
+      // Generar grupoId compartido para todos los gastos de esta distribución
+      const grupoId = randomUUID();
+
       // Crear un gasto por cada campo con monto proporcional
       const gastosCreados = await Promise.all(
         campos.map(campo => {
@@ -85,6 +89,7 @@ export const createGasto = async (req: AuthRequest, res: Response): Promise<void
               implementoId: rest.implementoId || undefined,
               cuentaId: rest.cuentaId || undefined,
               usuarioId: req.user?.userId,
+              grupoId,
             },
             include: {
               cuenta: { select: { nombre: true, tipo: true } },

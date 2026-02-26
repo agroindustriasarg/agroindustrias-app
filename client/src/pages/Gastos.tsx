@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../services/apiWithCache';
-import { Gasto, Campo, Maquinaria, Cuenta } from '../types';
+import { Gasto, GastoAgrupado, Campo, Maquinaria, Cuenta } from '../types';
 import { Plus, DollarSign, Trash2, Calendar, Edit } from 'lucide-react';
 
 export default function Gastos() {
@@ -205,6 +205,58 @@ export default function Gastos() {
 
   const totalGastos = gastos.reduce((sum, gasto) => sum + gasto.monto, 0);
 
+  // Agrupar gastos por grupoId para mostrar como tarjeta única
+  const gastosAgrupados: (Gasto | GastoAgrupado)[] = (() => {
+    const grupoMap = new Map<string, Gasto[]>();
+    const sinGrupo: Gasto[] = [];
+
+    for (const gasto of gastos) {
+      if (gasto.grupoId) {
+        const arr = grupoMap.get(gasto.grupoId) || [];
+        arr.push(gasto);
+        grupoMap.set(gasto.grupoId, arr);
+      } else {
+        sinGrupo.push(gasto);
+      }
+    }
+
+    const items: (Gasto | GastoAgrupado)[] = [...sinGrupo];
+
+    for (const [grupoId, gastosDelGrupo] of grupoMap) {
+      if (gastosDelGrupo.length === 1) {
+        items.push(gastosDelGrupo[0]);
+      } else {
+        const primero = gastosDelGrupo[0];
+        items.push({
+          grupoId,
+          concepto: primero.concepto,
+          categoria: primero.categoria,
+          montoTotal: gastosDelGrupo.reduce((sum, g) => sum + g.monto, 0),
+          fecha: primero.fecha,
+          tipoFactura: primero.tipoFactura,
+          numeroFactura: primero.numeroFactura,
+          cuenta: primero.cuenta,
+          maquinaria: primero.maquinaria,
+          implemento: primero.implemento,
+          usuario: primero.usuario,
+          gastos: gastosDelGrupo,
+        });
+      }
+    }
+
+    items.sort((a, b) => {
+      const fechaA = new Date(a.fecha).getTime();
+      const fechaB = new Date(b.fecha).getTime();
+      return fechaB - fechaA;
+    });
+
+    return items;
+  })();
+
+  const esGastoAgrupado = (item: Gasto | GastoAgrupado): item is GastoAgrupado => {
+    return 'gastos' in item && 'montoTotal' in item;
+  };
+
   if (loading) {
     return <div className="text-center py-12">Cargando...</div>;
   }
@@ -318,7 +370,7 @@ export default function Gastos() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tipo de Factura (opcional)
+                  Tipo de Comprobante (opcional)
                 </label>
                 <select
                   value={formData.tipoFactura}
@@ -329,6 +381,7 @@ export default function Gastos() {
                   <option value="A">A</option>
                   <option value="B">B</option>
                   <option value="C">C</option>
+                  <option value="COMPROBANTE INTERNO">COMPROBANTE INTERNO</option>
                   <option value="Sin Factura">Sin Factura</option>
                 </select>
               </div>
@@ -557,23 +610,29 @@ export default function Gastos() {
       )}
 
       <div className="space-y-4">
-        {gastos.map((gasto) => (
-          <div key={gasto.id} className="card">
-            <div className="flex justify-between items-start">
+        {gastosAgrupados.map((item) =>
+          esGastoAgrupado(item) ? (
+            /* TARJETA AGRUPADA */
+            <div key={item.grupoId} className="card border-l-4 border-l-blue-400">
               <div className="flex-1">
                 <div className="flex items-center space-x-3 mb-2">
                   <div className="bg-red-100 p-2 rounded-lg">
                     <DollarSign className="w-5 h-5 text-red-600" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-lg">{gasto.concepto}</h3>
+                    <h3 className="font-semibold text-lg">
+                      {item.concepto}
+                      <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                        Distribuido en {item.gastos.length} campos
+                      </span>
+                    </h3>
                     <div className="flex items-center space-x-2 mt-1">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getCategoriaColor(gasto.categoria)}`}>
-                        {gasto.categoria}
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getCategoriaColor(item.categoria)}`}>
+                        {item.categoria}
                       </span>
                       <span className="text-sm text-gray-600 flex items-center">
                         <Calendar className="w-3 h-3 mr-1" />
-                        {formatFecha(gasto.fecha)}
+                        {formatFecha(item.fecha)}
                       </span>
                     </div>
                   </div>
@@ -581,106 +640,227 @@ export default function Gastos() {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
                   <div>
-                    <p className="text-sm text-gray-600">Monto</p>
+                    <p className="text-sm text-gray-600">Monto Total</p>
                     <p className="text-xl font-bold text-red-600">
-                      ${gasto.monto.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                      ${item.montoTotal.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
                     </p>
                   </div>
 
-                  {gasto.campo && (
-                    <div>
-                      <p className="text-sm text-gray-600">Campo</p>
-                      <p className="font-medium">{gasto.campo.nombre}</p>
-                    </div>
-                  )}
-
-                  {gasto.lotes && gasto.lotes.length > 0 && (
-                    <div>
-                      <p className="text-sm text-gray-600">Lotes</p>
-                      <p className="font-medium">
-                        {gasto.lotes.map(gl => gl.lote.nombre).join(', ')}
-                      </p>
-                    </div>
-                  )}
-
-                  {gasto.lote && (
-                    <div>
-                      <p className="text-sm text-gray-600">Lote</p>
-                      <p className="font-medium">{gasto.lote.nombre}</p>
-                    </div>
-                  )}
-
-                  {gasto.maquinaria && (
+                  {item.maquinaria && (
                     <div>
                       <p className="text-sm text-gray-600">Maquinaria</p>
-                      <p className="font-medium">{gasto.maquinaria.nombre}</p>
+                      <p className="font-medium">{item.maquinaria.nombre}</p>
                     </div>
                   )}
 
-                  {gasto.implemento && (
+                  {item.implemento && (
                     <div>
                       <p className="text-sm text-gray-600">Implemento</p>
-                      <p className="font-medium">{gasto.implemento.nombre}</p>
+                      <p className="font-medium">{item.implemento.nombre}</p>
                     </div>
                   )}
 
-                  {gasto.tipoFactura && (
+                  {item.tipoFactura && (
                     <div>
                       <p className="text-sm text-gray-600">Tipo de Factura</p>
-                      <p className="font-medium">{gasto.tipoFactura}</p>
+                      <p className="font-medium">{item.tipoFactura}</p>
                     </div>
                   )}
 
-                  {gasto.numeroFactura && (
+                  {item.numeroFactura && (
                     <div>
                       <p className="text-sm text-gray-600">N° de Factura</p>
-                      <p className="font-medium">{gasto.numeroFactura}</p>
+                      <p className="font-medium">{item.numeroFactura}</p>
                     </div>
                   )}
 
-                  {gasto.cuenta && (
+                  {item.cuenta && (
                     <div>
                       <p className="text-sm text-gray-600">Cuenta</p>
-                      <p className="font-medium">{gasto.cuenta.nombre}</p>
+                      <p className="font-medium">{item.cuenta.nombre}</p>
                     </div>
                   )}
 
-                  {gasto.usuario && (
+                  {item.usuario && (
                     <div>
                       <p className="text-sm text-gray-600">Registrado por</p>
                       <p className="font-medium">
-                        {gasto.usuario.nombre} {gasto.usuario.apellido}
+                        {item.usuario.nombre} {item.usuario.apellido}
                       </p>
                     </div>
                   )}
                 </div>
 
-                {gasto.descripcion && (
-                  <p className="text-sm text-gray-600 mt-3 pt-3 border-t">
-                    {gasto.descripcion}
-                  </p>
-                )}
-              </div>
-
-              <div className="flex items-start space-x-2 ml-4">
-                <button
-                  onClick={() => handleEdit(gasto)}
-                  className="text-blue-500 hover:text-blue-700"
-                  title="Editar"
-                >
-                  <Edit className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => handleDelete(gasto.id)}
-                  className="text-red-500 hover:text-red-700"
-                  title="Eliminar"
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
+                {/* Desglose por campo */}
+                <div className="mt-3 pt-3 border-t">
+                  <p className="text-sm font-medium text-gray-700 mb-2">Distribución por campo:</p>
+                  <div className="space-y-1 text-sm">
+                    {item.gastos.map((g, idx) => {
+                      const porcentaje = item.montoTotal > 0
+                        ? ((g.monto / item.montoTotal) * 100).toFixed(1)
+                        : '0.0';
+                      const esUltimo = idx === item.gastos.length - 1;
+                      const prefijo = esUltimo ? '\u2514' : '\u251C';
+                      return (
+                        <div key={g.id} className="flex justify-between items-center text-gray-600 hover:bg-gray-50 px-2 py-1 rounded">
+                          <span>
+                            {prefijo} {g.campo?.nombre || 'Sin campo'}
+                          </span>
+                          <div className="flex items-center space-x-4">
+                            <span className="font-medium text-gray-900">
+                              ${g.monto.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                            </span>
+                            <span className="text-gray-400 w-16 text-right">({porcentaje}%)</span>
+                            <div className="flex space-x-1">
+                              <button
+                                onClick={() => handleEdit(g)}
+                                className="text-blue-400 hover:text-blue-600"
+                                title="Editar este registro"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(g.id)}
+                                className="text-red-400 hover:text-red-600"
+                                title="Eliminar este registro"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ) : (
+            /* TARJETA INDIVIDUAL (sin grupo) */
+            <div key={item.id} className="card">
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-3 mb-2">
+                    <div className="bg-red-100 p-2 rounded-lg">
+                      <DollarSign className="w-5 h-5 text-red-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-lg">{item.concepto}</h3>
+                      <div className="flex items-center space-x-2 mt-1">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getCategoriaColor(item.categoria)}`}>
+                          {item.categoria}
+                        </span>
+                        <span className="text-sm text-gray-600 flex items-center">
+                          <Calendar className="w-3 h-3 mr-1" />
+                          {formatFecha(item.fecha)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
+                    <div>
+                      <p className="text-sm text-gray-600">Monto</p>
+                      <p className="text-xl font-bold text-red-600">
+                        ${item.monto.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+
+                    {item.campo && (
+                      <div>
+                        <p className="text-sm text-gray-600">Campo</p>
+                        <p className="font-medium">{item.campo.nombre}</p>
+                      </div>
+                    )}
+
+                    {item.lotes && item.lotes.length > 0 && (
+                      <div>
+                        <p className="text-sm text-gray-600">Lotes</p>
+                        <p className="font-medium">
+                          {item.lotes.map(gl => gl.lote.nombre).join(', ')}
+                        </p>
+                      </div>
+                    )}
+
+                    {item.lote && (
+                      <div>
+                        <p className="text-sm text-gray-600">Lote</p>
+                        <p className="font-medium">{item.lote.nombre}</p>
+                      </div>
+                    )}
+
+                    {item.maquinaria && (
+                      <div>
+                        <p className="text-sm text-gray-600">Maquinaria</p>
+                        <p className="font-medium">{item.maquinaria.nombre}</p>
+                      </div>
+                    )}
+
+                    {item.implemento && (
+                      <div>
+                        <p className="text-sm text-gray-600">Implemento</p>
+                        <p className="font-medium">{item.implemento.nombre}</p>
+                      </div>
+                    )}
+
+                    {item.tipoFactura && (
+                      <div>
+                        <p className="text-sm text-gray-600">Tipo de Factura</p>
+                        <p className="font-medium">{item.tipoFactura}</p>
+                      </div>
+                    )}
+
+                    {item.numeroFactura && (
+                      <div>
+                        <p className="text-sm text-gray-600">N° de Factura</p>
+                        <p className="font-medium">{item.numeroFactura}</p>
+                      </div>
+                    )}
+
+                    {item.cuenta && (
+                      <div>
+                        <p className="text-sm text-gray-600">Cuenta</p>
+                        <p className="font-medium">{item.cuenta.nombre}</p>
+                      </div>
+                    )}
+
+                    {item.usuario && (
+                      <div>
+                        <p className="text-sm text-gray-600">Registrado por</p>
+                        <p className="font-medium">
+                          {item.usuario.nombre} {item.usuario.apellido}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {item.descripcion && (
+                    <p className="text-sm text-gray-600 mt-3 pt-3 border-t">
+                      {item.descripcion}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex items-start space-x-2 ml-4">
+                  <button
+                    onClick={() => handleEdit(item)}
+                    className="text-blue-500 hover:text-blue-700"
+                    title="Editar"
+                  >
+                    <Edit className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(item.id)}
+                    className="text-red-500 hover:text-red-700"
+                    title="Eliminar"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
+        )}
       </div>
 
       {gastos.length === 0 && !showForm && (
@@ -691,3 +871,4 @@ export default function Gastos() {
     </div>
   );
 }
+

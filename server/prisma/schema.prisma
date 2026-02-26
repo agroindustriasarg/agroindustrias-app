@@ -341,6 +341,7 @@ model Gasto {
   maquinariaId   String?
   implementoId   String?
   usuarioId      String?
+  grupoId        String?   // ID compartido entre gastos distribuidos del mismo origen
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
@@ -352,6 +353,7 @@ model Gasto {
   implemento  Maquinaria? @relation("GastoImplemento", fields: [implementoId], references: [id], onDelete: SetNull)
   usuario     User?       @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
 
+  @@index([grupoId])
   @@map("gastos")
 }
 

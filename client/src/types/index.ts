@@ -84,6 +84,7 @@ export interface Gasto {
   campoId?: string;
   maquinariaId?: string;
   cuentaId?: string;
+  grupoId?: string;
   campo?: { nombre: string };
   lotes?: { lote: { id: string; nombre: string } }[];
   lote?: { nombre: string };
@@ -91,6 +92,21 @@ export interface Gasto {
   implemento?: { nombre: string };
   cuenta?: { nombre: string; tipo: string };
   usuario?: { nombre: string; apellido: string };
+}
+
+export interface GastoAgrupado {
+  grupoId: string;
+  concepto: string;
+  categoria: string;
+  montoTotal: number;
+  fecha: string;
+  tipoFactura?: string;
+  numeroFactura?: string;
+  cuenta?: { nombre: string; tipo: string };
+  maquinaria?: { nombre: string };
+  implemento?: { nombre: string };
+  usuario?: { nombre: string; apellido: string };
+  gastos: Gasto[];
 }
 
 export interface Contratista {
