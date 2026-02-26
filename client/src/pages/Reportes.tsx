@@ -103,6 +103,7 @@ export default function Reportes() {
         if (campo.lotes) {
           todosLotes.push(...campo.lotes.map((lote: any) => ({
             ...lote,
+            campoId: campo.id,
             campoNombre: campo.nombre
           })));
         }
@@ -268,7 +269,12 @@ export default function Reportes() {
                                       setSelectedCampos([...selectedCampos, campo.id]);
                                     } else {
                                       setSelectedCampos(selectedCampos.filter(id => id !== campo.id));
+                                      setSelectedLotes(prev => prev.filter(loteId => {
+                                        const lote = lotes.find(l => l.id === loteId);
+                                        return lote && lote.campoId !== campo.id;
+                                      }));
                                     }
+                                    setCamposOpen(false);
                                   }}
                                   className="rounded text-blue-600 focus:ring-blue-500"
                                 />
@@ -297,13 +303,17 @@ export default function Reportes() {
                     </span>
                     {lotesOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                   </button>
-                  {lotesOpen && (
+                  {lotesOpen && (() => {
+                    const lotesFiltrados = selectedCampos.length > 0
+                      ? lotes.filter(l => selectedCampos.includes(l.campoId))
+                      : lotes;
+                    return (
                     <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded shadow-lg max-h-48 overflow-y-auto">
-                      {lotes.length === 0 ? (
+                      {lotesFiltrados.length === 0 ? (
                         <p className="text-xs text-gray-400 p-2">No hay lotes</p>
                       ) : (
                         <div className="p-2 space-y-1">
-                          {lotes.map((lote) => (
+                          {lotesFiltrados.map((lote) => (
                             <label key={lote.id} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1.5 rounded">
                               <input
                                 type="checkbox"
@@ -314,6 +324,7 @@ export default function Reportes() {
                                   } else {
                                     setSelectedLotes(selectedLotes.filter(id => id !== lote.id));
                                   }
+                                  setLotesOpen(false);
                                 }}
                                 className="rounded text-blue-600 focus:ring-blue-500"
                               />
@@ -323,7 +334,8 @@ export default function Reportes() {
                         </div>
                       )}
                     </div>
-                  )}
+                    );
+                  })()}
                 </div>
 
                 {/* Filtro por maquinarias (solo para stock) */}
@@ -359,6 +371,7 @@ export default function Reportes() {
                                     } else {
                                       setSelectedMaquinarias(selectedMaquinarias.filter(id => id !== maq.id));
                                     }
+                                    setMaquinariasOpen(false);
                                   }}
                                   className="rounded text-blue-600 focus:ring-blue-500"
                                 />
@@ -405,6 +418,7 @@ export default function Reportes() {
                                     } else {
                                       setSelectedContratistas(selectedContratistas.filter(id => id !== contratista.id));
                                     }
+                                    setContratistasOpen(false);
                                   }}
                                   className="rounded text-blue-600 focus:ring-blue-500"
                                 />
@@ -457,6 +471,7 @@ export default function Reportes() {
                                       } else {
                                         setSelectedCultivos(selectedCultivos.filter(c => c !== cultivo));
                                       }
+                                      setCultivosOpen(false);
                                     }}
                                     className="rounded text-blue-600 focus:ring-blue-500"
                                   />
