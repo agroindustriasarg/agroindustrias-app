@@ -285,11 +285,13 @@ router.put('/:id', authMiddleware, async (req, res) => {
       observaciones
     };
 
-    // Desvincular servicios anteriores
-    await prisma.servicio.updateMany({
-      where: { facturaId: req.params.id },
-      data: { facturaId: null }
-    });
+    // Desvincular servicios anteriores solo si se envían nuevos serviciosIds
+    if (serviciosIds !== undefined) {
+      await prisma.servicio.updateMany({
+        where: { facturaId: req.params.id },
+        data: { facturaId: null }
+      });
+    }
 
     // Eliminar items existentes
     await prisma.facturaItem.deleteMany({
