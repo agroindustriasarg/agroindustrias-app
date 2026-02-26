@@ -647,6 +647,7 @@ export default function Facturas() {
                       <option value="A">A</option>
                       <option value="B">B</option>
                       <option value="C">C</option>
+                      <option value="COMPROBANTE INTERNO">COMPROBANTE INTERNO</option>
                     </select>
                   </div>
 
@@ -691,14 +692,14 @@ export default function Facturas() {
 
                   <div>
                     <label className="label">Estado</label>
-                    <select
-                      value={estado}
-                      onChange={(e) => setEstado(e.target.value)}
-                      className="input"
-                    >
-                      <option value="PENDIENTE">Pendiente</option>
-                      <option value="PAGADA">Pagada</option>
-                    </select>
+                    <div className={`inline-flex items-center space-x-1 px-3 py-2 rounded-lg text-sm font-medium ${
+                      estado === 'PAGADA'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {estado === 'PAGADA' ? 'Pagada' : 'Pendiente'}
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">Se actualiza automáticamente al registrar el pago</p>
                   </div>
                 </div>
 
@@ -1127,11 +1128,7 @@ export default function Facturas() {
                       )}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <button
-                        onClick={() => handleCambiarEstado(
-                          factura.id,
-                          factura.estado === 'PENDIENTE' ? 'PAGADA' : 'PENDIENTE'
-                        )}
+                      <span
                         className={`inline-flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${
                           factura.estado === 'PAGADA'
                             ? 'bg-green-100 text-green-800'
@@ -1143,7 +1140,7 @@ export default function Facturas() {
                         ) : (
                           <><XCircle className="w-3 h-3" /><span>Pendiente</span></>
                         )}
-                      </button>
+                      </span>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm">
                       <div className="flex items-center space-x-2">
