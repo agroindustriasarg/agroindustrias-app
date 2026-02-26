@@ -556,8 +556,71 @@ export default function Reportes() {
   );
 }
 
+// Helper: Generar PDF reutilizable
+async function generarPDF(ref: React.RefObject<HTMLDivElement>, titulo: string, nombreArchivo: string) {
+  if (!ref.current) return;
+  try {
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    let yPosition = 15;
+
+    pdf.setFillColor(0, 100, 0);
+    pdf.rect(0, 0, pageWidth, 40, 'F');
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(18);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('AGROINDUSTRIAS ARGENTINAS SRL', pageWidth / 2, 18, { align: 'center' });
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    const fechaGeneracion = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    pdf.text(`Fecha de generación: ${fechaGeneracion}`, pageWidth / 2, 28, { align: 'center' });
+
+    yPosition = 50;
+    pdf.setTextColor(0, 0, 0);
+    pdf.setFontSize(16);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(titulo, pageWidth / 2, yPosition, { align: 'center' });
+    yPosition += 15;
+
+    const canvas = await html2canvas(ref.current, { scale: 2, logging: false, useCORS: true });
+    const imgData = canvas.toDataURL('image/png');
+    const imgWidth = pageWidth - 20;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+    const remainingHeight = pageHeight - yPosition - 10;
+    if (imgHeight > remainingHeight) {
+      pdf.addImage(imgData, 'PNG', 10, yPosition, imgWidth, Math.min(imgHeight, remainingHeight));
+      let remainingImgHeight = imgHeight - remainingHeight;
+      while (remainingImgHeight > 0) {
+        pdf.addPage();
+        const nextPageHeight = Math.min(remainingImgHeight, pageHeight - 20);
+        pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, nextPageHeight);
+        remainingImgHeight -= nextPageHeight;
+      }
+    } else {
+      pdf.addImage(imgData, 'PNG', 10, yPosition, imgWidth, imgHeight);
+    }
+
+    const totalPages = pdf.internal.pages.length - 1;
+    for (let i = 1; i <= totalPages; i++) {
+      pdf.setPage(i);
+      pdf.setFontSize(8);
+      pdf.setTextColor(150, 150, 150);
+      pdf.text(`Página ${i} de ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+    }
+
+    pdf.save(`${nombreArchivo}-${new Date().toISOString().split('T')[0]}.pdf`);
+  } catch (error) {
+    console.error('Error al generar PDF:', error);
+    alert('Error al generar el PDF');
+  }
+}
+
 // Componente: Resumen General
 function ResumenGeneral({ data }: { data: any }) {
+  const reportRef = useRef<HTMLDivElement>(null);
+
   if (!data || !data.topCategorias || !data.gastosPorMes) {
     return (
       <div className="card">
@@ -569,10 +632,21 @@ function ResumenGeneral({ data }: { data: any }) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Resumen General</h1>
-        <p className="text-gray-600 mt-1">Vista general de gastos y tendencias</p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Resumen General</h1>
+          <p className="text-gray-600 mt-1">Vista general de gastos y tendencias</p>
+        </div>
+        <button
+          onClick={() => generarPDF(reportRef, 'RESUMEN GENERAL DE GASTOS', 'Resumen-General')}
+          className="flex items-center space-x-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors shadow-md"
+        >
+          <Download className="w-5 h-5" />
+          <span>Descargar PDF</span>
+        </button>
       </div>
+
+      <div ref={reportRef}>
 
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -637,12 +711,15 @@ function ResumenGeneral({ data }: { data: any }) {
           ))}
         </div>
       </div>
+      </div>
     </div>
   );
 }
 
 // Componente: Gastos por Categoría
 function GastosPorCategoria({ data }: { data: any[] }) {
+  const reportRef = useRef<HTMLDivElement>(null);
+
   if (!data || data.length === 0) {
     return (
       <div className="card">
@@ -659,10 +736,21 @@ function GastosPorCategoria({ data }: { data: any[] }) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Gastos por Categoría</h1>
-        <p className="text-gray-600 mt-1">Distribución de gastos por categoría</p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Gastos por Categoría</h1>
+          <p className="text-gray-600 mt-1">Distribución de gastos por categoría</p>
+        </div>
+        <button
+          onClick={() => generarPDF(reportRef, 'GASTOS POR CATEGORÍA', 'Gastos-por-Categoria')}
+          className="flex items-center space-x-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors shadow-md"
+        >
+          <Download className="w-5 h-5" />
+          <span>Descargar PDF</span>
+        </button>
       </div>
+
+      <div ref={reportRef}>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Gráfico de torta */}
@@ -728,12 +816,15 @@ function GastosPorCategoria({ data }: { data: any[] }) {
           </BarChart>
         </ResponsiveContainer>
       </div>
+      </div>
     </div>
   );
 }
 
 // Componente: Gastos por Cuenta
 function GastosPorCuenta({ data }: { data: any[] }) {
+  const reportRef = useRef<HTMLDivElement>(null);
+
   if (!data || data.length === 0) {
     return (
       <div className="card">
@@ -745,10 +836,21 @@ function GastosPorCuenta({ data }: { data: any[] }) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Gastos por Cuenta</h1>
-        <p className="text-gray-600 mt-1">Análisis de gastos por cuenta bancaria</p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Gastos por Cuenta</h1>
+          <p className="text-gray-600 mt-1">Análisis de gastos por cuenta bancaria</p>
+        </div>
+        <button
+          onClick={() => generarPDF(reportRef, 'GASTOS POR CUENTA', 'Gastos-por-Cuenta')}
+          className="flex items-center space-x-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors shadow-md"
+        >
+          <Download className="w-5 h-5" />
+          <span>Descargar PDF</span>
+        </button>
       </div>
+
+      <div ref={reportRef}>
 
       {/* Gráfico de barras */}
       <div className="card">
@@ -803,12 +905,15 @@ function GastosPorCuenta({ data }: { data: any[] }) {
           </table>
         </div>
       </div>
+      </div>
     </div>
   );
 }
 
 // Componente: Gastos por Campo
 function GastosPorCampo({ data }: { data: any[] }) {
+  const reportRef = useRef<HTMLDivElement>(null);
+
   if (!data || data.length === 0) {
     return (
       <div className="card">
@@ -820,10 +925,21 @@ function GastosPorCampo({ data }: { data: any[] }) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Gastos por Campo</h1>
-        <p className="text-gray-600 mt-1">Análisis de inversión por campo</p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Gastos por Campo</h1>
+          <p className="text-gray-600 mt-1">Análisis de inversión por campo</p>
+        </div>
+        <button
+          onClick={() => generarPDF(reportRef, 'GASTOS POR CAMPO', 'Gastos-por-Campo')}
+          className="flex items-center space-x-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors shadow-md"
+        >
+          <Download className="w-5 h-5" />
+          <span>Descargar PDF</span>
+        </button>
       </div>
+
+      <div ref={reportRef}>
 
       {/* Gráfico de barras */}
       <div className="card">
@@ -871,6 +987,7 @@ function GastosPorCampo({ data }: { data: any[] }) {
             </tbody>
           </table>
         </div>
+      </div>
       </div>
     </div>
   );
@@ -1158,6 +1275,8 @@ function ServiciosRealizados({
 
 // Componente: Consumo de Stock
 function ConsumoStock({ data }: { data: any[] }) {
+  const reportRef = useRef<HTMLDivElement>(null);
+
   if (!data || data.length === 0) {
     return (
       <div className="card">
@@ -1169,10 +1288,21 @@ function ConsumoStock({ data }: { data: any[] }) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Consumo de Stock</h1>
-        <p className="text-gray-600 mt-1">Productos más consumidos en el período</p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Consumo de Stock</h1>
+          <p className="text-gray-600 mt-1">Productos más consumidos en el período</p>
+        </div>
+        <button
+          onClick={() => generarPDF(reportRef, 'CONSUMO DE STOCK', 'Consumo-Stock')}
+          className="flex items-center space-x-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors shadow-md"
+        >
+          <Download className="w-5 h-5" />
+          <span>Descargar PDF</span>
+        </button>
       </div>
+
+      <div ref={reportRef}>
 
       {/* Gráfico de barras */}
       <div className="card">
@@ -1221,6 +1351,7 @@ function ConsumoStock({ data }: { data: any[] }) {
           </table>
         </div>
       </div>
+      </div>
     </div>
   );
 }
@@ -1239,6 +1370,8 @@ function ReporteRendimientos({
     cultivos: string[];
   };
 }) {
+  const reportRef = useRef<HTMLDivElement>(null);
+
   if (!data || data.length === 0) {
     return (
       <div className="card">
@@ -1265,10 +1398,21 @@ function ReporteRendimientos({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Reporte de Rendimientos</h1>
-        <p className="text-gray-600 mt-1">Análisis de producción por campo, lote y cultivo</p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Reporte de Rendimientos</h1>
+          <p className="text-gray-600 mt-1">Análisis de producción por campo, lote y cultivo</p>
+        </div>
+        <button
+          onClick={() => generarPDF(reportRef, 'REPORTE DE RENDIMIENTOS', 'Rendimientos')}
+          className="flex items-center space-x-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors shadow-md"
+        >
+          <Download className="w-5 h-5" />
+          <span>Descargar PDF</span>
+        </button>
       </div>
+
+      <div ref={reportRef}>
 
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1357,6 +1501,7 @@ function ReporteRendimientos({
             </div>
           ))}
         </div>
+      </div>
       </div>
     </div>
   );
