@@ -5,6 +5,12 @@ import { prisma } from '../utils/prisma.js';
 import { AuthRequest } from '../middleware/auth.js';
 import { z } from 'zod';
 
+// Parsear fecha evitando desfase de timezone (agrega mediodía para no cambiar de día)
+const parseFecha = (fecha: string) => {
+  const soloFecha = fecha.split('T')[0];
+  return new Date(`${soloFecha}T12:00:00`);
+};
+
 const gastoSchema = z.object({
   concepto: z.string().min(1),
   categoria: z.string().min(1),
@@ -78,7 +84,7 @@ export const createGasto = async (req: AuthRequest, res: Response): Promise<void
               concepto: rest.concepto,
               categoria: rest.categoria,
               monto: montoProporcional,
-              fecha: new Date(fecha),
+              fecha: parseFecha(fecha),
               descripcion: rest.descripcion
                 ? `${rest.descripcion} (${campo.nombre} - ${(proporcion * 100).toFixed(1)}% del total)`
                 : `${campo.nombre} - ${(proporcion * 100).toFixed(1)}% del total`,
@@ -109,7 +115,7 @@ export const createGasto = async (req: AuthRequest, res: Response): Promise<void
         data: {
           ...rest,
           campoId: campoId || undefined,
-          fecha: new Date(fecha),
+          fecha: parseFecha(fecha),
           usuarioId: req.user?.userId,
           lotes: loteIds && loteIds.length > 0 ? {
             create: loteIds.map(loteId => ({
@@ -152,7 +158,7 @@ export const updateGasto = async (req: AuthRequest, res: Response): Promise<void
       where: { id },
       data: {
         ...rest,
-        fecha: fecha ? new Date(fecha) : undefined,
+        fecha: fecha ? parseFecha(fecha) : undefined,
       },
     });
 
