@@ -28,7 +28,7 @@ export default function Layout({ children }: LayoutProps) {
                   <Sprout className="w-6 h-6 text-white" />
                 </div>
                 <span className="text-xl font-bold text-gray-900">
-                  Agroindustrias Argentinas
+                  {import.meta.env.VITE_COMPANY_NAME || 'Agroindustrias Argentinas'}
                 </span>
               </Link>
 
