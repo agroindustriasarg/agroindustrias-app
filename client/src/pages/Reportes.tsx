@@ -823,7 +823,7 @@ async function generarPDF(ref: React.RefObject<HTMLDivElement>, titulo: string, 
     pdf.setTextColor(255, 255, 255);
     pdf.setFontSize(18);
     pdf.setFont('helvetica', 'bold');
-    pdf.text('AGROINDUSTRIAS ARGENTINAS SRL', pageWidth / 2, 18, { align: 'center' });
+    pdf.text(import.meta.env.VITE_COMPANY_NAME || 'AGROINDUSTRIAS ARGENTINAS SRL', pageWidth / 2, 18, { align: 'center' });
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'normal');
     const fechaGeneracion = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -1292,7 +1292,7 @@ function ServiciosRealizados({
       pdf.setTextColor(255, 255, 255);
       pdf.setFontSize(18);
       pdf.setFont('helvetica', 'bold');
-      pdf.text('AGROINDUSTRIAS ARGENTINAS SRL', pageWidth / 2, 18, { align: 'center' });
+      pdf.text(import.meta.env.VITE_COMPANY_NAME || 'AGROINDUSTRIAS ARGENTINAS SRL', pageWidth / 2, 18, { align: 'center' });
 
       // Fecha de generación
       pdf.setFontSize(10);
