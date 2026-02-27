@@ -132,7 +132,7 @@ export default function Reportes() {
         let params = `?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`;
 
         // Agregar filtros adicionales según el reporte
-        if (selectedCampos.length > 0 && (selectedReport === 'categoria' || selectedReport === 'cuenta' || selectedReport === 'servicios' || selectedReport === 'stock')) {
+        if (selectedCampos.length > 0 && (selectedReport === 'categoria' || selectedReport === 'cuenta' || selectedReport === 'servicios' || selectedReport === 'stock' || selectedReport === 'campos')) {
           params += `&campoIds=${selectedCampos.join(',')}`;
         }
 
@@ -154,8 +154,16 @@ export default function Reportes() {
 
         switch (selectedReport) {
           case 'campos':
-            const campo = await api.get(`/reportes/gastos-por-campo${params}`);
-            setCampoData(campo.data);
+            const [gastosRes, srvRes, stckRes, rndRes] = await Promise.all([
+              api.get(`/reportes/gastos-por-categoria${params}`),
+              api.get(`/reportes/servicios-realizados${params}`),
+              api.get(`/reportes/consumo-stock${params}`),
+              api.get(`/reportes/rendimientos${params}`),
+            ]);
+            setCategoriaData(gastosRes.data);
+            setServiciosData(srvRes.data);
+            setStockData(stckRes.data);
+            setRendimientosData(rndRes.data);
             break;
           case 'servicios':
             const servicios = await api.get(`/reportes/servicios-realizados${params}`);
@@ -237,8 +245,8 @@ export default function Reportes() {
             <div className="mb-6 pb-6 border-b">
               <div className="text-sm font-medium text-gray-700 mb-3">Filtros</div>
               <div className="space-y-4">
-                {/* Filtro por campos (para categoría, cuenta, servicios, stock y rendimientos) */}
-                {(selectedReport === 'categoria' || selectedReport === 'cuenta' || selectedReport === 'servicios' || selectedReport === 'stock' || selectedReport === 'rendimientos') && (
+                {/* Filtro por campos */}
+                {(selectedReport === 'categoria' || selectedReport === 'cuenta' || selectedReport === 'servicios' || selectedReport === 'stock' || selectedReport === 'rendimientos' || selectedReport === 'campos') && (
                   <div className="relative">
                     <label className="block text-xs text-gray-600 mb-2">Campos</label>
                     <button
@@ -536,7 +544,22 @@ export default function Reportes() {
           </div>
         ) : (
           <>
-            {selectedReport === 'campos' && <GastosPorCampo data={campoData} />}
+            {selectedReport === 'campos' && (
+              <ReporteCampo
+                gastos={categoriaData}
+                servicios={serviciosData}
+                stock={stockData}
+                rendimientos={rendimientosData}
+                campoNombre={selectedCampos.length === 1 ? (campos.find(c => c.id === selectedCampos[0])?.nombre || '') : selectedCampos.length > 1 ? `${selectedCampos.length} campos` : ''}
+                hectareas={
+                  selectedLotes.length > 0
+                    ? lotes.filter(l => selectedLotes.includes(l.id)).reduce((s, l) => s + (l.hectareas || 0), 0)
+                    : selectedCampos.length > 0
+                      ? campos.filter(c => selectedCampos.includes(c.id)).reduce((s, c) => s + (c.hectareas || 0), 0)
+                      : 0
+                }
+              />
+            )}
             {selectedReport === 'servicios' && (
               <ServiciosRealizados
                 data={serviciosData}
@@ -567,6 +590,221 @@ export default function Reportes() {
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+// Componente: Reporte Completo por Campo/Lote
+function ReporteCampo({
+  gastos,
+  servicios,
+  stock,
+  rendimientos,
+  campoNombre,
+  hectareas,
+}: {
+  gastos: any[];
+  servicios: any[];
+  stock: any[];
+  rendimientos: any[];
+  campoNombre: string;
+  hectareas: number;
+}) {
+  const reportRef = useRef<HTMLDivElement>(null);
+
+  const sinDatos = gastos.length === 0 && servicios.length === 0 && stock.length === 0 && rendimientos.length === 0;
+
+  const totalGastosARS = gastos.filter(g => g.moneda !== 'USD').reduce((s, g) => s + g.total, 0);
+  const totalGastosUSD = gastos.filter(g => g.moneda === 'USD').reduce((s, g) => s + g.total, 0);
+  const totalServiciosARS = servicios.filter(s => s.moneda !== 'USD').reduce((s, srv) => s + srv.totalCosto, 0);
+  const totalServiciosUSD = servicios.filter(s => s.moneda === 'USD').reduce((s, srv) => s + srv.totalCosto, 0);
+  const totalProduccion = rendimientos.reduce((s, r) => s + (r.totalCantidad || 0), 0);
+  const costoPorHa = hectareas > 0 ? (totalGastosARS + totalServiciosARS) / hectareas : 0;
+  const costoPorHaUSD = hectareas > 0 ? (totalGastosUSD + totalServiciosUSD) / hectareas : 0;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Informe de Campo {campoNombre ? `- ${campoNombre}` : ''}
+          </h1>
+          <p className="text-gray-600 mt-1">Resumen completo: gastos, servicios, stock y rendimientos</p>
+        </div>
+        <button
+          onClick={() => generarPDF(reportRef, `INFORME DE CAMPO${campoNombre ? ' - ' + campoNombre : ''}`, 'Informe-Campo')}
+          className="flex items-center space-x-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors shadow-md"
+        >
+          <Download className="w-5 h-5" />
+          <span>Descargar PDF</span>
+        </button>
+      </div>
+
+      {sinDatos ? (
+        <div className="card">
+          <p className="text-gray-500 text-center py-12">No hay datos disponibles para el período y filtros seleccionados</p>
+        </div>
+      ) : (
+        <div ref={reportRef} className="space-y-6">
+
+          {/* KPIs resumen */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="card bg-gradient-to-br from-blue-50 to-blue-100">
+              <p className="text-xs text-blue-700 mb-1">Gastos ARS</p>
+              <p className="text-xl font-bold text-blue-900">${totalGastosARS.toLocaleString('es-AR', { minimumFractionDigits: 0 })}</p>
+              {totalGastosUSD > 0 && <p className="text-xs text-blue-600 mt-1">USD {totalGastosUSD.toLocaleString('es-AR', { minimumFractionDigits: 0 })}</p>}
+            </div>
+            <div className="card bg-gradient-to-br from-purple-50 to-purple-100">
+              <p className="text-xs text-purple-700 mb-1">Servicios ARS</p>
+              <p className="text-xl font-bold text-purple-900">${totalServiciosARS.toLocaleString('es-AR', { minimumFractionDigits: 0 })}</p>
+              {totalServiciosUSD > 0 && <p className="text-xs text-purple-600 mt-1">USD {totalServiciosUSD.toLocaleString('es-AR', { minimumFractionDigits: 0 })}</p>}
+            </div>
+            <div className="card bg-gradient-to-br from-green-50 to-green-100">
+              <p className="text-xs text-green-700 mb-1">Costo por Hectárea</p>
+              <p className="text-xl font-bold text-green-900">
+                {hectareas > 0 ? `$${costoPorHa.toLocaleString('es-AR', { minimumFractionDigits: 0 })}` : '-'}
+              </p>
+              {hectareas > 0 && costoPorHaUSD > 0 && (
+                <p className="text-sm font-semibold text-blue-700 mt-1">
+                  USD {costoPorHaUSD.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                </p>
+              )}
+              {hectareas > 0 && <p className="text-xs text-green-600 mt-1">{hectareas.toFixed(1)} ha totales</p>}
+            </div>
+            <div className="card bg-gradient-to-br from-yellow-50 to-yellow-100">
+              <p className="text-xs text-yellow-700 mb-1">Producción total</p>
+              <p className="text-xl font-bold text-yellow-900">{totalProduccion.toFixed(2)} tn</p>
+            </div>
+          </div>
+
+          {/* Sección Gastos */}
+          {gastos.length > 0 && (
+            <div className="card">
+              <h3 className="text-lg font-semibold mb-4 text-blue-800 border-b pb-2">Gastos por Categoría</h3>
+              <div className="space-y-2">
+                {gastos.map((item, index) => (
+                  <div key={`${item.categoria}-${index}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium">{item.categoria}</p>
+                      <p className="text-xs text-gray-500">{item.cantidad} gastos</p>
+                    </div>
+                    <p className="font-bold">
+                      {item.moneda === 'USD' ? 'USD ' : '$'}
+                      {item.total.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Sección Servicios */}
+          {servicios.length > 0 && (
+            <div className="card">
+              <h3 className="text-lg font-semibold mb-4 text-purple-800 border-b pb-2">Servicios Realizados</h3>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Cantidad</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Hectáreas</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Costo Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {servicios.map((srv) => (
+                      <tr key={`${srv.tipo}-${srv.moneda}`} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 font-medium">
+                          {srv.tipo}
+                          {srv.moneda === 'USD' && <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">USD</span>}
+                        </td>
+                        <td className="px-4 py-3 text-right">{srv.cantidad}</td>
+                        <td className="px-4 py-3 text-right">{srv.totalHectareas.toFixed(2)} ha</td>
+                        <td className="px-4 py-3 text-right font-bold">
+                          {srv.moneda === 'USD' ? 'USD ' : '$'}{srv.totalCosto.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Sección Stock */}
+          {stock.length > 0 && (
+            <div className="card">
+              <h3 className="text-lg font-semibold mb-4 text-orange-800 border-b pb-2">Consumo de Stock / Insumos</h3>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoría</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Consumido</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Movimientos</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {stock.map((item) => (
+                      <tr key={item.stockId} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 font-medium">{item.nombre}</td>
+                        <td className="px-4 py-3">
+                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">{item.categoria}</span>
+                        </td>
+                        <td className="px-4 py-3 text-right font-bold">{item.cantidadConsumida.toFixed(2)} {item.unidad}</td>
+                        <td className="px-4 py-3 text-right">{item.cantidadMovimientos}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Sección Rendimientos */}
+          {rendimientos.length > 0 && (
+            <div className="card">
+              <h3 className="text-lg font-semibold mb-4 text-green-800 border-b pb-2">Rendimientos / Cosechas</h3>
+              {rendimientos.map((campo) => (
+                <div key={campo.campoId} className="mb-4">
+                  {rendimientos.length > 1 && (
+                    <h4 className="font-semibold text-gray-700 mb-2">{campo.campoNombre}</h4>
+                  )}
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cultivo</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Cosechas</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Superficie (ha)</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Producción (tn)</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Rend. (tn/ha)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {campo.cultivos?.map((cultivo: any, idx: number) => (
+                          <tr key={idx} className="hover:bg-gray-50">
+                            <td className="px-4 py-3">
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">{cultivo.cultivo}</span>
+                            </td>
+                            <td className="px-4 py-3 text-right">{cultivo.cantidad}</td>
+                            <td className="px-4 py-3 text-right">{cultivo.totalSuperficie.toFixed(2)} ha</td>
+                            <td className="px-4 py-3 text-right font-semibold text-yellow-600">{cultivo.totalCantidad.toFixed(2)} tn</td>
+                            <td className="px-4 py-3 text-right font-bold text-blue-600">{cultivo.promedioRendimiento.toFixed(2)} tn/ha</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+        </div>
+      )}
     </div>
   );
 }

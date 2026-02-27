@@ -180,7 +180,7 @@ export const getGastosPorCuenta = async (req: AuthRequest, res: Response): Promi
 // Gastos por campo
 export const getGastosPorCampo = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { fechaInicio, fechaFin, loteIds } = req.query;
+    const { fechaInicio, fechaFin, campoIds, loteIds } = req.query;
 
     const whereClause: any = {
       categoria: { not: 'Pago' }, // Excluir pagos de reportes
@@ -190,6 +190,12 @@ export const getGastosPorCampo = async (req: AuthRequest, res: Response): Promis
         gte: new Date(fechaInicio as string),
         lte: new Date(fechaFin as string),
       };
+    }
+
+    // Filtrar por campos
+    if (campoIds && typeof campoIds === 'string') {
+      const idsArray = campoIds.split(',');
+      whereClause.campoId = { in: idsArray };
     }
 
     // Filtrar por lotes
