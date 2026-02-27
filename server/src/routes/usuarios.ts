@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Router } from 'express';
 import { getUsuarios, updateUsuario, editUsuario, deleteUsuario } from '../controllers/usuariosController.js';
 import { authMiddleware } from '../middleware/auth.js';

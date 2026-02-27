@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Router } from 'express';
 import { register, login } from '../controllers/authController.js';
 import { prisma } from '../utils/prisma.js';

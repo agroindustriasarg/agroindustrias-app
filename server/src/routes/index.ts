@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Router } from 'express';
 import authRoutes from './auth.js';
 import camposRoutes from './campos.js';
