@@ -213,9 +213,9 @@ export const getGastosPorCampo = async (req: AuthRequest, res: Response): Promis
     });
 
     // Obtener nombres de campos
-    const campoIds = gastosPorCampo.map((g) => g.campoId).filter((id): id is string => id !== null);
+    const campoIdsResult = gastosPorCampo.map((g) => g.campoId).filter((id): id is string => id !== null);
     const campos = await prisma.campo.findMany({
-      where: { id: { in: campoIds } },
+      where: { id: { in: campoIdsResult } },
       select: { id: true, nombre: true, hectareas: true },
     });
 
