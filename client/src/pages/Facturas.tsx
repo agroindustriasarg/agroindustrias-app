@@ -611,8 +611,17 @@ export default function Facturas() {
                     <input
                       type="text"
                       value={numeroFactura}
-                      onChange={(e) => setNumeroFactura(e.target.value)}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/[^0-9]/g, '');
+                        if (raw.length <= 5) {
+                          setNumeroFactura(raw);
+                        } else {
+                          setNumeroFactura(raw.slice(0, 5) + '-' + raw.slice(5, 13));
+                        }
+                      }}
                       className="input"
+                      placeholder="00001-00000001"
+                      maxLength={14}
                       required
                     />
                   </div>
