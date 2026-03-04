@@ -494,7 +494,7 @@ export default function Facturas() {
   };
 
   const formatFecha = (fecha: string) => {
-    return new Date(fecha).toLocaleDateString('es-AR');
+    return new Date(fecha).toLocaleDateString('es-AR', { timeZone: 'UTC' });
   };
 
   const formatMoneda = (valor: number, moneda: string) => {

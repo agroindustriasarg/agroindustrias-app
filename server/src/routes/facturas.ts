@@ -6,6 +6,12 @@ import { authMiddleware } from '../middleware/auth.js';
 const router = Router();
 const prisma = new PrismaClient();
 
+// Parsear fecha evitando desfase de timezone (agrega mediodía para no cambiar de día)
+const parseFecha = (fecha: string) => {
+  const soloFecha = fecha.split('T')[0];
+  return new Date(`${soloFecha}T12:00:00`);
+};
+
 // Obtener todas las facturas
 router.get('/', authMiddleware, async (req, res) => {
   try {
@@ -185,7 +191,7 @@ router.post('/', authMiddleware, async (req, res) => {
     const factura = await prisma.factura.create({
       data: {
         numeroFactura,
-        fechaEmision: new Date(fechaEmision),
+        fechaEmision: parseFecha(fechaEmision),
         proveedor,
         tipoFactura,
         moneda,
@@ -195,7 +201,7 @@ router.post('/', authMiddleware, async (req, res) => {
         iva21: iva21 || 0,
         total,
         formaPago,
-        fechaPago: fechaPago ? new Date(fechaPago) : null,
+        fechaPago: fechaPago ? parseFecha(fechaPago) : null,
         estado: estado || 'PENDIENTE',
         tieneRemitos: tieneRemitos || false,
         observaciones,
@@ -270,7 +276,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
 
     let updateData: any = {
       numeroFactura,
-      fechaEmision: new Date(fechaEmision),
+      fechaEmision: parseFecha(fechaEmision),
       proveedor,
       tipoFactura,
       moneda,
@@ -280,7 +286,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
       iva21: iva21 || 0,
       total,
       formaPago,
-      fechaPago: fechaPago ? new Date(fechaPago) : null,
+      fechaPago: fechaPago ? parseFecha(fechaPago) : null,
       estado,
       tieneRemitos: tieneRemitos !== undefined ? tieneRemitos : false,
       observaciones
