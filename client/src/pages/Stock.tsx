@@ -35,6 +35,24 @@ export default function StockPage() {
     nombreComercial: '',
     tipo: '',
   });
+  const [proveedoresList, setProveedoresList] = useState<string[]>(() => {
+    const saved = localStorage.getItem('proveedores_stock');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [mostrarNuevoProveedor, setMostrarNuevoProveedor] = useState(false);
+  const [nuevoProveedor, setNuevoProveedor] = useState('');
+
+  const agregarProveedor = () => {
+    const nombre = nuevoProveedor.trim();
+    if (!nombre || proveedoresList.includes(nombre)) return;
+    const nuevaLista = [...proveedoresList, nombre].sort();
+    setProveedoresList(nuevaLista);
+    localStorage.setItem('proveedores_stock', JSON.stringify(nuevaLista));
+    setMovimientoData(prev => ({ ...prev, proveedor: nombre }));
+    setNuevoProveedor('');
+    setMostrarNuevoProveedor(false);
+  };
+
   const [movimientoData, setMovimientoData] = useState({
     tipo: 'ENTRADA',
     cantidad: '',
@@ -178,6 +196,8 @@ export default function StockPage() {
 
       await api.post(`/stock/${showMovimiento}/movimientos`, dataToSend);
       setShowMovimiento(null);
+      setMostrarNuevoProveedor(false);
+      setNuevoProveedor('');
       setMovimientoData({
         tipo: 'ENTRADA',
         cantidad: '',
@@ -443,13 +463,41 @@ export default function StockPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Proveedor
                       </label>
-                      <input
-                        type="text"
-                        value={movimientoData.proveedor}
-                        onChange={(e) => setMovimientoData({ ...movimientoData, proveedor: e.target.value })}
-                        className="input"
-                        placeholder="Nombre del proveedor"
-                      />
+                      <div className="flex items-center space-x-2">
+                        <select
+                          value={movimientoData.proveedor}
+                          onChange={(e) => setMovimientoData({ ...movimientoData, proveedor: e.target.value })}
+                          className="input flex-1"
+                        >
+                          <option value="">Seleccionar proveedor...</option>
+                          {proveedoresList.map(p => (
+                            <option key={p} value={p}>{p}</option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => setMostrarNuevoProveedor(true)}
+                          className="btn-secondary px-3 py-2 text-lg font-bold"
+                          title="Agregar proveedor"
+                        >
+                          +
+                        </button>
+                      </div>
+                      {mostrarNuevoProveedor && (
+                        <div className="flex items-center space-x-2 mt-2">
+                          <input
+                            type="text"
+                            value={nuevoProveedor}
+                            onChange={(e) => setNuevoProveedor(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), agregarProveedor())}
+                            className="input flex-1"
+                            placeholder="Nombre del nuevo proveedor"
+                            autoFocus
+                          />
+                          <button type="button" onClick={agregarProveedor} className="btn-primary px-3 py-2">✓</button>
+                          <button type="button" onClick={() => { setMostrarNuevoProveedor(false); setNuevoProveedor(''); }} className="btn-secondary px-3 py-2">✕</button>
+                        </div>
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">

@@ -227,7 +227,8 @@ export default function Facturas() {
           total += prod.cantidad * prod.precioUnitario;
         });
       });
-      return total;
+      const iva = calcularIva(total);
+      return total + iva;
     } else if (modoFactura === 'servicios') {
       let totalServicios = 0;
       serviciosSeleccionados.forEach(servicioId => {
@@ -295,10 +296,18 @@ export default function Facturas() {
         });
       });
 
+      let subtotalRemitos = 0;
+      Object.entries(productosPrecios).forEach(([_, productos]) => {
+        Object.values(productos).forEach(prod => {
+          subtotalRemitos += prod.cantidad * prod.precioUnitario;
+        });
+      });
+      const ivaCalculadoRemitos = calcularIva(subtotalRemitos);
+
       data.items = items;
-      data.subtotal = 0;
-      data.iva105 = 0;
-      data.iva21 = 0;
+      data.subtotal = subtotalRemitos;
+      data.iva105 = tipoIva === 'IVA_105' ? ivaCalculadoRemitos : 0;
+      data.iva21 = tipoIva === 'IVA_21' ? ivaCalculadoRemitos : 0;
       data.total = calcularTotalFactura();
     } else if (modoFactura === 'servicios') {
       // Factura con servicios
@@ -408,6 +417,14 @@ export default function Facturas() {
 
       setRemitosSeleccionados(remitosIds);
       setProductosPrecios(productosData);
+
+      if (factura.iva105 > 0) {
+        setTipoIva('IVA_105');
+      } else if (factura.iva21 > 0) {
+        setTipoIva('IVA_21');
+      } else {
+        setTipoIva('SIN_IVA');
+      }
     } else if (factura.servicios && factura.servicios.length > 0) {
       setModoFactura('servicios');
       setServiciosSeleccionados(factura.servicios.map(s => s.id));
@@ -802,9 +819,52 @@ export default function Facturas() {
 
                     {remitosSeleccionados.length > 0 && (
                       <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                        <p className="text-lg font-semibold text-gray-900">
-                          Total de la Factura: {formatMoneda(calcularTotalFactura(), moneda)}
-                        </p>
+                        <h4 className="text-md font-semibold text-gray-900 mb-2">Montos de la Factura</h4>
+
+                        <div className="mb-4">
+                          <label className="label">Tipo de IVA</label>
+                          <select
+                            value={tipoIva}
+                            onChange={(e) => setTipoIva(e.target.value as 'SIN_IVA' | 'IVA_105' | 'IVA_21')}
+                            className="input"
+                          >
+                            <option value="SIN_IVA">Sin IVA</option>
+                            <option value="IVA_105">IVA 10.5%</option>
+                            <option value="IVA_21">IVA 21%</option>
+                          </select>
+                        </div>
+
+                        <div className="border-t pt-3">
+                          {(() => {
+                            let subtotalRemitos = 0;
+                            Object.entries(productosPrecios).forEach(([_, productos]) => {
+                              Object.values(productos).forEach(prod => {
+                                subtotalRemitos += prod.cantidad * prod.precioUnitario;
+                              });
+                            });
+                            const ivaCalculado = calcularIva(subtotalRemitos);
+                            return (
+                              <>
+                                <div className="flex justify-between items-center text-sm mb-1">
+                                  <span className="text-gray-600">Subtotal:</span>
+                                  <span className="font-medium">{formatMoneda(subtotalRemitos, moneda)}</span>
+                                </div>
+                                {tipoIva !== 'SIN_IVA' && (
+                                  <div className="flex justify-between items-center text-sm mb-1">
+                                    <span className="text-gray-600">
+                                      {tipoIva === 'IVA_105' ? 'IVA 10.5%:' : 'IVA 21%:'}
+                                    </span>
+                                    <span className="font-medium">{formatMoneda(ivaCalculado, moneda)}</span>
+                                  </div>
+                                )}
+                                <div className="flex justify-between items-center text-lg font-bold border-t pt-2">
+                                  <span>Total:</span>
+                                  <span className="text-primary-600">{formatMoneda(calcularTotalFactura(), moneda)}</span>
+                                </div>
+                              </>
+                            );
+                          })()}
+                        </div>
                       </div>
                     )}
                   </div>
