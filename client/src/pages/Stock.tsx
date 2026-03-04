@@ -35,22 +35,23 @@ export default function StockPage() {
     nombreComercial: '',
     tipo: '',
   });
-  const [proveedoresList, setProveedoresList] = useState<string[]>(() => {
-    const saved = localStorage.getItem('proveedores_stock');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [proveedoresList, setProveedoresList] = useState<string[]>([]);
   const [mostrarNuevoProveedor, setMostrarNuevoProveedor] = useState(false);
   const [nuevoProveedor, setNuevoProveedor] = useState('');
 
-  const agregarProveedor = () => {
+  const agregarProveedor = async () => {
     const nombre = nuevoProveedor.trim();
-    if (!nombre || proveedoresList.includes(nombre)) return;
-    const nuevaLista = [...proveedoresList, nombre].sort();
-    setProveedoresList(nuevaLista);
-    localStorage.setItem('proveedores_stock', JSON.stringify(nuevaLista));
-    setMovimientoData(prev => ({ ...prev, proveedor: nombre }));
-    setNuevoProveedor('');
-    setMostrarNuevoProveedor(false);
+    if (!nombre) return;
+    try {
+      await api.post('/proveedores', { nombre });
+      const res = await api.get('/proveedores');
+      setProveedoresList(res.data.map((p: any) => p.nombre));
+      setMovimientoData(prev => ({ ...prev, proveedor: nombre }));
+      setNuevoProveedor('');
+      setMostrarNuevoProveedor(false);
+    } catch (error) {
+      console.error('Error al agregar proveedor:', error);
+    }
   };
 
   const [movimientoData, setMovimientoData] = useState({
@@ -77,6 +78,7 @@ export default function StockPage() {
     fetchMaquinarias();
     fetchCampos();
     fetchCuentas();
+    api.get('/proveedores').then(res => setProveedoresList(res.data.map((p: any) => p.nombre))).catch(() => {});
 
     // Recargar datos cuando la página vuelve a estar visible
     const handleVisibilityChange = () => {

@@ -14,6 +14,7 @@ import usuariosRoutes from './usuarios.js';
 import facturasRoutes from './facturas.js';
 import pagosRoutes from './pagos.js';
 import chequesRoutes from './cheques.js';
+import proveedoresRoutes from './proveedores.js';
 
 const router = Router();
 
@@ -31,5 +32,6 @@ router.use('/usuarios', usuariosRoutes);
 router.use('/facturas', facturasRoutes);
 router.use('/pagos', pagosRoutes);
 router.use('/cheques', chequesRoutes);
+router.use('/proveedores', proveedoresRoutes);
 
 export default router;

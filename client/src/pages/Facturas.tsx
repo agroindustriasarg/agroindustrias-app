@@ -104,22 +104,23 @@ export default function Facturas() {
   const [numeroFactura, setNumeroFactura] = useState('');
   const [fechaEmision, setFechaEmision] = useState(new Date().toISOString().split('T')[0]);
   const [proveedor, setProveedor] = useState('');
-  const [proveedoresList, setProveedoresList] = useState<string[]>(() => {
-    const saved = localStorage.getItem('proveedores_facturas');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [proveedoresList, setProveedoresList] = useState<string[]>([]);
   const [mostrarNuevoProveedor, setMostrarNuevoProveedor] = useState(false);
   const [nuevoProveedor, setNuevoProveedor] = useState('');
 
-  const agregarProveedor = () => {
+  const agregarProveedor = async () => {
     const nombre = nuevoProveedor.trim();
-    if (!nombre || proveedoresList.includes(nombre)) return;
-    const nuevaLista = [...proveedoresList, nombre].sort();
-    setProveedoresList(nuevaLista);
-    localStorage.setItem('proveedores_facturas', JSON.stringify(nuevaLista));
-    setProveedor(nombre);
-    setNuevoProveedor('');
-    setMostrarNuevoProveedor(false);
+    if (!nombre) return;
+    try {
+      await api.post('/proveedores', { nombre });
+      const res = await api.get('/proveedores');
+      setProveedoresList(res.data.map((p: any) => p.nombre));
+      setProveedor(nombre);
+      setNuevoProveedor('');
+      setMostrarNuevoProveedor(false);
+    } catch (error) {
+      console.error('Error al agregar proveedor:', error);
+    }
   };
 
   const [tipoFactura, setTipoFactura] = useState('A');
@@ -145,6 +146,7 @@ export default function Facturas() {
     fetchFacturas();
     fetchRemitosSinFactura();
     fetchServiciosSinFactura();
+    api.get('/proveedores').then(res => setProveedoresList(res.data.map((p: any) => p.nombre))).catch(() => {});
   }, []);
 
   const fetchFacturas = async () => {
