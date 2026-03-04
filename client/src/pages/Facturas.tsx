@@ -104,6 +104,24 @@ export default function Facturas() {
   const [numeroFactura, setNumeroFactura] = useState('');
   const [fechaEmision, setFechaEmision] = useState(new Date().toISOString().split('T')[0]);
   const [proveedor, setProveedor] = useState('');
+  const [proveedoresList, setProveedoresList] = useState<string[]>(() => {
+    const saved = localStorage.getItem('proveedores_facturas');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [mostrarNuevoProveedor, setMostrarNuevoProveedor] = useState(false);
+  const [nuevoProveedor, setNuevoProveedor] = useState('');
+
+  const agregarProveedor = () => {
+    const nombre = nuevoProveedor.trim();
+    if (!nombre || proveedoresList.includes(nombre)) return;
+    const nuevaLista = [...proveedoresList, nombre].sort();
+    setProveedoresList(nuevaLista);
+    localStorage.setItem('proveedores_facturas', JSON.stringify(nuevaLista));
+    setProveedor(nombre);
+    setNuevoProveedor('');
+    setMostrarNuevoProveedor(false);
+  };
+
   const [tipoFactura, setTipoFactura] = useState('A');
   const [moneda, setMoneda] = useState('ARS');
   const [formaPago, setFormaPago] = useState('Contado');
@@ -639,13 +657,38 @@ export default function Facturas() {
 
                   <div>
                     <label className="label">Proveedor</label>
-                    <input
-                      type="text"
-                      value={proveedor}
-                      onChange={(e) => setProveedor(e.target.value)}
-                      className="input"
-                      required
-                    />
+                    <div className="flex items-center space-x-2">
+                      <select
+                        value={proveedor}
+                        onChange={(e) => setProveedor(e.target.value)}
+                        className="input flex-1"
+                        required
+                      >
+                        <option value="">Seleccionar proveedor...</option>
+                        {proveedoresList.map(p => (
+                          <option key={p} value={p}>{p}</option>
+                        ))}
+                      </select>
+                      <button type="button" onClick={() => setMostrarNuevoProveedor(true)}
+                        className="btn-secondary px-3 py-2 text-lg font-bold" title="Agregar proveedor">
+                        +
+                      </button>
+                    </div>
+                    {mostrarNuevoProveedor && (
+                      <div className="flex items-center space-x-2 mt-2">
+                        <input
+                          type="text"
+                          value={nuevoProveedor}
+                          onChange={(e) => setNuevoProveedor(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), agregarProveedor())}
+                          className="input flex-1"
+                          placeholder="Nombre del nuevo proveedor"
+                          autoFocus
+                        />
+                        <button type="button" onClick={agregarProveedor} className="btn-primary px-3 py-2">✓</button>
+                        <button type="button" onClick={() => { setMostrarNuevoProveedor(false); setNuevoProveedor(''); }} className="btn-secondary px-3 py-2">✕</button>
+                      </div>
+                    )}
                   </div>
 
                   <div>
