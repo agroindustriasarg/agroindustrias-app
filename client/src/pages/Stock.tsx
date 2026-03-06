@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../services/apiWithCache';
 import { Stock } from '../types';
-import { Plus, Package, Trash2, TrendingUp, AlertTriangle, Fuel, Wrench, Droplet, Sprout, Gauge, Grid3x3 } from 'lucide-react';
+import { Plus, Package, Trash2, TrendingUp, AlertTriangle, Fuel, Wrench, Droplet, Sprout, Gauge, Grid3x3, Pencil } from 'lucide-react';
 
 const categorias = [
   { nombre: 'Combustibles', icon: Fuel, color: 'bg-yellow-500' },
@@ -24,6 +24,8 @@ export default function StockPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [showMovimiento, setShowMovimiento] = useState<string | null>(null);
+  const [showEdit, setShowEdit] = useState<string | null>(null);
+  const [editData, setEditData] = useState<any>({});
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string | null>(
     (location.state as any)?.categoriaSeleccionada || null
   );
@@ -224,6 +226,47 @@ export default function StockPage() {
       fetchStock();
     } catch (error: any) {
       alert(error.response?.data?.error || 'Error al registrar movimiento');
+    }
+  };
+
+  const openEdit = (e: React.MouseEvent, item: any) => {
+    e.stopPropagation();
+    setEditData({
+      nombre: item.nombre,
+      categoria: item.categoria,
+      unidad: item.unidad,
+      droga: item.droga || '',
+      nombreComercial: item.nombreComercial || '',
+      tipo: item.tipo || '',
+      stockMinimo: item.stockMinimo?.toString() || '',
+      precioUnitario: item.precioUnitario?.toString() || '',
+      ubicacion: item.ubicacion || '',
+      descripcion: item.descripcion || '',
+    });
+    setShowEdit(item.id);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!showEdit) return;
+    try {
+      const dataToSend: any = {
+        nombre: editData.nombre,
+        categoria: editData.categoria,
+        unidad: editData.unidad,
+      };
+      if (editData.stockMinimo !== '') dataToSend.stockMinimo = parseFloat(editData.stockMinimo);
+      if (editData.precioUnitario !== '') dataToSend.precioUnitario = parseFloat(editData.precioUnitario);
+      if (editData.ubicacion) dataToSend.ubicacion = editData.ubicacion;
+      if (editData.descripcion) dataToSend.descripcion = editData.descripcion;
+      if (editData.droga) dataToSend.droga = editData.droga;
+      if (editData.nombreComercial) dataToSend.nombreComercial = editData.nombreComercial;
+      if (editData.tipo) dataToSend.tipo = editData.tipo;
+      await api.put(`/stock/${showEdit}`, dataToSend);
+      setShowEdit(null);
+      fetchStock();
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Error al editar item');
     }
   };
 
@@ -780,15 +823,23 @@ export default function StockPage() {
                   <p className="text-sm text-gray-600">{item.categoria}</p>
                 </div>
               </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDelete(item.id);
-                }}
-                className="text-red-500 hover:text-red-700"
-              >
-                <Trash2 className="w-5 h-5" />
-              </button>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={(e) => openEdit(e, item)}
+                  className="text-gray-400 hover:text-blue-600"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(item.id);
+                  }}
+                  className="text-red-500 hover:text-red-700"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {isStockBajo(item) && (
@@ -844,6 +895,139 @@ export default function StockPage() {
             </button>
           </div>
         ))}
+        </div>
+      )}
+
+      {showEdit && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-semibold mb-4">Editar Item</h2>
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Nombre *</label>
+                  <input
+                    type="text"
+                    value={editData.nombre}
+                    onChange={(e) => setEditData({ ...editData, nombre: e.target.value })}
+                    className="input"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Categoría *</label>
+                  <select
+                    value={editData.categoria}
+                    onChange={(e) => setEditData({ ...editData, categoria: e.target.value })}
+                    className="input"
+                    required
+                  >
+                    {categorias.map((cat) => (
+                      <option key={cat.nombre} value={cat.nombre}>{cat.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Unidad *</label>
+                  <select
+                    value={editData.unidad}
+                    onChange={(e) => setEditData({ ...editData, unidad: e.target.value })}
+                    className="input"
+                    required
+                  >
+                    <option value="kg">Kilogramos (kg)</option>
+                    <option value="gramos">Gramos (g)</option>
+                    <option value="litros">Litros</option>
+                    <option value="cc">CC (cm³)</option>
+                    <option value="unidades">Unidades</option>
+                    <option value="bolsas">Bolsas</option>
+                    <option value="toneladas">Toneladas</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Stock Mínimo</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editData.stockMinimo}
+                    onChange={(e) => setEditData({ ...editData, stockMinimo: e.target.value })}
+                    className="input"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Precio Unitario</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editData.precioUnitario}
+                    onChange={(e) => setEditData({ ...editData, precioUnitario: e.target.value })}
+                    className="input"
+                    placeholder="$"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Ubicación</label>
+                  <input
+                    type="text"
+                    value={editData.ubicacion}
+                    onChange={(e) => setEditData({ ...editData, ubicacion: e.target.value })}
+                    className="input"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
+                  <input
+                    type="text"
+                    value={editData.descripcion}
+                    onChange={(e) => setEditData({ ...editData, descripcion: e.target.value })}
+                    className="input"
+                  />
+                </div>
+              </div>
+
+              {editData.categoria === 'Agroquímicos' && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-200">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Droga</label>
+                    <input
+                      type="text"
+                      value={editData.droga}
+                      onChange={(e) => setEditData({ ...editData, droga: e.target.value })}
+                      className="input"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Nombre Comercial</label>
+                    <input
+                      type="text"
+                      value={editData.nombreComercial}
+                      onChange={(e) => setEditData({ ...editData, nombreComercial: e.target.value })}
+                      className="input"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
+                    <select
+                      value={editData.tipo}
+                      onChange={(e) => setEditData({ ...editData, tipo: e.target.value })}
+                      className="input"
+                    >
+                      <option value="">Seleccionar...</option>
+                      <option value="Herbicida">Herbicida</option>
+                      <option value="Insecticida">Insecticida</option>
+                      <option value="Fertilizante">Fertilizante</option>
+                      <option value="Fungicida">Fungicida</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex space-x-3">
+                <button type="submit" className="btn-primary">Guardar cambios</button>
+                <button type="button" onClick={() => setShowEdit(null)} className="btn-secondary">Cancelar</button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
