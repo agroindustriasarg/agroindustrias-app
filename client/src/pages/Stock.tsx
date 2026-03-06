@@ -71,6 +71,7 @@ export default function StockPage() {
     loteId: '',
     motivo: '',
     observaciones: '',
+    fecha: new Date().toISOString().split('T')[0],
   });
 
   useEffect(() => {
@@ -174,6 +175,7 @@ export default function StockPage() {
         cantidad: parseFloat(movimientoData.cantidad),
         motivo: movimientoData.motivo || undefined,
         observaciones: movimientoData.observaciones || undefined,
+        fecha: movimientoData.fecha ? `${movimientoData.fecha}T12:00:00` : undefined,
       };
 
       // Agregar campos de ENTRADA si aplica
@@ -217,6 +219,7 @@ export default function StockPage() {
         loteId: '',
         motivo: '',
         observaciones: '',
+        fecha: new Date().toISOString().split('T')[0],
       });
       fetchStock();
     } catch (error: any) {
@@ -429,6 +432,17 @@ export default function StockPage() {
                     onChange={(e) => setMovimientoData({ ...movimientoData, cantidad: e.target.value })}
                     className="input"
                     required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Fecha
+                  </label>
+                  <input
+                    type="date"
+                    value={movimientoData.fecha}
+                    onChange={(e) => setMovimientoData({ ...movimientoData, fecha: e.target.value })}
+                    className="input"
                   />
                 </div>
 

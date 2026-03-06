@@ -23,6 +23,7 @@ const movimientoSchema = z.object({
   cantidad: z.number().positive(),
   motivo: z.string().optional(),
   observaciones: z.string().optional(),
+  fecha: z.string().optional(),
   // Campos para ENTRADA
   precio: z.number().optional(),
   proveedor: z.string().optional(),
@@ -205,7 +206,7 @@ export const createMovimiento = async (req: AuthRequest, res: Response): Promise
             concepto: conceptoGasto,
             categoria: 'Insumos',
             monto: validatedData.precio,
-            fecha: new Date(),
+            fecha: validatedData.fecha ? new Date(validatedData.fecha) : new Date(),
             descripcion: validatedData.motivo || validatedData.observaciones,
             tipoFactura: validatedData.tipoFactura,
             numeroFactura: validatedData.numeroFactura,
