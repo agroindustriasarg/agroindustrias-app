@@ -188,7 +188,11 @@ export const createMovimiento = async (req: AuthRequest, res: Response): Promise
     // Crear el movimiento y actualizar stock
     const operations: any[] = [
       prisma.movimientoStock.create({
-        data: { ...validatedData, stockId },
+        data: {
+          ...validatedData,
+          stockId,
+          fecha: validatedData.fecha ? new Date(validatedData.fecha) : new Date(),
+        },
       }),
       prisma.stock.update({
         where: { id: stockId },
