@@ -820,7 +820,12 @@ export default function StockPage() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg">{item.nombre}</h3>
-                  <p className="text-sm text-gray-600">{item.categoria}</p>
+                  <p className="text-sm text-gray-600">
+                    {item.categoria === 'Agroquímicos' && item.tipo ? item.tipo : item.categoria}
+                  </p>
+                  {item.categoria === 'Agroquímicos' && item.nombreComercial && (
+                    <p className="text-xs text-gray-400">{item.nombreComercial}</p>
+                  )}
                 </div>
               </div>
               <div className="flex items-center space-x-2">
