@@ -288,9 +288,19 @@ export default function StockPage() {
     return stock.filter((item) => item.categoria === nombreCategoria);
   };
 
-  const stockFiltrado = categoriaSeleccionada
-    ? getStockPorCategoria(categoriaSeleccionada)
-    : stock;
+  const [busqueda, setBusqueda] = useState('');
+
+  const stockFiltrado = (() => {
+    const base = categoriaSeleccionada ? getStockPorCategoria(categoriaSeleccionada) : stock;
+    if (!busqueda.trim()) return base;
+    const q = busqueda.toLowerCase();
+    return base.filter(item =>
+      item.nombre.toLowerCase().includes(q) ||
+      (item as any).nombreComercial?.toLowerCase().includes(q) ||
+      (item as any).droga?.toLowerCase().includes(q) ||
+      (item as any).tipo?.toLowerCase().includes(q)
+    );
+  })();
 
   if (loading) {
     return <div className="text-center py-12">Cargando...</div>;
@@ -309,12 +319,21 @@ export default function StockPage() {
         </div>
         <div className="flex items-center space-x-3">
           {categoriaSeleccionada && (
-            <button
-              onClick={() => setCategoriaSeleccionada(null)}
-              className="btn-secondary"
-            >
-              Volver a Categorías
-            </button>
+            <>
+              <input
+                type="text"
+                placeholder="Buscar..."
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                className="input w-48"
+              />
+              <button
+                onClick={() => { setCategoriaSeleccionada(null); setBusqueda(''); }}
+                className="btn-secondary"
+              >
+                Volver a Categorías
+              </button>
+            </>
           )}
           <button
             onClick={() => setShowForm(!showForm)}
