@@ -133,6 +133,21 @@ router.patch('/:id/pagar', authMiddleware, async (req, res) => {
   }
 });
 
+// Revertir cheque a pendiente
+router.patch('/:id/revertir', authMiddleware, async (req, res) => {
+  try {
+    const cheque = await prisma.cheque.update({
+      where: { id: req.params.id },
+      data: { estado: 'PENDIENTE' }
+    });
+
+    res.json(cheque);
+  } catch (error) {
+    console.error('Error al revertir cheque:', error);
+    res.status(500).json({ error: 'Error al revertir cheque' });
+  }
+});
+
 // Eliminar un cheque
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {

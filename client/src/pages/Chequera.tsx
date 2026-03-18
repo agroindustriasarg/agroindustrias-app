@@ -121,6 +121,15 @@ export default function Chequera() {
     }
   };
 
+  const handleRevertirPendiente = async (id: string) => {
+    try {
+      await api.patch(`/cheques/${id}/revertir`, {});
+      await cargarCheques();
+    } catch (error) {
+      console.error('Error al revertir cheque:', error);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm('¿Está seguro de eliminar este cheque?')) return;
 
@@ -479,6 +488,15 @@ export default function Chequera() {
                     >
                       <Check className="w-4 h-4" />
                       <span>Pagado</span>
+                    </button>
+                  )}
+                  {vistaActiva === 'PAGADO' && (
+                    <button
+                      onClick={() => handleRevertirPendiente(cheque.id)}
+                      className="btn-secondary flex items-center space-x-1 text-sm"
+                      title="Volver a pendiente"
+                    >
+                      <span>Revertir</span>
                     </button>
                   )}
                   <button
