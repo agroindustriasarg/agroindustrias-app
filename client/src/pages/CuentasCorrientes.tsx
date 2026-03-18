@@ -111,12 +111,20 @@ export default function CuentasCorrientes() {
     return new Date(dateString).toLocaleDateString('es-AR');
   };
 
-  const totalPendiente = facturasFiltradas
-    .filter((f) => f.estado === 'PENDIENTE')
+  const totalPendienteARS = facturasFiltradas
+    .filter((f) => f.estado === 'PENDIENTE' && f.moneda === 'ARS')
     .reduce((sum, f) => sum + f.total, 0);
 
-  const totalPagado = facturasFiltradas
-    .filter((f) => f.estado === 'PAGADA')
+  const totalPendienteUSD = facturasFiltradas
+    .filter((f) => f.estado === 'PENDIENTE' && f.moneda === 'USD')
+    .reduce((sum, f) => sum + f.total, 0);
+
+  const totalPagadoARS = facturasFiltradas
+    .filter((f) => f.estado === 'PAGADA' && f.moneda === 'ARS')
+    .reduce((sum, f) => sum + f.total, 0);
+
+  const totalPagadoUSD = facturasFiltradas
+    .filter((f) => f.estado === 'PAGADA' && f.moneda === 'USD')
     .reduce((sum, f) => sum + f.total, 0);
 
   const totalServiciosSinFacturarARS = serviciosFiltrados
@@ -268,25 +276,43 @@ export default function CuentasCorrientes() {
 
           <div className="card bg-red-50 border-red-200">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-red-600 font-medium">Pendiente de Pago</p>
-                <p className="text-2xl font-bold text-red-900 mt-1">
-                  $ {totalPendiente.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
-                </p>
+              <div className="w-full">
+                <p className="text-sm text-red-600 font-medium mb-2">Pendiente de Pago</p>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-red-500">ARS</span>
+                  <p className="text-xl font-bold text-red-900">
+                    $ {totalPendienteARS.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+                <div className="flex justify-between items-center mt-1">
+                  <span className="text-xs text-red-500">USD</span>
+                  <p className="text-xl font-bold text-red-900">
+                    USD {totalPendienteUSD.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
               </div>
-              <DollarSign className="w-8 h-8 text-red-600" />
+              <DollarSign className="w-8 h-8 text-red-600 ml-3 flex-shrink-0" />
             </div>
           </div>
 
           <div className="card bg-green-50 border-green-200">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-green-600 font-medium">Pagado</p>
-                <p className="text-2xl font-bold text-green-900 mt-1">
-                  $ {totalPagado.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
-                </p>
+              <div className="w-full">
+                <p className="text-sm text-green-600 font-medium mb-2">Pagado</p>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-green-500">ARS</span>
+                  <p className="text-xl font-bold text-green-900">
+                    $ {totalPagadoARS.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+                <div className="flex justify-between items-center mt-1">
+                  <span className="text-xs text-green-500">USD</span>
+                  <p className="text-xl font-bold text-green-900">
+                    USD {totalPagadoUSD.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
               </div>
-              <DollarSign className="w-8 h-8 text-green-600" />
+              <DollarSign className="w-8 h-8 text-green-600 ml-3 flex-shrink-0" />
             </div>
           </div>
         </div>
