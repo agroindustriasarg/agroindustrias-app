@@ -180,7 +180,7 @@ export const createMovimiento = async (req: AuthRequest, res: Response): Promise
       ? stock.cantidad + validatedData.cantidad
       : stock.cantidad - validatedData.cantidad;
 
-    if (nuevaCantidad < 0) {
+    if (validatedData.tipo === 'SALIDA' && nuevaCantidad < 0) {
       res.status(400).json({ error: 'Stock insuficiente' });
       return;
     }
