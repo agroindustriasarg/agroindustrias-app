@@ -293,7 +293,7 @@ export default function StockDetalle() {
                     <td className="px-4 py-3 whitespace-nowrap text-sm">
                       <div className="flex items-center space-x-2">
                         <Calendar className="w-4 h-4 text-gray-400" />
-                        <span>{formatFecha(mov.createdAt)}</span>
+                        <span>{formatFecha(mov.fecha || mov.createdAt)}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">

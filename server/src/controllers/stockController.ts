@@ -83,7 +83,7 @@ export const getMovimientos = async (req: AuthRequest, res: Response): Promise<v
     const { id } = req.params;
     const movimientos = await prisma.movimientoStock.findMany({
       where: { stockId: id },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { fecha: 'desc' },
     });
 
     res.json(movimientos);
