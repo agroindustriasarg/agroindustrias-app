@@ -132,7 +132,7 @@ export default function Reportes() {
         let params = `?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`;
 
         // Agregar filtros adicionales según el reporte
-        if (selectedCampos.length > 0 && (selectedReport === 'categoria' || selectedReport === 'cuenta' || selectedReport === 'servicios' || selectedReport === 'stock' || selectedReport === 'campos')) {
+        if (selectedCampos.length > 0 && (selectedReport === 'categoria' || selectedReport === 'cuenta' || selectedReport === 'servicios' || selectedReport === 'stock' || selectedReport === 'campos' || selectedReport === 'gastos')) {
           params += `&campoIds=${selectedCampos.join(',')}`;
         }
 
@@ -246,7 +246,7 @@ export default function Reportes() {
               <div className="text-sm font-medium text-gray-700 mb-3">Filtros</div>
               <div className="space-y-4">
                 {/* Filtro por campos */}
-                {(selectedReport === 'categoria' || selectedReport === 'cuenta' || selectedReport === 'servicios' || selectedReport === 'stock' || selectedReport === 'rendimientos' || selectedReport === 'campos') && (
+                {(selectedReport === 'categoria' || selectedReport === 'cuenta' || selectedReport === 'servicios' || selectedReport === 'stock' || selectedReport === 'rendimientos' || selectedReport === 'campos' || selectedReport === 'gastos') && (
                   <div className="relative">
                     <label className="block text-xs text-gray-600 mb-2">Campos</label>
                     <button
