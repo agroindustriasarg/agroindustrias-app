@@ -305,9 +305,11 @@ export const getConsumoStock = async (req: AuthRequest, res: Response): Promise<
 
     const whereClause: any = { tipo: 'SALIDA' };
     if (fechaInicio && fechaFin) {
+      const fin = new Date(fechaFin as string);
+      fin.setHours(23, 59, 59, 999);
       whereClause.fecha = {
         gte: new Date(fechaInicio as string),
-        lte: new Date(fechaFin as string),
+        lte: fin,
       };
     }
 
@@ -348,7 +350,6 @@ export const getConsumoStock = async (req: AuthRequest, res: Response): Promise<
       _sum: { cantidad: true },
       _count: { id: true },
       orderBy: { _sum: { cantidad: 'desc' } },
-      take: 10,
     });
 
     // Obtener información de productos
