@@ -733,35 +733,58 @@ function ReporteCampo({
           )}
 
           {/* Sección Stock */}
-          {stock.length > 0 && (
-            <div className="card">
-              <h3 className="text-lg font-semibold mb-4 text-orange-800 border-b pb-2">Consumo de Stock / Insumos</h3>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoría</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Consumido</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Movimientos</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {stock.map((item) => (
-                      <tr key={item.stockId} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 font-medium">{item.nombre}</td>
-                        <td className="px-4 py-3">
-                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">{item.categoria}</span>
-                        </td>
-                        <td className="px-4 py-3 text-right font-bold">{item.cantidadConsumida.toFixed(2)} {item.unidad}</td>
-                        <td className="px-4 py-3 text-right">{item.cantidadMovimientos}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+          {stock.length > 0 && (() => {
+            const categoriaBadge: Record<string, string> = {
+              'Agroquímicos': 'bg-orange-100 text-orange-800',
+              'Semillas': 'bg-green-100 text-green-800',
+              'Fertilizantes': 'bg-blue-100 text-blue-800',
+              'Combustibles': 'bg-yellow-100 text-yellow-800',
+              'Lubricantes': 'bg-gray-200 text-gray-800',
+              'Repuestos': 'bg-purple-100 text-purple-800',
+              'Herramientas': 'bg-red-100 text-red-800',
+            };
+            const getBadge = (cat: string) => categoriaBadge[cat] || 'bg-gray-100 text-gray-700';
+
+            const grupos: Record<string, typeof stock> = {};
+            stock.forEach((item: any) => {
+              if (!grupos[item.categoria]) grupos[item.categoria] = [];
+              grupos[item.categoria].push(item);
+            });
+
+            return (
+              <div className="card">
+                <h3 className="text-lg font-semibold mb-4 text-orange-800 border-b pb-2">Consumo de Stock / Insumos</h3>
+                {Object.entries(grupos).map(([categoria, items]) => (
+                  <div key={categoria} className="mb-6">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getBadge(categoria)}`}>{categoria}</span>
+                      <span className="text-xs text-gray-400">{items.length} producto{items.length !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
+                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Consumido</th>
+                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Movimientos</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {items.map((item: any) => (
+                            <tr key={item.stockId} className="hover:bg-gray-50">
+                              <td className="px-4 py-3 font-medium">{item.nombre}</td>
+                              <td className="px-4 py-3 text-right font-bold">{item.cantidadConsumida.toFixed(2)} {item.unidad}</td>
+                              <td className="px-4 py-3 text-right">{item.cantidadMovimientos}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Sección Rendimientos */}
           {rendimientos.length > 0 && (
