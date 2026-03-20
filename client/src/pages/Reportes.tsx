@@ -766,18 +766,41 @@ function ReporteCampo({
                           <tr>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
                             <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Consumido</th>
-                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Movimientos</th>
+                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Costo Estimado</th>
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                          {items.map((item: any) => (
-                            <tr key={item.stockId} className="hover:bg-gray-50">
-                              <td className="px-4 py-3 font-medium">{item.nombre}</td>
-                              <td className="px-4 py-3 text-right font-bold">{item.cantidadConsumida.toFixed(2)} {item.unidad}</td>
-                              <td className="px-4 py-3 text-right">{item.cantidadMovimientos}</td>
-                            </tr>
-                          ))}
+                          {items.map((item: any) => {
+                            const costoEstimado = item.precioPromedio != null ? item.precioPromedio * item.cantidadConsumida : null;
+                            return (
+                              <tr key={item.stockId} className="hover:bg-gray-50">
+                                <td className="px-4 py-3 font-medium">{item.nombre}</td>
+                                <td className="px-4 py-3 text-right font-bold">{item.cantidadConsumida.toFixed(2)} {item.unidad}</td>
+                                <td className="px-4 py-3 text-right">
+                                  {costoEstimado != null
+                                    ? `$${costoEstimado.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                    : <span className="text-gray-400">-</span>}
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
+                        {(() => {
+                          const totalCosto = items.reduce((acc: number, item: any) => {
+                            return item.precioPromedio != null ? acc + item.precioPromedio * item.cantidadConsumida : acc;
+                          }, 0);
+                          const hayPrecios = items.some((item: any) => item.precioPromedio != null);
+                          return hayPrecios ? (
+                            <tfoot className="bg-gray-50">
+                              <tr>
+                                <td className="px-4 py-2 text-xs font-semibold text-gray-600" colSpan={2}>Total estimado</td>
+                                <td className="px-4 py-2 text-right text-sm font-bold text-gray-800">
+                                  ${totalCosto.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </td>
+                              </tr>
+                            </tfoot>
+                          ) : null;
+                        })()}
                       </table>
                     </div>
                   </div>
@@ -1605,25 +1628,48 @@ function ConsumoStock({ data }: { data: any[] }) {
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoría</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Consumido</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Movimientos</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Costo Estimado</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {data.map((item) => (
-                <tr key={item.stockId} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium">{item.nombre}</td>
-                  <td className="px-4 py-3">
-                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                      {item.categoria}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right font-bold">
-                    {item.cantidadConsumida.toFixed(2)} {item.unidad}
-                  </td>
-                  <td className="px-4 py-3 text-right">{item.cantidadMovimientos}</td>
-                </tr>
-              ))}
+              {data.map((item) => {
+                const costoEstimado = item.precioPromedio != null ? item.precioPromedio * item.cantidadConsumida : null;
+                return (
+                  <tr key={item.stockId} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium">{item.nombre}</td>
+                    <td className="px-4 py-3">
+                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                        {item.categoria}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right font-bold">
+                      {item.cantidadConsumida.toFixed(2)} {item.unidad}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {costoEstimado != null
+                        ? `$${costoEstimado.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                        : <span className="text-gray-400">-</span>}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
+            {(() => {
+              const totalCosto = data.reduce((acc, item) => {
+                return item.precioPromedio != null ? acc + item.precioPromedio * item.cantidadConsumida : acc;
+              }, 0);
+              const hayPrecios = data.some((item) => item.precioPromedio != null);
+              return hayPrecios ? (
+                <tfoot className="bg-gray-50">
+                  <tr>
+                    <td className="px-4 py-2 text-xs font-semibold text-gray-600" colSpan={3}>Total estimado</td>
+                    <td className="px-4 py-2 text-right text-sm font-bold text-gray-800">
+                      ${totalCosto.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                  </tr>
+                </tfoot>
+              ) : null;
+            })()}
           </table>
         </div>
       </div>
