@@ -305,7 +305,7 @@ export const getConsumoStock = async (req: AuthRequest, res: Response): Promise<
 
     const whereClause: any = { tipo: 'SALIDA' };
     if (fechaInicio && fechaFin) {
-      whereClause.createdAt = {
+      whereClause.fecha = {
         gte: new Date(fechaInicio as string),
         lte: new Date(fechaFin as string),
       };
@@ -320,10 +320,20 @@ export const getConsumoStock = async (req: AuthRequest, res: Response): Promise<
       ];
     }
 
-    // Filtrar por campos
+    // Filtrar por campos: incluir movimientos con campoId directo
+    // O vinculados a un servicio de ese campo
     if (campoIds && typeof campoIds === 'string') {
       const idsArray = campoIds.split(',');
-      whereClause.campoId = { in: idsArray };
+      const serviciosEnCampo = await prisma.servicio.findMany({
+        where: { campoId: { in: idsArray } },
+        select: { id: true },
+      });
+      const servicioIds = serviciosEnCampo.map((s: any) => s.id);
+      whereClause.OR = [
+        ...(whereClause.OR || []),
+        { campoId: { in: idsArray } },
+        { servicioId: { in: servicioIds } },
+      ];
     }
 
     // Filtrar por lotes
