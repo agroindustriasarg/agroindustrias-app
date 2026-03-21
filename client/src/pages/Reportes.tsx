@@ -611,7 +611,7 @@ function ReporteCampo({
   hectareas: number;
 }) {
   const reportRef = useRef<HTMLDivElement>(null);
-  const [preciosOverride, setPreciosOverride] = React.useState<Record<string, string>>({});
+  const [preciosOverride, setPreciosOverride] = useState<Record<string, string>>({});
 
   const sinDatos = gastos.length === 0 && servicios.length === 0 && stock.length === 0 && rendimientos.length === 0;
 
@@ -1598,7 +1598,7 @@ function ServiciosRealizados({
 // Componente: Consumo de Stock
 function ConsumoStock({ data }: { data: any[] }) {
   const reportRef = useRef<HTMLDivElement>(null);
-  const [preciosOverride, setPreciosOverride] = React.useState<Record<string, string>>({});
+  const [preciosOverride, setPreciosOverride] = useState<Record<string, string>>({});
 
   if (!data || data.length === 0) {
     return (
