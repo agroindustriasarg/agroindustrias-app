@@ -622,7 +622,18 @@ function ReporteCampo({
   const totalProduccion = rendimientos.reduce((s, r) => s + (r.totalCantidad || 0), 0);
   const costoPorHa = hectareas > 0 ? (totalGastosARS + totalServiciosARS) / hectareas : 0;
   const costoPorHaUSD = hectareas > 0 ? (totalGastosUSD + totalServiciosUSD) / hectareas : 0;
+  const CATEGORIAS_USD = ['Agroquímicos'];
+  const esUSD = (categoria: string) => CATEGORIAS_USD.includes(categoria);
+
   const totalInsumosARS = stock.reduce((acc: number, item: any) => {
+    if (esUSD(item.categoria)) return acc;
+    const overrideStr = preciosOverride[item.stockId];
+    const precioEfectivo = overrideStr !== undefined ? parseFloat(overrideStr) : item.precioPromedio;
+    if (precioEfectivo != null && !isNaN(precioEfectivo)) return acc + precioEfectivo * item.cantidadConsumida;
+    return acc;
+  }, 0);
+  const totalInsumosUSD = stock.reduce((acc: number, item: any) => {
+    if (!esUSD(item.categoria)) return acc;
     const overrideStr = preciosOverride[item.stockId];
     const precioEfectivo = overrideStr !== undefined ? parseFloat(overrideStr) : item.precioPromedio;
     if (precioEfectivo != null && !isNaN(precioEfectivo)) return acc + precioEfectivo * item.cantidadConsumida;
@@ -684,17 +695,18 @@ function ReporteCampo({
             </div>
             <div className="card bg-gradient-to-br from-orange-50 to-orange-100">
               <p className="text-xs text-orange-700 mb-1">Insumos</p>
-              <p className="text-xl font-bold text-orange-900">
-                {totalInsumosARS > 0 ? `$${totalInsumosARS.toLocaleString('es-AR', { minimumFractionDigits: 0 })}` : '-'}
-              </p>
-              {totalInsumosARS > 0 && stock.length > 0 && (() => {
-                const hayAlgunSinPrecio = stock.some((item: any) => {
-                  const overrideStr = preciosOverride[item.stockId];
-                  const p = overrideStr !== undefined ? parseFloat(overrideStr) : item.precioPromedio;
-                  return p == null || isNaN(p);
-                });
-                return hayAlgunSinPrecio ? <p className="text-xs text-orange-500 mt-1">* parcial (faltan precios)</p> : null;
-              })()}
+              {totalInsumosARS > 0 && (
+                <p className="text-xl font-bold text-orange-900">${totalInsumosARS.toLocaleString('es-AR', { minimumFractionDigits: 0 })}</p>
+              )}
+              {totalInsumosUSD > 0 && (
+                <p className="text-sm font-bold text-blue-700 mt-1">USD {totalInsumosUSD.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              )}
+              {totalInsumosARS === 0 && totalInsumosUSD === 0 && <p className="text-xl font-bold text-orange-900">-</p>}
+              {stock.some((item: any) => {
+                const overrideStr = preciosOverride[item.stockId];
+                const p = overrideStr !== undefined ? parseFloat(overrideStr) : item.precioPromedio;
+                return p == null || isNaN(p);
+              }) && <p className="text-xs text-orange-500 mt-1">* parcial</p>}
             </div>
           </div>
 
@@ -793,6 +805,7 @@ function ReporteCampo({
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                           {items.map((item: any) => {
+                            const moneda = esUSD(categoria) ? 'USD' : '$';
                             const precioBase = item.precioPromedio;
                             const overrideStr = preciosOverride[item.stockId];
                             const precioEfectivo = overrideStr !== undefined ? parseFloat(overrideStr) : precioBase;
@@ -814,7 +827,7 @@ function ReporteCampo({
                                 </td>
                                 <td className="px-4 py-3 text-right">
                                   {costoEstimado != null
-                                    ? `$${costoEstimado.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                    ? `${moneda} ${costoEstimado.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                                     : <span className="text-gray-400">-</span>}
                                 </td>
                               </tr>
@@ -822,6 +835,7 @@ function ReporteCampo({
                           })}
                         </tbody>
                         {(() => {
+                          const moneda = esUSD(categoria) ? 'USD' : '$';
                           const totalCosto = items.reduce((acc: number, item: any) => {
                             const overrideStr = preciosOverride[item.stockId];
                             const precioEfectivo = overrideStr !== undefined ? parseFloat(overrideStr) : item.precioPromedio;
@@ -838,7 +852,7 @@ function ReporteCampo({
                               <tr>
                                 <td className="px-4 py-2 text-xs font-semibold text-gray-600" colSpan={3}>Total estimado</td>
                                 <td className="px-4 py-2 text-right text-sm font-bold text-gray-800">
-                                  ${totalCosto.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  {moneda} {totalCosto.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </td>
                               </tr>
                             </tfoot>
@@ -1664,6 +1678,8 @@ function ConsumoStock({ data }: { data: any[] }) {
 
       {/* Tabla detallada agrupada por categoría */}
       {(() => {
+        const CATEGORIAS_USD_CS = ['Agroquímicos'];
+        const esUSDCat = (cat: string) => CATEGORIAS_USD_CS.includes(cat);
         const categoriaBadge: Record<string, string> = {
           'Agroquímicos': 'bg-orange-100 text-orange-800',
           'Semillas': 'bg-green-100 text-green-800',
@@ -1702,6 +1718,7 @@ function ConsumoStock({ data }: { data: any[] }) {
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {items.map((item) => {
+                        const moneda = esUSDCat(categoria) ? 'USD' : '$';
                         const precioBase = item.precioPromedio;
                         const overrideStr = preciosOverride[item.stockId];
                         const precioEfectivo = overrideStr !== undefined ? parseFloat(overrideStr) : precioBase;
@@ -1723,7 +1740,7 @@ function ConsumoStock({ data }: { data: any[] }) {
                             </td>
                             <td className="px-4 py-3 text-right">
                               {costoEstimado != null
-                                ? `$${costoEstimado.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                ? `${moneda} ${costoEstimado.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                                 : <span className="text-gray-400">-</span>}
                             </td>
                           </tr>
@@ -1731,6 +1748,7 @@ function ConsumoStock({ data }: { data: any[] }) {
                       })}
                     </tbody>
                     {(() => {
+                      const moneda = esUSDCat(categoria) ? 'USD' : '$';
                       const totalCosto = items.reduce((acc, item) => {
                         const overrideStr = preciosOverride[item.stockId];
                         const precioEfectivo = overrideStr !== undefined ? parseFloat(overrideStr) : item.precioPromedio;
@@ -1747,7 +1765,7 @@ function ConsumoStock({ data }: { data: any[] }) {
                           <tr>
                             <td className="px-4 py-2 text-xs font-semibold text-gray-600" colSpan={3}>Total estimado</td>
                             <td className="px-4 py-2 text-right text-sm font-bold text-gray-800">
-                              ${totalCosto.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              {moneda} {totalCosto.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </td>
                           </tr>
                         </tfoot>
