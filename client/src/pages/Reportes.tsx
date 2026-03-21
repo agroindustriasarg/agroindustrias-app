@@ -622,6 +622,12 @@ function ReporteCampo({
   const totalProduccion = rendimientos.reduce((s, r) => s + (r.totalCantidad || 0), 0);
   const costoPorHa = hectareas > 0 ? (totalGastosARS + totalServiciosARS) / hectareas : 0;
   const costoPorHaUSD = hectareas > 0 ? (totalGastosUSD + totalServiciosUSD) / hectareas : 0;
+  const totalInsumosARS = stock.reduce((acc: number, item: any) => {
+    const overrideStr = preciosOverride[item.stockId];
+    const precioEfectivo = overrideStr !== undefined ? parseFloat(overrideStr) : item.precioPromedio;
+    if (precioEfectivo != null && !isNaN(precioEfectivo)) return acc + precioEfectivo * item.cantidadConsumida;
+    return acc;
+  }, 0);
 
   return (
     <div className="space-y-6">
@@ -649,7 +655,7 @@ function ReporteCampo({
         <div ref={reportRef} className="space-y-6">
 
           {/* KPIs resumen */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
             <div className="card bg-gradient-to-br from-blue-50 to-blue-100">
               <p className="text-xs text-blue-700 mb-1">Gastos ARS</p>
               <p className="text-xl font-bold text-blue-900">${totalGastosARS.toLocaleString('es-AR', { minimumFractionDigits: 0 })}</p>
@@ -675,6 +681,20 @@ function ReporteCampo({
             <div className="card bg-gradient-to-br from-yellow-50 to-yellow-100">
               <p className="text-xs text-yellow-700 mb-1">Producción total</p>
               <p className="text-xl font-bold text-yellow-900">{totalProduccion.toFixed(2)} tn</p>
+            </div>
+            <div className="card bg-gradient-to-br from-orange-50 to-orange-100">
+              <p className="text-xs text-orange-700 mb-1">Insumos</p>
+              <p className="text-xl font-bold text-orange-900">
+                {totalInsumosARS > 0 ? `$${totalInsumosARS.toLocaleString('es-AR', { minimumFractionDigits: 0 })}` : '-'}
+              </p>
+              {totalInsumosARS > 0 && stock.length > 0 && (() => {
+                const hayAlgunSinPrecio = stock.some((item: any) => {
+                  const overrideStr = preciosOverride[item.stockId];
+                  const p = overrideStr !== undefined ? parseFloat(overrideStr) : item.precioPromedio;
+                  return p == null || isNaN(p);
+                });
+                return hayAlgunSinPrecio ? <p className="text-xs text-orange-500 mt-1">* parcial (faltan precios)</p> : null;
+              })()}
             </div>
           </div>
 
