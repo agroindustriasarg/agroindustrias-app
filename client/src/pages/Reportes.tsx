@@ -1618,61 +1618,82 @@ function ConsumoStock({ data }: { data: any[] }) {
         </ResponsiveContainer>
       </div>
 
-      {/* Tabla detallada */}
-      <div className="card">
-        <h3 className="text-lg font-semibold mb-4">Detalle de Consumo</h3>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoría</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Consumido</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Costo Estimado</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {data.map((item) => {
-                const costoEstimado = item.precioPromedio != null ? item.precioPromedio * item.cantidadConsumida : null;
-                return (
-                  <tr key={item.stockId} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium">{item.nombre}</td>
-                    <td className="px-4 py-3">
-                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                        {item.categoria}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right font-bold">
-                      {item.cantidadConsumida.toFixed(2)} {item.unidad}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {costoEstimado != null
-                        ? `$${costoEstimado.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                        : <span className="text-gray-400">-</span>}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-            {(() => {
-              const totalCosto = data.reduce((acc, item) => {
-                return item.precioPromedio != null ? acc + item.precioPromedio * item.cantidadConsumida : acc;
-              }, 0);
-              const hayPrecios = data.some((item) => item.precioPromedio != null);
-              return hayPrecios ? (
-                <tfoot className="bg-gray-50">
-                  <tr>
-                    <td className="px-4 py-2 text-xs font-semibold text-gray-600" colSpan={3}>Total estimado</td>
-                    <td className="px-4 py-2 text-right text-sm font-bold text-gray-800">
-                      ${totalCosto.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </td>
-                  </tr>
-                </tfoot>
-              ) : null;
-            })()}
-          </table>
-        </div>
-      </div>
+      {/* Tabla detallada agrupada por categoría */}
+      {(() => {
+        const categoriaBadge: Record<string, string> = {
+          'Agroquímicos': 'bg-orange-100 text-orange-800',
+          'Semillas': 'bg-green-100 text-green-800',
+          'Fertilizantes': 'bg-blue-100 text-blue-800',
+          'Combustibles': 'bg-yellow-100 text-yellow-800',
+          'Lubricantes': 'bg-gray-200 text-gray-800',
+          'Repuestos': 'bg-purple-100 text-purple-800',
+          'Herramientas': 'bg-red-100 text-red-800',
+        };
+        const getBadge = (cat: string) => categoriaBadge[cat] || 'bg-gray-100 text-gray-700';
+
+        const grupos: Record<string, typeof data> = {};
+        data.forEach((item) => {
+          if (!grupos[item.categoria]) grupos[item.categoria] = [];
+          grupos[item.categoria].push(item);
+        });
+
+        return (
+          <div className="card">
+            <h3 className="text-lg font-semibold mb-4">Detalle de Consumo</h3>
+            {Object.entries(grupos).map(([categoria, items]) => (
+              <div key={categoria} className="mb-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getBadge(categoria)}`}>{categoria}</span>
+                  <span className="text-xs text-gray-400">{items.length} producto{items.length !== 1 ? 's' : ''}</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Consumido</th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Costo Estimado</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {items.map((item) => {
+                        const costoEstimado = item.precioPromedio != null ? item.precioPromedio * item.cantidadConsumida : null;
+                        return (
+                          <tr key={item.stockId} className="hover:bg-gray-50">
+                            <td className="px-4 py-3 font-medium">{item.nombre}</td>
+                            <td className="px-4 py-3 text-right font-bold">{item.cantidadConsumida.toFixed(2)} {item.unidad}</td>
+                            <td className="px-4 py-3 text-right">
+                              {costoEstimado != null
+                                ? `$${costoEstimado.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                : <span className="text-gray-400">-</span>}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    {(() => {
+                      const totalCosto = items.reduce((acc, item) => {
+                        return item.precioPromedio != null ? acc + item.precioPromedio * item.cantidadConsumida : acc;
+                      }, 0);
+                      const hayPrecios = items.some((item) => item.precioPromedio != null);
+                      return hayPrecios ? (
+                        <tfoot className="bg-gray-50">
+                          <tr>
+                            <td className="px-4 py-2 text-xs font-semibold text-gray-600" colSpan={2}>Total estimado</td>
+                            <td className="px-4 py-2 text-right text-sm font-bold text-gray-800">
+                              ${totalCosto.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </td>
+                          </tr>
+                        </tfoot>
+                      ) : null;
+                    })()}
+                  </table>
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
       </div>
     </div>
   );
