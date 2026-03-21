@@ -209,7 +209,7 @@ export default function Reportes() {
     <div className="flex gap-6">
       {/* Sidebar */}
       <div className="w-64 flex-shrink-0">
-        <div className="card sticky top-6">
+        <div className="card sticky top-6 max-h-[calc(100vh-3rem)] overflow-y-auto">
           <h2 className="text-lg font-bold mb-4 text-gray-900">Reportes</h2>
 
           {/* Filtros de fecha */}
