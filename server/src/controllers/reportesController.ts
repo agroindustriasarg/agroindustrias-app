@@ -361,12 +361,17 @@ export const getConsumoStock = async (req: AuthRequest, res: Response): Promise<
 
     const stocksMap = new Map(stocks.map((s) => [s.id, s]));
 
-    // Calcular precio promedio de ENTRADAS con precioUnitario en el período
+    // Calcular precio promedio combinando MovimientoStock (remito) y FacturaItem (factura)
     const fechaInicioDate = fechaInicio ? new Date(fechaInicio as string) : null;
     const fechaFinDate = fechaFin ? new Date(fechaFin as string) : null;
     if (fechaFinDate) fechaFinDate.setHours(23, 59, 59, 999);
+    const referenceDate = fechaFinDate || new Date();
 
-    const entradasEnPeriodo = await prisma.movimientoStock.findMany({
+    // Tipo unificado de precio: { stockId, precioUnitario, cantidad, fecha }
+    type PrecioEntry = { stockId: string; precioUnitario: number; cantidad: number; fecha: Date };
+
+    // Fuente 1: MovimientoStock ENTRADA con precioUnitario (en período)
+    const entradasRemito = await prisma.movimientoStock.findMany({
       where: {
         stockId: { in: stockIds },
         tipo: 'ENTRADA',
@@ -376,62 +381,82 @@ export const getConsumoStock = async (req: AuthRequest, res: Response): Promise<
       select: { stockId: true, precioUnitario: true, cantidad: true, fecha: true },
     });
 
-    // Agrupar precios por stockId dentro del período
+    // Fuente 2: FacturaItem con stockId (en período por fechaEmision de la factura)
+    const itemsFactura = await prisma.facturaItem.findMany({
+      where: {
+        stockId: { in: stockIds },
+        precioUnitario: { not: null },
+        ...(fechaInicioDate && fechaFinDate
+          ? { factura: { fechaEmision: { gte: fechaInicioDate, lte: fechaFinDate } } }
+          : {}),
+      },
+      select: {
+        stockId: true,
+        precioUnitario: true,
+        cantidad: true,
+        factura: { select: { fechaEmision: true } },
+      },
+    });
+
+    // Combinar ambas fuentes en período
+    const preciosEnPeriodo: PrecioEntry[] = [
+      ...entradasRemito
+        .filter((e) => e.precioUnitario != null)
+        .map((e) => ({ stockId: e.stockId, precioUnitario: e.precioUnitario!, cantidad: e.cantidad || 1, fecha: e.fecha })),
+      ...itemsFactura
+        .filter((i) => i.stockId != null && i.precioUnitario != null)
+        .map((i) => ({ stockId: i.stockId!, precioUnitario: i.precioUnitario, cantidad: i.cantidad || 1, fecha: i.factura.fechaEmision })),
+    ];
+
+    // Promedio ponderado por stockId en período
     const preciosPorStock = new Map<string, { totalPrecio: number; totalCantidad: number }>();
-    for (const e of entradasEnPeriodo) {
-      if (e.precioUnitario == null) continue;
+    for (const e of preciosEnPeriodo) {
       const existing = preciosPorStock.get(e.stockId);
       if (existing) {
-        existing.totalPrecio += e.precioUnitario * (e.cantidad || 1);
-        existing.totalCantidad += e.cantidad || 1;
+        existing.totalPrecio += e.precioUnitario * e.cantidad;
+        existing.totalCantidad += e.cantidad;
       } else {
-        preciosPorStock.set(e.stockId, { totalPrecio: e.precioUnitario * (e.cantidad || 1), totalCantidad: e.cantidad || 1 });
+        preciosPorStock.set(e.stockId, { totalPrecio: e.precioUnitario * e.cantidad, totalCantidad: e.cantidad });
       }
     }
 
-    // Para los que no tienen precio en el período, buscar el más cercano
+    // Fallback: buscar precio más cercano de cualquier fuente para los sin precio en período
     const sinPrecio = stockIds.filter((id) => !preciosPorStock.has(id));
     const preciosFallback = new Map<string, number>();
     if (sinPrecio.length > 0) {
-      const todasEntradas = await prisma.movimientoStock.findMany({
-        where: {
-          stockId: { in: sinPrecio },
-          tipo: 'ENTRADA',
-          precioUnitario: { not: null },
-        },
+      const todasEntradasRemito = await prisma.movimientoStock.findMany({
+        where: { stockId: { in: sinPrecio }, tipo: 'ENTRADA', precioUnitario: { not: null } },
         select: { stockId: true, precioUnitario: true, fecha: true },
-        orderBy: { fecha: 'desc' },
+      });
+      const todosItemsFactura = await prisma.facturaItem.findMany({
+        where: { stockId: { in: sinPrecio }, precioUnitario: { not: null } },
+        select: { stockId: true, precioUnitario: true, factura: { select: { fechaEmision: true } } },
       });
 
-      // Para cada stockId sin precio, tomar la entrada más cercana al fin del período
-      const referenceDate = fechaFinDate || new Date();
-      const procesados = new Set<string>();
-      for (const e of todasEntradas) {
-        if (procesados.has(e.stockId) || e.precioUnitario == null) continue;
-        if (!preciosFallback.has(e.stockId)) {
-          // Buscamos la más cercana en fecha (ya ordenadas por desc, usamos la primera encontrada
-          // pero necesitamos comparar distancia desde referenceDate)
-          preciosFallback.set(e.stockId, e.precioUnitario);
-        }
-        procesados.add(e.stockId);
-      }
+      const candidatos: { stockId: string; precioUnitario: number; fecha: Date }[] = [
+        ...todasEntradasRemito
+          .filter((e) => e.precioUnitario != null)
+          .map((e) => ({ stockId: e.stockId, precioUnitario: e.precioUnitario!, fecha: e.fecha })),
+        ...todosItemsFactura
+          .filter((i) => i.stockId != null && i.precioUnitario != null)
+          .map((i) => ({ stockId: i.stockId!, precioUnitario: i.precioUnitario, fecha: i.factura.fechaEmision })),
+      ];
 
-      // Mejorar: buscar la más cercana en cualquier dirección
-      const entradasPorStock = new Map<string, typeof todasEntradas>();
-      for (const e of todasEntradas) {
-        if (!entradasPorStock.has(e.stockId)) entradasPorStock.set(e.stockId, []);
-        entradasPorStock.get(e.stockId)!.push(e);
+      const candidatosPorStock = new Map<string, typeof candidatos>();
+      for (const c of candidatos) {
+        if (!candidatosPorStock.has(c.stockId)) candidatosPorStock.set(c.stockId, []);
+        candidatosPorStock.get(c.stockId)!.push(c);
       }
       for (const stockId of sinPrecio) {
-        const entradas = entradasPorStock.get(stockId) || [];
-        if (entradas.length === 0) continue;
-        let best = entradas[0];
+        const lista = candidatosPorStock.get(stockId) || [];
+        if (lista.length === 0) continue;
+        let best = lista[0];
         let bestDist = Math.abs(new Date(best.fecha).getTime() - referenceDate.getTime());
-        for (const e of entradas) {
-          const dist = Math.abs(new Date(e.fecha).getTime() - referenceDate.getTime());
-          if (dist < bestDist) { best = e; bestDist = dist; }
+        for (const c of lista) {
+          const dist = Math.abs(new Date(c.fecha).getTime() - referenceDate.getTime());
+          if (dist < bestDist) { best = c; bestDist = dist; }
         }
-        if (best.precioUnitario != null) preciosFallback.set(stockId, best.precioUnitario);
+        preciosFallback.set(stockId, best.precioUnitario);
       }
     }
 
