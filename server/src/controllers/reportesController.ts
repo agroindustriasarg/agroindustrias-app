@@ -382,10 +382,10 @@ export const getConsumoStock = async (req: AuthRequest, res: Response): Promise<
     });
 
     // Fuente 2: FacturaItem con stockId (en período por fechaEmision de la factura)
+    // precioUnitario es Float (no nullable en schema), no se filtra por null
     const itemsFactura = await prisma.facturaItem.findMany({
       where: {
         stockId: { in: stockIds },
-        precioUnitario: { not: null },
         ...(fechaInicioDate && fechaFinDate
           ? { factura: { fechaEmision: { gte: fechaInicioDate, lte: fechaFinDate } } }
           : {}),
@@ -429,7 +429,7 @@ export const getConsumoStock = async (req: AuthRequest, res: Response): Promise<
         select: { stockId: true, precioUnitario: true, fecha: true },
       });
       const todosItemsFactura = await prisma.facturaItem.findMany({
-        where: { stockId: { in: sinPrecio }, precioUnitario: { not: null } },
+        where: { stockId: { in: sinPrecio } },
         select: { stockId: true, precioUnitario: true, factura: { select: { fechaEmision: true } } },
       });
 
