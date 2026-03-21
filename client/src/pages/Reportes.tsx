@@ -611,6 +611,7 @@ function ReporteCampo({
   hectareas: number;
 }) {
   const reportRef = useRef<HTMLDivElement>(null);
+  const [preciosOverride, setPreciosOverride] = React.useState<Record<string, string>>({});
 
   const sinDatos = gastos.length === 0 && servicios.length === 0 && stock.length === 0 && rendimientos.length === 0;
 
@@ -766,16 +767,31 @@ function ReporteCampo({
                           <tr>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
                             <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Consumido</th>
+                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Precio Unit.</th>
                             <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Costo Estimado</th>
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                           {items.map((item: any) => {
-                            const costoEstimado = item.precioPromedio != null ? item.precioPromedio * item.cantidadConsumida : null;
+                            const precioBase = item.precioPromedio;
+                            const overrideStr = preciosOverride[item.stockId];
+                            const precioEfectivo = overrideStr !== undefined ? parseFloat(overrideStr) : precioBase;
+                            const costoEstimado = precioEfectivo != null && !isNaN(precioEfectivo) ? precioEfectivo * item.cantidadConsumida : null;
                             return (
                               <tr key={item.stockId} className="hover:bg-gray-50">
                                 <td className="px-4 py-3 font-medium">{item.nombre}</td>
                                 <td className="px-4 py-3 text-right font-bold">{item.cantidadConsumida.toFixed(2)} {item.unidad}</td>
+                                <td className="px-4 py-2 text-right">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={overrideStr !== undefined ? overrideStr : (precioBase ?? '')}
+                                    onChange={(e) => setPreciosOverride((prev) => ({ ...prev, [item.stockId]: e.target.value }))}
+                                    placeholder="-"
+                                    className="w-28 text-right border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-400"
+                                  />
+                                </td>
                                 <td className="px-4 py-3 text-right">
                                   {costoEstimado != null
                                     ? `$${costoEstimado.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -787,13 +803,20 @@ function ReporteCampo({
                         </tbody>
                         {(() => {
                           const totalCosto = items.reduce((acc: number, item: any) => {
-                            return item.precioPromedio != null ? acc + item.precioPromedio * item.cantidadConsumida : acc;
+                            const overrideStr = preciosOverride[item.stockId];
+                            const precioEfectivo = overrideStr !== undefined ? parseFloat(overrideStr) : item.precioPromedio;
+                            if (precioEfectivo != null && !isNaN(precioEfectivo)) return acc + precioEfectivo * item.cantidadConsumida;
+                            return acc;
                           }, 0);
-                          const hayPrecios = items.some((item: any) => item.precioPromedio != null);
+                          const hayPrecios = items.some((item: any) => {
+                            const overrideStr = preciosOverride[item.stockId];
+                            const p = overrideStr !== undefined ? parseFloat(overrideStr) : item.precioPromedio;
+                            return p != null && !isNaN(p);
+                          });
                           return hayPrecios ? (
                             <tfoot className="bg-gray-50">
                               <tr>
-                                <td className="px-4 py-2 text-xs font-semibold text-gray-600" colSpan={2}>Total estimado</td>
+                                <td className="px-4 py-2 text-xs font-semibold text-gray-600" colSpan={3}>Total estimado</td>
                                 <td className="px-4 py-2 text-right text-sm font-bold text-gray-800">
                                   ${totalCosto.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </td>
@@ -1575,6 +1598,7 @@ function ServiciosRealizados({
 // Componente: Consumo de Stock
 function ConsumoStock({ data }: { data: any[] }) {
   const reportRef = useRef<HTMLDivElement>(null);
+  const [preciosOverride, setPreciosOverride] = React.useState<Record<string, string>>({});
 
   if (!data || data.length === 0) {
     return (
@@ -1652,16 +1676,31 @@ function ConsumoStock({ data }: { data: any[] }) {
                       <tr>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
                         <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Consumido</th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Precio Unit.</th>
                         <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Costo Estimado</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {items.map((item) => {
-                        const costoEstimado = item.precioPromedio != null ? item.precioPromedio * item.cantidadConsumida : null;
+                        const precioBase = item.precioPromedio;
+                        const overrideStr = preciosOverride[item.stockId];
+                        const precioEfectivo = overrideStr !== undefined ? parseFloat(overrideStr) : precioBase;
+                        const costoEstimado = precioEfectivo != null && !isNaN(precioEfectivo) ? precioEfectivo * item.cantidadConsumida : null;
                         return (
                           <tr key={item.stockId} className="hover:bg-gray-50">
                             <td className="px-4 py-3 font-medium">{item.nombre}</td>
                             <td className="px-4 py-3 text-right font-bold">{item.cantidadConsumida.toFixed(2)} {item.unidad}</td>
+                            <td className="px-4 py-2 text-right">
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={overrideStr !== undefined ? overrideStr : (precioBase ?? '')}
+                                onChange={(e) => setPreciosOverride((prev) => ({ ...prev, [item.stockId]: e.target.value }))}
+                                placeholder="-"
+                                className="w-28 text-right border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-400"
+                              />
+                            </td>
                             <td className="px-4 py-3 text-right">
                               {costoEstimado != null
                                 ? `$${costoEstimado.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -1673,13 +1712,20 @@ function ConsumoStock({ data }: { data: any[] }) {
                     </tbody>
                     {(() => {
                       const totalCosto = items.reduce((acc, item) => {
-                        return item.precioPromedio != null ? acc + item.precioPromedio * item.cantidadConsumida : acc;
+                        const overrideStr = preciosOverride[item.stockId];
+                        const precioEfectivo = overrideStr !== undefined ? parseFloat(overrideStr) : item.precioPromedio;
+                        if (precioEfectivo != null && !isNaN(precioEfectivo)) return acc + precioEfectivo * item.cantidadConsumida;
+                        return acc;
                       }, 0);
-                      const hayPrecios = items.some((item) => item.precioPromedio != null);
+                      const hayPrecios = items.some((item) => {
+                        const overrideStr = preciosOverride[item.stockId];
+                        const p = overrideStr !== undefined ? parseFloat(overrideStr) : item.precioPromedio;
+                        return p != null && !isNaN(p);
+                      });
                       return hayPrecios ? (
                         <tfoot className="bg-gray-50">
                           <tr>
-                            <td className="px-4 py-2 text-xs font-semibold text-gray-600" colSpan={2}>Total estimado</td>
+                            <td className="px-4 py-2 text-xs font-semibold text-gray-600" colSpan={3}>Total estimado</td>
                             <td className="px-4 py-2 text-right text-sm font-bold text-gray-800">
                               ${totalCosto.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </td>
