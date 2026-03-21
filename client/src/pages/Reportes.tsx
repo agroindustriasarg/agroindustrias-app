@@ -620,8 +620,6 @@ function ReporteCampo({
   const totalServiciosARS = servicios.filter(s => s.moneda !== 'USD').reduce((s, srv) => s + srv.totalCosto, 0);
   const totalServiciosUSD = servicios.filter(s => s.moneda === 'USD').reduce((s, srv) => s + srv.totalCosto, 0);
   const totalProduccion = rendimientos.reduce((s, r) => s + (r.totalCantidad || 0), 0);
-  const costoPorHa = hectareas > 0 ? (totalGastosARS + totalServiciosARS) / hectareas : 0;
-  const costoPorHaUSD = hectareas > 0 ? (totalGastosUSD + totalServiciosUSD) / hectareas : 0;
   const CATEGORIAS_USD = ['Agroquímicos'];
   const esUSD = (categoria: string) => CATEGORIAS_USD.includes(categoria);
 
@@ -639,6 +637,9 @@ function ReporteCampo({
     if (precioEfectivo != null && !isNaN(precioEfectivo)) return acc + precioEfectivo * item.cantidadConsumida;
     return acc;
   }, 0);
+
+  const costoPorHa = hectareas > 0 ? (totalGastosARS + totalServiciosARS + totalInsumosARS) / hectareas : 0;
+  const costoPorHaUSD = hectareas > 0 ? (totalGastosUSD + totalServiciosUSD + totalInsumosUSD) / hectareas : 0;
 
   return (
     <div className="space-y-6">
