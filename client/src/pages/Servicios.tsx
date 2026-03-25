@@ -344,21 +344,21 @@ export default function Servicios() {
   };
 
   const handleEstadoChange = async (id: string, nuevoEstado: string) => {
-    // TEMPORALMENTE DESHABILITADO: validación de stock para marcar como REALIZADO
-    // if (nuevoEstado === 'REALIZADO') {
-    //   const servicio = servicios.find(s => s.id === id);
-    //   if (servicio) {
-    //     const stockCheck = calcularStockDisponible(servicio);
-    //     if (!stockCheck.suficiente) {
-    //       const faltantes = stockCheck.detalles
-    //         .filter(d => !d.suficiente)
-    //         .map(d => `${d.producto}: Faltan ${(d.necesario - d.disponible).toFixed(2)} ${d.unidad}`)
-    //         .join('\n');
-    //       alert(`No se puede marcar como REALIZADO.\n\nStock insuficiente:\n${faltantes}`);
-    //       return;
-    //     }
-    //   }
-    // }
+    // Si se intenta marcar como REALIZADO, validar stock
+    if (nuevoEstado === 'REALIZADO') {
+      const servicio = servicios.find(s => s.id === id);
+      if (servicio) {
+        const stockCheck = calcularStockDisponible(servicio);
+        if (!stockCheck.suficiente) {
+          const faltantes = stockCheck.detalles
+            .filter(d => !d.suficiente)
+            .map(d => `${d.producto}: Faltan ${(d.necesario - d.disponible).toFixed(2)} ${d.unidad}`)
+            .join('\n');
+          alert(`No se puede marcar como REALIZADO.\n\nStock insuficiente:\n${faltantes}`);
+          return;
+        }
+      }
+    }
 
     try {
       await api.patch(`/servicios/${id}`, { estado: nuevoEstado });
