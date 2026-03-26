@@ -22,6 +22,7 @@ export default function StockPage() {
   const [lotes, setLotes] = useState<any[]>([]);
   const [cuentas, setCuentas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [showMovimiento, setShowMovimiento] = useState<string | null>(null);
   const [showEdit, setShowEdit] = useState<string | null>(null);
@@ -169,8 +170,9 @@ export default function StockPage() {
 
   const handleMovimiento = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!showMovimiento) return;
+    if (!showMovimiento || submitting) return;
 
+    setSubmitting(true);
     try {
       const dataToSend: any = {
         tipo: movimientoData.tipo,
@@ -226,6 +228,8 @@ export default function StockPage() {
       fetchStock();
     } catch (error: any) {
       alert(error.response?.data?.error || 'Error al registrar movimiento');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -777,8 +781,8 @@ export default function StockPage() {
                 </div>
               </div>
               <div className="flex space-x-3 pt-4">
-                <button type="submit" className="btn-primary">
-                  Registrar
+                <button type="submit" className="btn-primary" disabled={submitting}>
+                  {submitting ? 'Registrando...' : 'Registrar'}
                 </button>
                 <button
                   type="button"
