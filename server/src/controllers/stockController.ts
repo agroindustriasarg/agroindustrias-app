@@ -332,3 +332,21 @@ export const deleteMovimiento = async (req: AuthRequest, res: Response): Promise
     res.status(500).json({ error: 'Error al eliminar movimiento' });
   }
 };
+
+export const recalcularStock = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const movimientos = await prisma.movimientoStock.findMany({ where: { stockId: id } });
+    const nuevaCantidad = movimientos.reduce((acc, mov) => {
+      return mov.tipo === 'ENTRADA' ? acc + mov.cantidad : acc - mov.cantidad;
+    }, 0);
+    const stock = await prisma.stock.update({
+      where: { id },
+      data: { cantidad: nuevaCantidad },
+    });
+    res.json({ cantidad: stock.cantidad });
+  } catch (error) {
+    console.error('Error al recalcular stock:', error);
+    res.status(500).json({ error: 'Error al recalcular stock' });
+  }
+};

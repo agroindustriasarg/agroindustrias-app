@@ -127,6 +127,17 @@ export default function StockDetalle() {
     });
   };
 
+  const handleRecalcular = async () => {
+    if (!confirm('¿Recalcular el stock desde cero sumando todos los movimientos existentes?')) return;
+    try {
+      const res = await api.post(`/stock/${id}/recalcular`);
+      alert(`Stock recalculado: ${res.data.cantidad.toFixed(1)} ${stock?.unidad}`);
+      fetchStockDetalle();
+    } catch (error) {
+      alert('Error al recalcular stock');
+    }
+  };
+
   const handleDeleteMovimiento = async (movimientoId: string) => {
     if (!confirm('¿Estás seguro de eliminar este movimiento? Esta acción revertirá el cambio en el stock.')) return;
 
@@ -232,6 +243,13 @@ export default function StockDetalle() {
             <div>
               <p className="text-sm text-gray-600">Cantidad actual</p>
               <p className="text-xl font-bold">{stock.cantidad.toFixed(1)} {stock.unidad}</p>
+              <button
+                onClick={handleRecalcular}
+                className="mt-1 text-xs text-orange-600 hover:text-orange-800 underline"
+                title="Recalcular stock desde los movimientos"
+              >
+                Recalcular
+              </button>
             </div>
             {stock.stockMinimo && (
               <div>

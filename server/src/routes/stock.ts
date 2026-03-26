@@ -10,6 +10,7 @@ import {
   deleteStock,
   createMovimiento,
   deleteMovimiento,
+  recalcularStock,
 } from '../controllers/stockController.js';
 import { authMiddleware } from '../middleware/auth.js';
 
@@ -26,5 +27,6 @@ router.put('/:id', updateStock);
 router.delete('/:id', deleteStock);
 router.post('/:stockId/movimientos', createMovimiento);
 router.delete('/:stockId/movimientos/:movimientoId', deleteMovimiento);
+router.post('/:id/recalcular', recalcularStock);
 
 export default router;
