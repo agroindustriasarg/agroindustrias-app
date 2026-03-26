@@ -130,7 +130,7 @@ export default function StockDetalle() {
   const handleRecalcular = async () => {
     if (!confirm('¿Recalcular el stock desde cero sumando todos los movimientos existentes?')) return;
     try {
-      const res = await api.post(`/stock/${id}/recalcular`);
+      const res = await api.post(`/stock/${id}/recalcular`, {});
       alert(`Stock recalculado: ${res.data.cantidad.toFixed(1)} ${stock?.unidad}`);
       fetchStockDetalle();
     } catch (error) {
