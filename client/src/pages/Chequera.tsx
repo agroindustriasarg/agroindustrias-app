@@ -226,6 +226,36 @@ export default function Chequera() {
         </div>
       </div>
 
+      {/* Resumen mensual - solo en vista PENDIENTE */}
+      {vistaActiva === 'PENDIENTE' && (() => {
+        const chequesPendientes = cheques.filter(c => c.estado === 'PENDIENTE');
+        const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        const totalPorMes = meses.map((_, i) =>
+          chequesPendientes
+            .filter(c => new Date(c.fechaVencimiento).getMonth() === i)
+            .reduce((acc, c) => acc + c.monto, 0)
+        );
+        const totalGeneral = chequesPendientes.reduce((acc, c) => acc + c.monto, 0);
+        return (
+          <div className="mb-6">
+            <div className="flex flex-wrap gap-2 mb-2">
+              {meses.map((mes, i) => (
+                <div key={mes} className="flex-1 min-w-[60px] bg-white border border-gray-200 rounded-lg p-2 text-center shadow-sm">
+                  <p className="text-xs font-medium text-gray-500">{mes}</p>
+                  <p className="text-sm font-bold text-gray-800 mt-1">
+                    {totalPorMes[i] > 0 ? `$${totalPorMes[i].toLocaleString('es-AR', { maximumFractionDigits: 0 })}` : '-'}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <div className="bg-primary-600 text-white rounded-lg p-3 text-center shadow">
+              <p className="text-sm font-medium opacity-90">Total a pagar</p>
+              <p className="text-2xl font-bold mt-1">${totalGeneral.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</p>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Tabs */}
       <div className="flex space-x-2 mb-6">
         <button
