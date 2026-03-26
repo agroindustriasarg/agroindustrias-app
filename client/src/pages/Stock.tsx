@@ -744,7 +744,7 @@ export default function StockPage() {
                         <option value="">Seleccionar...</option>
                         {lotes.map((lote) => (
                           <option key={lote.id} value={lote.id}>
-                            {lote.nombre}
+                            {lote.nombre}{lote.hectareas ? ` (${lote.hectareas} ha)` : ''}
                           </option>
                         ))}
                       </select>
