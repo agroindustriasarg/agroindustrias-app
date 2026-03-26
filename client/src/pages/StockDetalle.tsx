@@ -41,7 +41,7 @@ export default function StockDetalle() {
   const navigate = useNavigate();
   const [stock, setStock] = useState<StockItem | null>(null);
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
-  const [maquinarias, setMaquinarias] = useState<any[]>([]);
+  const [, setMaquinarias] = useState<any[]>([]);
   const [campos, setCampos] = useState<any[]>([]);
   const [lotes, setLotes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -102,19 +102,9 @@ export default function StockDetalle() {
     }
   };
 
-  const getMaquinariaNombre = (id: string) => {
-    const maq = maquinarias.find(m => m.id === id);
-    return maq ? `${maq.nombre} (${maq.tipo})` : id;
-  };
-
   const getCampoNombre = (id: string) => {
     const campo = campos.find(c => c.id === id);
     return campo ? campo.nombre : id;
-  };
-
-  const getLoteNombre = (id: string) => {
-    const lote = lotes.find(l => l.id === id);
-    return lote ? lote.nombre : id;
   };
 
   const formatFecha = (fecha: string) => {
@@ -342,11 +332,11 @@ export default function StockDetalle() {
                         </div>
                       ) : (
                         <div className="text-xs">
-                          {mov.maquinariaId && <span className="mr-3">Maq: {getMaquinariaNombre(mov.maquinariaId)}</span>}
-                          {mov.implementoId && <span className="mr-3">Impl: {getMaquinariaNombre(mov.implementoId)}</span>}
-                          {mov.servicioId && <span className="mr-3">Serv: {mov.servicioId}</span>}
                           {mov.campoId && <span className="mr-3">Campo: {getCampoNombre(mov.campoId)}</span>}
-                          {mov.loteId && <span>Lote: {getLoteNombre(mov.loteId)}</span>}
+                          {mov.loteId && (() => {
+                            const lote = lotes.find(l => l.id === mov.loteId);
+                            return <span className="mr-3">Lote: {lote ? lote.nombre : mov.loteId}{lote?.hectareas ? ` · ${lote.hectareas} ha` : ''}</span>;
+                          })()}
                         </div>
                       )}
                     </td>
