@@ -671,12 +671,12 @@ function ReporteCampo({
             <div className="card bg-gradient-to-br from-blue-50 to-blue-100">
               <p className="text-xs text-blue-700 mb-1">Gastos ARS</p>
               <p className="text-xl font-bold text-blue-900">${totalGastosARS.toLocaleString('es-AR', { minimumFractionDigits: 0 })}</p>
-              {totalGastosUSD > 0 && <p className="text-xs text-blue-600 mt-1">USD {totalGastosUSD.toLocaleString('es-AR', { minimumFractionDigits: 0 })}</p>}
+              {totalGastosUSD > 0 && <p className="text-xl font-bold text-blue-700 mt-1">USD {totalGastosUSD.toLocaleString('es-AR', { minimumFractionDigits: 0 })}</p>}
             </div>
             <div className="card bg-gradient-to-br from-purple-50 to-purple-100">
               <p className="text-xs text-purple-700 mb-1">Servicios ARS</p>
               <p className="text-xl font-bold text-purple-900">${totalServiciosARS.toLocaleString('es-AR', { minimumFractionDigits: 0 })}</p>
-              {totalServiciosUSD > 0 && <p className="text-xs text-purple-600 mt-1">USD {totalServiciosUSD.toLocaleString('es-AR', { minimumFractionDigits: 0 })}</p>}
+              {totalServiciosUSD > 0 && <p className="text-xl font-bold text-purple-700 mt-1">USD {totalServiciosUSD.toLocaleString('es-AR', { minimumFractionDigits: 0 })}</p>}
             </div>
             <div className="card bg-gradient-to-br from-green-50 to-green-100">
               <p className="text-xs text-green-700 mb-1">Costo por Hectárea</p>
@@ -684,7 +684,7 @@ function ReporteCampo({
                 {hectareas > 0 ? `$${costoPorHa.toLocaleString('es-AR', { minimumFractionDigits: 0 })}` : '-'}
               </p>
               {hectareas > 0 && costoPorHaUSD > 0 && (
-                <p className="text-sm font-semibold text-blue-700 mt-1">
+                <p className="text-xl font-bold text-blue-700 mt-1">
                   USD {costoPorHaUSD.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
                 </p>
               )}
@@ -700,7 +700,7 @@ function ReporteCampo({
                 <p className="text-xl font-bold text-orange-900">${totalInsumosARS.toLocaleString('es-AR', { minimumFractionDigits: 0 })}</p>
               )}
               {totalInsumosUSD > 0 && (
-                <p className="text-sm font-bold text-blue-700 mt-1">USD {totalInsumosUSD.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                <p className="text-xl font-bold text-blue-700 mt-1">USD {totalInsumosUSD.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
               )}
               {totalInsumosARS === 0 && totalInsumosUSD === 0 && <p className="text-xl font-bold text-orange-900">-</p>}
               {stock.some((item: any) => {
