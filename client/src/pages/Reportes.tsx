@@ -940,23 +940,40 @@ async function generarPDF(ref: React.RefObject<HTMLDivElement>, titulo: string, 
     pdf.text(titulo, pageWidth / 2, yPosition, { align: 'center' });
     yPosition += 15;
 
-    const canvas = await html2canvas(ref.current, { scale: 2, logging: false, useCORS: true });
-    const imgData = canvas.toDataURL('image/png');
-    const imgWidth = pageWidth - 20;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    const canvas = await html2canvas(ref.current, {
+      scale: 2,
+      logging: false,
+      useCORS: true,
+      width: ref.current.scrollWidth,
+      windowWidth: ref.current.scrollWidth,
+    });
 
-    const remainingHeight = pageHeight - yPosition - 10;
-    if (imgHeight > remainingHeight) {
-      pdf.addImage(imgData, 'PNG', 10, yPosition, imgWidth, Math.min(imgHeight, remainingHeight));
-      let remainingImgHeight = imgHeight - remainingHeight;
-      while (remainingImgHeight > 0) {
+    const imgWidth = pageWidth - 20;
+    const scale = imgWidth / canvas.width;
+    const pageContentHeightPx = ((pageHeight - yPosition - 10) / scale);
+    const pageHeightPx = ((pageHeight - 20) / scale);
+
+    let sourceY = 0;
+    let currentTopMm = yPosition;
+
+    while (sourceY < canvas.height) {
+      const sliceHeightPx = sourceY === 0 ? pageContentHeightPx : pageHeightPx;
+      const actualSlicePx = Math.min(sliceHeightPx, canvas.height - sourceY);
+
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = canvas.width;
+      tempCanvas.height = actualSlicePx;
+      const ctx = tempCanvas.getContext('2d')!;
+      ctx.drawImage(canvas, 0, sourceY, canvas.width, actualSlicePx, 0, 0, canvas.width, actualSlicePx);
+
+      const sliceHeightMm = actualSlicePx * scale;
+      pdf.addImage(tempCanvas.toDataURL('image/png'), 'PNG', 10, currentTopMm, imgWidth, sliceHeightMm);
+
+      sourceY += actualSlicePx;
+      if (sourceY < canvas.height) {
         pdf.addPage();
-        const nextPageHeight = Math.min(remainingImgHeight, pageHeight - 20);
-        pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, nextPageHeight);
-        remainingImgHeight -= nextPageHeight;
+        currentTopMm = 10;
       }
-    } else {
-      pdf.addImage(imgData, 'PNG', 10, yPosition, imgWidth, imgHeight);
     }
 
     const totalPages = pdf.internal.pages.length - 1;
