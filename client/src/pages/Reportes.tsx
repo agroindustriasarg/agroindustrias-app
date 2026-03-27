@@ -668,46 +668,65 @@ function ReporteCampo({
 
           {/* KPIs resumen */}
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
-            <div className="card bg-gradient-to-br from-blue-50 to-blue-100">
-              <p className="text-xs text-blue-700 mb-1">Gastos ARS</p>
-              <p className="text-xl font-bold text-blue-900">${totalGastosARS.toLocaleString('es-AR', { minimumFractionDigits: 0 })}</p>
-              {totalGastosUSD > 0 && <p className="text-xl font-bold text-blue-700 mt-1">USD {totalGastosUSD.toLocaleString('es-AR', { minimumFractionDigits: 0 })}</p>}
+            {/* Gastos */}
+            <div className="overflow-hidden rounded-xl border border-blue-200 shadow-sm">
+              <div className="bg-blue-50 px-4 py-3">
+                <p className="text-xs text-blue-600 font-medium mb-1">Gastos · ARS</p>
+                <p className="text-lg font-bold text-blue-900">${totalGastosARS.toLocaleString('es-AR', { minimumFractionDigits: 0 })}</p>
+              </div>
+              <div className="bg-blue-100 px-4 py-3">
+                <p className="text-xs text-blue-600 font-medium mb-1">Gastos · USD</p>
+                <p className="text-lg font-bold text-blue-800">{totalGastosUSD > 0 ? `USD ${totalGastosUSD.toLocaleString('es-AR', { minimumFractionDigits: 0 })}` : '-'}</p>
+              </div>
             </div>
-            <div className="card bg-gradient-to-br from-purple-50 to-purple-100">
-              <p className="text-xs text-purple-700 mb-1">Servicios ARS</p>
-              <p className="text-xl font-bold text-purple-900">${totalServiciosARS.toLocaleString('es-AR', { minimumFractionDigits: 0 })}</p>
-              {totalServiciosUSD > 0 && <p className="text-xl font-bold text-purple-700 mt-1">USD {totalServiciosUSD.toLocaleString('es-AR', { minimumFractionDigits: 0 })}</p>}
+            {/* Servicios */}
+            <div className="overflow-hidden rounded-xl border border-purple-200 shadow-sm">
+              <div className="bg-purple-50 px-4 py-3">
+                <p className="text-xs text-purple-600 font-medium mb-1">Servicios · ARS</p>
+                <p className="text-lg font-bold text-purple-900">${totalServiciosARS.toLocaleString('es-AR', { minimumFractionDigits: 0 })}</p>
+              </div>
+              <div className="bg-purple-100 px-4 py-3">
+                <p className="text-xs text-purple-600 font-medium mb-1">Servicios · USD</p>
+                <p className="text-lg font-bold text-purple-800">{totalServiciosUSD > 0 ? `USD ${totalServiciosUSD.toLocaleString('es-AR', { minimumFractionDigits: 0 })}` : '-'}</p>
+              </div>
             </div>
-            <div className="card bg-gradient-to-br from-green-50 to-green-100">
-              <p className="text-xs text-green-700 mb-1">Costo por Hectárea</p>
-              <p className="text-xl font-bold text-green-900">
-                {hectareas > 0 ? `$${costoPorHa.toLocaleString('es-AR', { minimumFractionDigits: 0 })}` : '-'}
-              </p>
-              {hectareas > 0 && costoPorHaUSD > 0 && (
-                <p className="text-xl font-bold text-blue-700 mt-1">
-                  USD {costoPorHaUSD.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
-                </p>
-              )}
-              {hectareas > 0 && <p className="text-xs text-green-600 mt-1">{hectareas.toFixed(1)} ha totales</p>}
+            {/* Costo por Ha */}
+            <div className="overflow-hidden rounded-xl border border-green-200 shadow-sm">
+              <div className="bg-green-50 px-4 py-3">
+                <p className="text-xs text-green-600 font-medium mb-1">Costo/Ha · ARS</p>
+                <p className="text-lg font-bold text-green-900">{hectareas > 0 ? `$${costoPorHa.toLocaleString('es-AR', { minimumFractionDigits: 0 })}` : '-'}</p>
+                {hectareas > 0 && <p className="text-xs text-green-600 mt-1">{hectareas.toFixed(1)} ha</p>}
+              </div>
+              <div className="bg-green-100 px-4 py-3">
+                <p className="text-xs text-green-600 font-medium mb-1">Costo/Ha · USD</p>
+                <p className="text-lg font-bold text-green-800">{hectareas > 0 && costoPorHaUSD > 0 ? `USD ${costoPorHaUSD.toLocaleString('es-AR', { minimumFractionDigits: 2 })}` : '-'}</p>
+              </div>
             </div>
-            <div className="card bg-gradient-to-br from-yellow-50 to-yellow-100">
-              <p className="text-xs text-yellow-700 mb-1">Producción total</p>
-              <p className="text-xl font-bold text-yellow-900">{totalProduccion.toFixed(2)} tn</p>
+            {/* Producción */}
+            <div className="overflow-hidden rounded-xl border border-yellow-200 shadow-sm">
+              <div className="bg-yellow-50 px-4 py-3">
+                <p className="text-xs text-yellow-600 font-medium mb-1">Producción total</p>
+                <p className="text-lg font-bold text-yellow-900">{totalProduccion.toFixed(2)} tn</p>
+              </div>
+              <div className="bg-yellow-100 px-4 py-3 flex items-center justify-center">
+                <p className="text-xs text-yellow-500 italic">—</p>
+              </div>
             </div>
-            <div className="card bg-gradient-to-br from-orange-50 to-orange-100">
-              <p className="text-xs text-orange-700 mb-1">Insumos</p>
-              {totalInsumosARS > 0 && (
-                <p className="text-xl font-bold text-orange-900">${totalInsumosARS.toLocaleString('es-AR', { minimumFractionDigits: 0 })}</p>
-              )}
-              {totalInsumosUSD > 0 && (
-                <p className="text-xl font-bold text-blue-700 mt-1">USD {totalInsumosUSD.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-              )}
-              {totalInsumosARS === 0 && totalInsumosUSD === 0 && <p className="text-xl font-bold text-orange-900">-</p>}
-              {stock.some((item: any) => {
-                const overrideStr = preciosOverride[item.stockId];
-                const p = overrideStr !== undefined ? parseFloat(overrideStr) : item.precioPromedio;
-                return p == null || isNaN(p);
-              }) && <p className="text-xs text-orange-500 mt-1">* parcial</p>}
+            {/* Insumos */}
+            <div className="overflow-hidden rounded-xl border border-orange-200 shadow-sm">
+              <div className="bg-orange-50 px-4 py-3">
+                <p className="text-xs text-orange-600 font-medium mb-1">Insumos · ARS</p>
+                <p className="text-lg font-bold text-orange-900">{totalInsumosARS > 0 ? `$${totalInsumosARS.toLocaleString('es-AR', { minimumFractionDigits: 0 })}` : '-'}</p>
+              </div>
+              <div className="bg-orange-100 px-4 py-3">
+                <p className="text-xs text-orange-600 font-medium mb-1">Insumos · USD</p>
+                <p className="text-lg font-bold text-orange-800">{totalInsumosUSD > 0 ? `USD ${totalInsumosUSD.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}</p>
+                {stock.some((item: any) => {
+                  const overrideStr = preciosOverride[item.stockId];
+                  const p = overrideStr !== undefined ? parseFloat(overrideStr) : item.precioPromedio;
+                  return p == null || isNaN(p);
+                }) && <p className="text-xs text-orange-500 mt-1">* parcial</p>}
+              </div>
             </div>
           </div>
 
