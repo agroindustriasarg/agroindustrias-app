@@ -940,18 +940,41 @@ async function generarPDF(ref: React.RefObject<HTMLDivElement>, titulo: string, 
     pdf.text(titulo, pageWidth / 2, yPosition, { align: 'center' });
     yPosition += 15;
 
-    const canvas = await html2canvas(ref.current, {
+    // Clonar el contenido y reemplazar inputs por texto plano
+    const clone = ref.current.cloneNode(true) as HTMLElement;
+    clone.style.width = '800px';
+    clone.style.fontSize = '13px';
+    clone.style.position = 'absolute';
+    clone.style.left = '-9999px';
+    clone.style.top = '0';
+    clone.style.background = 'white';
+
+    // Reemplazar cada input por un span con su valor
+    const inputs = clone.querySelectorAll('input');
+    inputs.forEach((input) => {
+      const span = document.createElement('span');
+      span.textContent = (input as HTMLInputElement).value || '-';
+      span.style.fontSize = '13px';
+      span.style.fontWeight = '500';
+      input.parentNode?.replaceChild(span, input);
+    });
+
+    document.body.appendChild(clone);
+
+    const canvas = await html2canvas(clone, {
       scale: 2,
       logging: false,
       useCORS: true,
-      width: ref.current.scrollWidth,
-      windowWidth: ref.current.scrollWidth,
+      width: 800,
+      windowWidth: 800,
     });
+
+    document.body.removeChild(clone);
 
     const imgWidth = pageWidth - 20;
     const scale = imgWidth / canvas.width;
-    const pageContentHeightPx = ((pageHeight - yPosition - 10) / scale);
-    const pageHeightPx = ((pageHeight - 20) / scale);
+    const pageContentHeightPx = (pageHeight - yPosition - 10) / scale;
+    const pageHeightPx = (pageHeight - 20) / scale;
 
     let sourceY = 0;
     let currentTopMm = yPosition;
