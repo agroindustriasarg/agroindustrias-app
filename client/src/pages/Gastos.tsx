@@ -316,12 +316,22 @@ export default function Gastos() {
                 </label>
                 <input
                   type="text"
+                  list="conceptos-sugeridos"
                   value={formData.concepto}
                   onChange={(e) => setFormData({ ...formData, concepto: e.target.value })}
                   className="input"
                   required
                   placeholder="Ej: Compra de combustible"
                 />
+                <datalist id="conceptos-sugeridos">
+                  {[...new Set(
+                    gastos
+                      .filter(g => formData.categoria ? g.categoria === formData.categoria : true)
+                      .map(g => g.concepto)
+                  )].map(concepto => (
+                    <option key={concepto} value={concepto} />
+                  ))}
+                </datalist>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
