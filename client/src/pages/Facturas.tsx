@@ -300,12 +300,17 @@ export default function Facturas() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const tc = parseFloat(tipoCambio) || 0;
+    // Si hay tipo de cambio, la factura se convierte a ARS
+    const monedaFinal = (moneda === 'USD' && tc > 0) ? 'ARS' : moneda;
+
     let data: any = {
       numeroFactura,
       fechaEmision,
       proveedor,
       tipoFactura,
-      moneda,
+      moneda: monedaFinal,
+      tipoCambio: moneda === 'USD' && tc > 0 ? tc : null,
       formaPago,
       fechaPago: formaPago === 'A pagar en fecha' ? fechaPago : null,
       estado,
@@ -339,13 +344,18 @@ export default function Facturas() {
           subtotalRemitos += prod.cantidad * prod.precioUnitario;
         });
       });
-      const ivaCalculadoRemitos = calcularIva(subtotalRemitos);
+      // Si es USD con TC, convertir a ARS
+      let subtotalRemitosFinal = subtotalRemitos;
+      if (moneda === 'USD' && tc > 0) {
+        subtotalRemitosFinal = subtotalRemitos * tc;
+      }
+      const ivaRemitosFinal = calcularIva(subtotalRemitosFinal);
 
       data.items = items;
-      data.subtotal = subtotalRemitos;
-      data.iva105 = tipoIva === 'IVA_105' ? ivaCalculadoRemitos : 0;
-      data.iva21 = tipoIva === 'IVA_21' ? ivaCalculadoRemitos : 0;
-      data.total = calcularTotalFactura();
+      data.subtotal = subtotalRemitosFinal;
+      data.iva105 = tipoIva === 'IVA_105' ? ivaRemitosFinal : 0;
+      data.iva21 = tipoIva === 'IVA_21' ? ivaRemitosFinal : 0;
+      data.total = subtotalRemitosFinal + ivaRemitosFinal;
     } else if (modoFactura === 'servicios') {
       // Factura con servicios
       if (serviciosSeleccionados.length === 0) {
@@ -375,7 +385,6 @@ export default function Facturas() {
       data.subtotal = subtotalFinal;
       data.iva105 = tipoIva === 'IVA_105' ? ivaCalculado : 0;
       data.iva21 = tipoIva === 'IVA_21' ? ivaCalculado : 0;
-      data.tipoCambio = moneda === 'USD' ? (parseFloat(tipoCambio) || 0) : null;
       data.total = calcularTotalFactura();
     } else {
       // Factura simple (sin remitos ni servicios)
@@ -393,7 +402,6 @@ export default function Facturas() {
       data.subtotal = sub;
       data.iva105 = tipoIva === 'IVA_105' ? ivaCalculado : 0;
       data.iva21 = tipoIva === 'IVA_21' ? ivaCalculado : 0;
-      data.tipoCambio = moneda === 'USD' ? (parseFloat(tipoCambio) || 0) : null;
       data.total = calcularTotalFactura();
     }
 
@@ -786,8 +794,8 @@ export default function Facturas() {
                   />
                 </div>
 
-                {/* Tipo de Cambio (solo para USD en modos servicios o simple) */}
-                {moneda === 'USD' && modoFactura !== 'remitos' && (
+                {/* Tipo de Cambio (solo para USD) */}
+                {moneda === 'USD' && (
                   <div className="mb-4">
                     <label className="label">Tipo de Cambio (USD → ARS)</label>
                     <input
@@ -796,9 +804,13 @@ export default function Facturas() {
                       value={tipoCambio}
                       onChange={(e) => setTipoCambio(e.target.value)}
                       className="input"
-                      placeholder="0.00"
-                      required
+                      placeholder="Dejar vacío para mantener en USD"
                     />
+                    {parseFloat(tipoCambio) > 0 && (
+                      <p className="text-xs text-primary-600 mt-1">
+                        La factura se convertirá a ARS al guardar (USD × {parseFloat(tipoCambio).toLocaleString('es-AR')})
+                      </p>
+                    )}
                   </div>
                 )}
 
