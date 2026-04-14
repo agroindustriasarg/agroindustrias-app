@@ -292,11 +292,14 @@ model Pago {
 }
 
 model PagoFactura {
-  id        String   @id @default(uuid())
-  pagoId    String
-  facturaId String
-  monto     Float    @default(0) // Monto imputado a esta factura en este pago
-  createdAt DateTime @default(now())
+  id          String   @id @default(uuid())
+  pagoId      String
+  facturaId   String
+  monto       Float    @default(0) // Monto imputado (en la moneda del pago: ARS o USD)
+  monedaPago  String   @default("ARS") // ARS o USD
+  tipoCambio  Float?   // TC usado si se pagó en ARS una factura USD
+  montoUSD    Float?   // Equivalente en USD (monto / tipoCambio) si se pagó en ARS
+  createdAt   DateTime @default(now())
 
   // Relaciones
   pago    Pago    @relation(fields: [pagoId], references: [id], onDelete: Cascade)

@@ -5,6 +5,7 @@ import api from '../services/api';
 
 interface PagoFactura {
   monto: number;
+  montoUSD?: number;
 }
 
 interface Factura {
@@ -117,7 +118,8 @@ export default function CuentasCorrientes() {
   };
 
   const getSaldoRestante = (f: Factura) => {
-    const pagado = (f.pagos || []).reduce((s, p) => s + (p.monto || 0), 0);
+    const pagado = (f.pagos || []).reduce((s, p) =>
+      s + (p.montoUSD !== undefined && p.montoUSD !== null ? p.montoUSD : (p.monto || 0)), 0);
     return f.total - pagado;
   };
 

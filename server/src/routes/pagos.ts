@@ -60,7 +60,9 @@ router.post('/', authMiddleware, async (req, res) => {
   try {
     const {
       facturaIds,
-      montosPorFactura, // { [facturaId]: monto } - si no se envía, se paga el total
+      montosPorFactura,       // { [facturaId]: monto } en la moneda del pago
+      monedaPagoMap,          // { [facturaId]: 'ARS' | 'USD' }
+      tipoCambioMap,          // { [facturaId]: number } TC usado si paga en ARS factura USD
       cuentaId,
       formaPago,
       fechaPago,
@@ -71,25 +73,32 @@ router.post('/', authMiddleware, async (req, res) => {
     for (const facturaId of facturaIds) {
       const factura = await prisma.factura.findUnique({
         where: { id: facturaId },
-        include: {
-          pagos: {
-            include: { pago: true }
-          }
-        }
+        include: { pagos: true }
       });
 
       if (!factura) {
         return res.status(404).json({ error: `Factura ${facturaId} no encontrada` });
       }
 
-      const totalPagado = factura.pagos.reduce((sum: number, pf: any) => sum + (pf.monto || 0), 0);
-      const saldoRestante = factura.total - totalPagado;
+      // El saldo siempre se mide en la moneda de la factura
+      const totalPagadoUSD = factura.pagos.reduce((sum: number, pf: any) => {
+        // Si el pago fue en ARS con TC, usamos montoUSD; si fue en la moneda de la factura, usamos monto
+        return sum + (pf.montoUSD !== null && pf.montoUSD !== undefined ? pf.montoUSD : (pf.monto || 0));
+      }, 0);
+      const saldoRestante = factura.total - totalPagadoUSD;
 
-      const montoAPagar = montosPorFactura ? montosPorFactura[facturaId] : saldoRestante;
+      const monedaPago = monedaPagoMap ? (monedaPagoMap[facturaId] || factura.moneda) : factura.moneda;
+      const tc = tipoCambioMap ? (tipoCambioMap[facturaId] || 0) : 0;
+      const montoRaw = montosPorFactura ? (montosPorFactura[facturaId] || 0) : saldoRestante;
 
-      if (montoAPagar > saldoRestante + 0.01) {
+      // Convertir monto a USD si pagó en ARS
+      const montoEnUSD = (factura.moneda === 'USD' && monedaPago === 'ARS' && tc > 0)
+        ? montoRaw / tc
+        : montoRaw;
+
+      if (montoEnUSD > saldoRestante + 0.01) {
         return res.status(400).json({
-          error: `El monto $${montoAPagar.toLocaleString('es-AR')} supera el saldo restante $${saldoRestante.toLocaleString('es-AR')} de la factura ${factura.numeroFactura}`
+          error: `El monto supera el saldo restante USD ${saldoRestante.toFixed(2)} de la factura ${factura.numeroFactura}`
         });
       }
     }
@@ -102,11 +111,28 @@ router.post('/', authMiddleware, async (req, res) => {
         fechaPago: new Date(fechaPago),
         observaciones,
         facturas: {
-          create: facturaIds.map((facturaId: string) => {
-            // Calcular monto para esta factura (si no se envía, se usa saldo total)
-            const monto = montosPorFactura ? (montosPorFactura[facturaId] || 0) : 0;
-            return { facturaId, monto };
-          })
+          create: await Promise.all(facturaIds.map(async (facturaId: string) => {
+            const factura = await prisma.factura.findUnique({ where: { id: facturaId }, include: { pagos: true } });
+            const totalPagadoUSD = factura.pagos.reduce((sum: number, pf: any) =>
+              sum + (pf.montoUSD !== null && pf.montoUSD !== undefined ? pf.montoUSD : (pf.monto || 0)), 0);
+            const saldoRestante = factura.total - totalPagadoUSD;
+
+            const monedaPago = monedaPagoMap ? (monedaPagoMap[facturaId] || factura.moneda) : factura.moneda;
+            const tc = tipoCambioMap ? (tipoCambioMap[facturaId] || 0) : 0;
+            const monto = montosPorFactura ? (montosPorFactura[facturaId] || saldoRestante) : saldoRestante;
+
+            // Si pagó en ARS una factura USD, calcular montoUSD
+            const esConversionARS = factura.moneda === 'USD' && monedaPago === 'ARS' && tc > 0;
+            const montoUSD = esConversionARS ? monto / tc : null;
+
+            return {
+              facturaId,
+              monto,
+              monedaPago: monedaPago || 'ARS',
+              tipoCambio: esConversionARS ? tc : null,
+              montoUSD
+            };
+          }))
         }
       },
       include: {
@@ -123,12 +149,11 @@ router.post('/', authMiddleware, async (req, res) => {
     for (const facturaId of facturaIds) {
       const factura = await prisma.factura.findUnique({
         where: { id: facturaId },
-        include: {
-          pagos: true
-        }
+        include: { pagos: true }
       });
 
-      const totalPagado = factura.pagos.reduce((sum: number, pf: any) => sum + (pf.monto || 0), 0);
+      const totalPagado = factura.pagos.reduce((sum: number, pf: any) =>
+        sum + (pf.montoUSD !== null && pf.montoUSD !== undefined ? pf.montoUSD : (pf.monto || 0)), 0);
       const saldoRestante = factura.total - totalPagado;
 
       let nuevoEstado = 'PENDIENTE';
@@ -175,7 +200,8 @@ router.delete('/:id', authMiddleware, async (req, res) => {
 
       if (!factura) continue;
 
-      const totalPagado = factura.pagos.reduce((sum: number, pf: any) => sum + (pf.monto || 0), 0);
+      const totalPagado = factura.pagos.reduce((sum: number, pf: any) =>
+        sum + (pf.montoUSD !== null && pf.montoUSD !== undefined ? pf.montoUSD : (pf.monto || 0)), 0);
       const saldoRestante = factura.total - totalPagado;
 
       let nuevoEstado = 'PENDIENTE';
