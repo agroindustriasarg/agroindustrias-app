@@ -3,6 +3,22 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/apiWithCache';
 import { CreditCard, ArrowLeft, DollarSign, Calendar, CheckCircle, FileText, Building2 } from 'lucide-react';
 
+interface PagoFactura {
+  id: string;
+  monto: number;
+  createdAt: string;
+  pago: {
+    id: string;
+    formaPago: string;
+    fechaPago: string;
+    observaciones?: string;
+    cuenta: {
+      id: string;
+      nombre: string;
+    };
+  };
+}
+
 interface Factura {
   id: string;
   numeroFactura: string;
@@ -15,6 +31,7 @@ interface Factura {
   fechaPago?: string;
   estado: string;
   observaciones?: string;
+  pagos?: PagoFactura[];
 }
 
 interface Cuenta {
@@ -33,6 +50,9 @@ export default function PagoProveedores() {
   const [facturasSeleccionadas, setFacturasSeleccionadas] = useState<Set<string>>(new Set());
   const [mostrarFormularioPago, setMostrarFormularioPago] = useState(false);
 
+  // Montos parciales por factura
+  const [montosPorFactura, setMontosPorFactura] = useState<{ [facturaId: string]: string }>({});
+
   // Datos del pago
   const [cuentaId, setCuentaId] = useState('');
   const [formaPago, setFormaPago] = useState('Transferencia');
@@ -50,11 +70,12 @@ export default function PagoProveedores() {
         api.get('/cuentas')
       ]);
 
-      // Filtrar solo facturas pendientes
-      const pendientes = facturasRes.data.filter((f: Factura) => f.estado === 'PENDIENTE');
+      // Mostrar facturas PENDIENTE y PAGO PARCIAL
+      const pendientes = facturasRes.data.filter(
+        (f: Factura) => f.estado === 'PENDIENTE' || f.estado === 'PAGO PARCIAL'
+      );
       setFacturasPendientes(pendientes);
 
-      // Filtrar solo cuentas activas
       const cuentasActivas = cuentasRes.data.filter((c: Cuenta) => c.activo);
       setCuentas(cuentasActivas);
 
@@ -68,12 +89,28 @@ export default function PagoProveedores() {
     }
   };
 
+  const getSaldoRestante = (factura: Factura) => {
+    const totalPagado = (factura.pagos || []).reduce((sum, pf) => sum + (pf.monto || 0), 0);
+    return factura.total - totalPagado;
+  };
+
   const handleToggleFactura = (facturaId: string) => {
     const newSelection = new Set(facturasSeleccionadas);
     if (newSelection.has(facturaId)) {
       newSelection.delete(facturaId);
+      const newMontos = { ...montosPorFactura };
+      delete newMontos[facturaId];
+      setMontosPorFactura(newMontos);
     } else {
       newSelection.add(facturaId);
+      // Inicializar con el saldo restante
+      const factura = facturasPendientes.find(f => f.id === facturaId);
+      if (factura) {
+        setMontosPorFactura(prev => ({
+          ...prev,
+          [facturaId]: getSaldoRestante(factura).toFixed(2)
+        }));
+      }
     }
     setFacturasSeleccionadas(newSelection);
   };
@@ -81,8 +118,15 @@ export default function PagoProveedores() {
   const handleSeleccionarTodas = () => {
     if (facturasSeleccionadas.size === facturasPendientes.length) {
       setFacturasSeleccionadas(new Set());
+      setMontosPorFactura({});
     } else {
-      setFacturasSeleccionadas(new Set(facturasPendientes.map(f => f.id)));
+      const newSelection = new Set(facturasPendientes.map(f => f.id));
+      setFacturasSeleccionadas(newSelection);
+      const newMontos: { [id: string]: string } = {};
+      facturasPendientes.forEach(f => {
+        newMontos[f.id] = getSaldoRestante(f).toFixed(2);
+      });
+      setMontosPorFactura(newMontos);
     }
   };
 
@@ -102,25 +146,32 @@ export default function PagoProveedores() {
       return;
     }
 
+    // Validar montos
+    const facturaIds = Array.from(facturasSeleccionadas);
+    for (const facturaId of facturaIds) {
+      const factura = facturasPendientes.find(f => f.id === facturaId);
+      if (!factura) continue;
+      const monto = parseFloat(montosPorFactura[facturaId] || '0');
+      const saldo = getSaldoRestante(factura);
+      if (monto <= 0) {
+        alert(`El monto para la factura ${factura.numeroFactura} debe ser mayor a 0`);
+        return;
+      }
+      if (monto > saldo + 0.01) {
+        alert(`El monto $${monto.toLocaleString('es-AR')} supera el saldo restante $${saldo.toLocaleString('es-AR')} de la factura ${factura.numeroFactura}`);
+        return;
+      }
+    }
+
     try {
-      const facturaIds = Array.from(facturasSeleccionadas);
+      const montosParsed: { [id: string]: number } = {};
+      facturaIds.forEach(id => {
+        montosParsed[id] = parseFloat(montosPorFactura[id] || '0');
+      });
 
-      // Actualizar cada factura a estado PAGADA
-      await Promise.all(
-        facturaIds.map(facturaId => {
-          const factura = facturasPendientes.find(f => f.id === facturaId);
-          if (!factura) return Promise.resolve();
-
-          return api.put(`/facturas/${facturaId}`, {
-            ...factura,
-            estado: 'PAGADA'
-          });
-        })
-      );
-
-      // Registrar el pago
       await api.post('/pagos', {
         facturaIds,
+        montosPorFactura: montosParsed,
         cuentaId,
         formaPago,
         fechaPago,
@@ -130,8 +181,8 @@ export default function PagoProveedores() {
       alert('Pago registrado correctamente');
       resetFormulario();
       fetchData();
-    } catch (error) {
-      alert('Error al procesar el pago');
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Error al procesar el pago');
       console.error('Error al procesar pago:', error);
     }
   };
@@ -139,6 +190,7 @@ export default function PagoProveedores() {
   const resetFormulario = () => {
     setMostrarFormularioPago(false);
     setFacturasSeleccionadas(new Set());
+    setMontosPorFactura({});
     setFormaPago('Transferencia');
     setFechaPago(new Date().toISOString().split('T')[0]);
     setObservaciones('');
@@ -155,14 +207,12 @@ export default function PagoProveedores() {
     return `${moneda} ${valor.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
-  const agruparPorMoneda = () => {
-    const agrupado: { [key: string]: number } = {};
-    facturasPendientes
-      .filter(f => facturasSeleccionadas.has(f.id))
-      .forEach(f => {
-        agrupado[f.moneda] = (agrupado[f.moneda] || 0) + f.total;
-      });
-    return agrupado;
+  const getTotalSeleccionado = () => {
+    let total = 0;
+    facturasSeleccionadas.forEach(id => {
+      total += parseFloat(montosPorFactura[id] || '0');
+    });
+    return total;
   };
 
   if (loading) {
@@ -202,20 +252,12 @@ export default function PagoProveedores() {
       {/* Resumen de selección */}
       {facturasSeleccionadas.size > 0 && (
         <div className="card mb-6 bg-primary-50 border-primary-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Facturas seleccionadas: {facturasSeleccionadas.size}
-              </h3>
-              <div className="space-y-1">
-                {Object.entries(agruparPorMoneda()).map(([moneda, total]) => (
-                  <p key={moneda} className="text-xl font-bold text-primary-700">
-                    Total en {moneda}: {formatMoneda(total, moneda)}
-                  </p>
-                ))}
-              </div>
-            </div>
-          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            Facturas seleccionadas: {facturasSeleccionadas.size}
+          </h3>
+          <p className="text-xl font-bold text-primary-700">
+            Total a pagar: {getTotalSeleccionado().toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </p>
         </div>
       )}
 
@@ -229,26 +271,44 @@ export default function PagoProveedores() {
               </h2>
 
               <form onSubmit={handleConfirmarPago}>
+                {/* Facturas y montos */}
                 <div className="mb-4">
-                  <h3 className="text-sm font-medium text-gray-700 mb-2">
-                    Facturas a pagar:
-                  </h3>
-                  <div className="bg-gray-50 rounded-lg p-3 space-y-2 max-h-40 overflow-y-auto">
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">Facturas a pagar:</h3>
+                  <div className="bg-gray-50 rounded-lg p-3 space-y-3 max-h-60 overflow-y-auto">
                     {facturasPendientes
                       .filter(f => facturasSeleccionadas.has(f.id))
-                      .map(factura => (
-                        <div key={factura.id} className="flex justify-between text-sm">
-                          <span>{factura.numeroFactura} - {factura.proveedor}</span>
-                          <span className="font-semibold">{formatMoneda(factura.total, factura.moneda)}</span>
-                        </div>
-                      ))}
+                      .map(factura => {
+                        const saldo = getSaldoRestante(factura);
+                        return (
+                          <div key={factura.id}>
+                            <div className="flex justify-between text-sm mb-1">
+                              <span className="font-medium">{factura.numeroFactura} - {factura.proveedor}</span>
+                              <span className="text-gray-500">Saldo: {formatMoneda(saldo, factura.moneda)}</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <label className="text-xs text-gray-600 w-24">Monto a pagar:</label>
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0.01"
+                                max={saldo}
+                                value={montosPorFactura[factura.id] || ''}
+                                onChange={(e) => setMontosPorFactura(prev => ({
+                                  ...prev,
+                                  [factura.id]: e.target.value
+                                }))}
+                                className="input text-sm flex-1"
+                                required
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
                   </div>
                   <div className="mt-2 p-2 bg-primary-50 rounded">
-                    {Object.entries(agruparPorMoneda()).map(([moneda, total]) => (
-                      <p key={moneda} className="text-lg font-bold text-primary-700">
-                        Total en {moneda}: {formatMoneda(total, moneda)}
-                      </p>
-                    ))}
+                    <p className="text-lg font-bold text-primary-700">
+                      Total a pagar: {getTotalSeleccionado().toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
                   </div>
                 </div>
 
@@ -310,17 +370,10 @@ export default function PagoProveedores() {
                 </div>
 
                 <div className="flex justify-end space-x-3">
-                  <button
-                    type="button"
-                    onClick={resetFormulario}
-                    className="btn-secondary"
-                  >
+                  <button type="button" onClick={resetFormulario} className="btn-secondary">
                     Cancelar
                   </button>
-                  <button
-                    type="submit"
-                    className="btn-primary"
-                  >
+                  <button type="submit" className="btn-primary">
                     Confirmar Pago
                   </button>
                 </div>
@@ -335,10 +388,7 @@ export default function PagoProveedores() {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-gray-900">Facturas Pendientes de Pago</h2>
           {facturasPendientes.length > 0 && (
-            <button
-              onClick={handleSeleccionarTodas}
-              className="btn-secondary text-sm"
-            >
+            <button onClick={handleSeleccionarTodas} className="btn-secondary text-sm">
               {facturasSeleccionadas.size === facturasPendientes.length ? 'Deseleccionar Todas' : 'Seleccionar Todas'}
             </button>
           )}
@@ -358,98 +408,87 @@ export default function PagoProveedores() {
                   <th className="px-4 py-3 text-left">
                     <input
                       type="checkbox"
-                      checked={facturasSeleccionadas.size === facturasPendientes.length}
+                      checked={facturasSeleccionadas.size === facturasPendientes.length && facturasPendientes.length > 0}
                       onChange={handleSeleccionarTodas}
                       className="rounded"
                     />
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Número
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Fecha Emisión
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Proveedor
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Tipo
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Total
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Forma de Pago Original
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Vencimiento
-                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Número</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Proveedor</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Saldo Restante</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vencimiento</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {facturasPendientes.map((factura) => (
-                  <tr
-                    key={factura.id}
-                    className={`hover:bg-gray-50 cursor-pointer ${
-                      facturasSeleccionadas.has(factura.id) ? 'bg-primary-50' : ''
-                    }`}
-                    onClick={() => handleToggleFactura(factura.id)}
-                  >
-                    <td className="px-4 py-3">
-                      <input
-                        type="checkbox"
-                        checked={facturasSeleccionadas.has(factura.id)}
-                        onChange={() => handleToggleFactura(factura.id)}
-                        className="rounded"
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
-                      <div className="flex items-center space-x-2">
-                        <FileText className="w-4 h-4 text-gray-400" />
-                        <span>{factura.numeroFactura}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm">
-                      <div className="flex items-center space-x-1">
-                        <Calendar className="w-4 h-4 text-gray-400" />
-                        <span>{formatFecha(factura.fechaEmision)}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm">
-                      <div className="flex items-center space-x-1">
-                        <Building2 className="w-4 h-4 text-gray-400" />
-                        <span>{factura.proveedor}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm">
-                      {factura.tipoFactura}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold">
-                      <div className="flex items-center space-x-1">
-                        <DollarSign className="w-4 h-4 text-gray-400" />
-                        <span>{formatMoneda(factura.total, factura.moneda)}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm">
-                      {factura.formaPago}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm">
-                      {factura.fechaPago ? (
-                        <span className={`${
-                          new Date(factura.fechaPago) < new Date()
-                            ? 'text-red-600 font-semibold'
-                            : 'text-gray-600'
+                {facturasPendientes.map((factura) => {
+                  const saldo = getSaldoRestante(factura);
+                  return (
+                    <tr
+                      key={factura.id}
+                      className={`hover:bg-gray-50 cursor-pointer ${facturasSeleccionadas.has(factura.id) ? 'bg-primary-50' : ''}`}
+                      onClick={() => handleToggleFactura(factura.id)}
+                    >
+                      <td className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          checked={facturasSeleccionadas.has(factura.id)}
+                          onChange={() => handleToggleFactura(factura.id)}
+                          className="rounded"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
+                        <div className="flex items-center space-x-2">
+                          <FileText className="w-4 h-4 text-gray-400" />
+                          <span>{factura.numeroFactura}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm">
+                        <div className="flex items-center space-x-1">
+                          <Calendar className="w-4 h-4 text-gray-400" />
+                          <span>{formatFecha(factura.fechaEmision)}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm">
+                        <div className="flex items-center space-x-1">
+                          <Building2 className="w-4 h-4 text-gray-400" />
+                          <span>{factura.proveedor}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold">
+                        <div className="flex items-center space-x-1">
+                          <DollarSign className="w-4 h-4 text-gray-400" />
+                          <span>{formatMoneda(factura.total, factura.moneda)}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-orange-600">
+                        {formatMoneda(saldo, factura.moneda)}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          factura.estado === 'PAGO PARCIAL'
+                            ? 'bg-orange-100 text-orange-800'
+                            : 'bg-yellow-100 text-yellow-800'
                         }`}>
-                          {formatFecha(factura.fechaPago)}
-                          {new Date(factura.fechaPago) < new Date() && ' (Vencida)'}
+                          {factura.estado === 'PAGO PARCIAL' ? 'Pago Parcial' : 'Pendiente'}
                         </span>
-                      ) : (
-                        <span className="text-gray-400">-</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm">
+                        {factura.fechaPago ? (
+                          <span className={`${new Date(factura.fechaPago) < new Date() ? 'text-red-600 font-semibold' : 'text-gray-600'}`}>
+                            {formatFecha(factura.fechaPago)}
+                            {new Date(factura.fechaPago) < new Date() && ' (Vencida)'}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

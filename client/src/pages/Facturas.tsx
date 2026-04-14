@@ -57,6 +57,22 @@ interface FacturaItem {
   };
 }
 
+interface PagoFactura {
+  id: string;
+  monto: number;
+  createdAt: string;
+  pago: {
+    id: string;
+    formaPago: string;
+    fechaPago: string;
+    observaciones?: string;
+    cuenta: {
+      id: string;
+      nombre: string;
+    };
+  };
+}
+
 interface Factura {
   id: string;
   numeroFactura: string;
@@ -76,6 +92,7 @@ interface Factura {
   observaciones?: string;
   items: FacturaItem[];
   servicios?: Servicio[];
+  pagos?: PagoFactura[];
   createdAt: string;
 }
 
@@ -95,7 +112,7 @@ export default function Facturas() {
   const [loading, setLoading] = useState(true);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [editando, setEditando] = useState<string | null>(null);
-  const [filtroEstado, setFiltroEstado] = useState<'TODAS' | 'PENDIENTE' | 'PAGADA'>('TODAS');
+  const [filtroEstado, setFiltroEstado] = useState<'TODAS' | 'PENDIENTE' | 'PAGO PARCIAL' | 'PAGADA'>('TODAS');
 
   // Modo de factura: 'remitos', 'servicios', o 'simple'
   const [modoFactura, setModoFactura] = useState<'remitos' | 'servicios' | 'simple'>('simple');
@@ -562,7 +579,7 @@ export default function Facturas() {
         <div className="flex items-center space-x-4">
           <span className="text-sm font-medium text-gray-700">Filtrar por estado:</span>
           <div className="flex space-x-2">
-            {(['TODAS', 'PENDIENTE', 'PAGADA'] as const).map(est => (
+            {(['TODAS', 'PENDIENTE', 'PAGO PARCIAL', 'PAGADA'] as const).map(est => (
               <button
                 key={est}
                 onClick={() => setFiltroEstado(est)}
@@ -572,7 +589,7 @@ export default function Facturas() {
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                {est === 'TODAS' ? 'Todas' : est === 'PENDIENTE' ? 'Pendientes' : 'Pagadas'}
+                {est === 'TODAS' ? 'Todas' : est === 'PENDIENTE' ? 'Pendientes' : est === 'PAGO PARCIAL' ? 'Pago Parcial' : 'Pagadas'}
               </button>
             ))}
           </div>
@@ -1231,15 +1248,27 @@ export default function Facturas() {
                         className={`inline-flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${
                           factura.estado === 'PAGADA'
                             ? 'bg-green-100 text-green-800'
+                            : factura.estado === 'PAGO PARCIAL'
+                            ? 'bg-orange-100 text-orange-800'
                             : 'bg-yellow-100 text-yellow-800'
                         }`}
                       >
                         {factura.estado === 'PAGADA' ? (
                           <><CheckCircle className="w-3 h-3" /><span>Pagada</span></>
+                        ) : factura.estado === 'PAGO PARCIAL' ? (
+                          <><XCircle className="w-3 h-3" /><span>Pago Parcial</span></>
                         ) : (
                           <><XCircle className="w-3 h-3" /><span>Pendiente</span></>
                         )}
                       </span>
+                      {factura.estado === 'PAGO PARCIAL' && factura.pagos && (
+                        <div className="text-xs text-orange-600 mt-1">
+                          Saldo: {(() => {
+                            const pagado = factura.pagos.reduce((s, p) => s + (p.monto || 0), 0);
+                            return (factura.total - pagado).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                          })()}
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm">
                       <div className="flex items-center space-x-2">

@@ -295,6 +295,7 @@ model PagoFactura {
   id        String   @id @default(uuid())
   pagoId    String
   facturaId String
+  monto     Float    @default(0) // Monto imputado a esta factura en este pago
   createdAt DateTime @default(now())
 
   // Relaciones

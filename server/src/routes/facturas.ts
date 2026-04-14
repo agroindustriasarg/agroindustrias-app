@@ -33,6 +33,18 @@ router.get('/', authMiddleware, async (req, res) => {
             lote: true,
             contratista: true
           }
+        },
+        pagos: {
+          include: {
+            pago: {
+              include: {
+                cuenta: true
+              }
+            }
+          },
+          orderBy: {
+            createdAt: 'asc'
+          }
         }
       },
       orderBy: {
@@ -130,6 +142,18 @@ router.get('/:id', authMiddleware, async (req, res) => {
             campo: true,
             lote: true,
             contratista: true
+          }
+        },
+        pagos: {
+          include: {
+            pago: {
+              include: {
+                cuenta: true
+              }
+            }
+          },
+          orderBy: {
+            createdAt: 'asc'
           }
         }
       }
