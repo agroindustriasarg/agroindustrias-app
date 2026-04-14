@@ -3,6 +3,10 @@ import { Wallet, Search, DollarSign, FileText, ArrowLeft, Briefcase } from 'luci
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
+interface PagoFactura {
+  monto: number;
+}
+
 interface Factura {
   id: string;
   numeroFactura: string;
@@ -14,6 +18,7 @@ interface Factura {
   estado: string;
   formaPago: string;
   fechaPago?: string;
+  pagos?: PagoFactura[];
 }
 
 interface Servicio {
@@ -111,13 +116,18 @@ export default function CuentasCorrientes() {
     return new Date(dateString).toLocaleDateString('es-AR');
   };
 
+  const getSaldoRestante = (f: Factura) => {
+    const pagado = (f.pagos || []).reduce((s, p) => s + (p.monto || 0), 0);
+    return f.total - pagado;
+  };
+
   const totalPendienteARS = facturasFiltradas
-    .filter((f) => f.estado === 'PENDIENTE' && f.moneda === 'ARS')
-    .reduce((sum, f) => sum + f.total, 0);
+    .filter((f) => (f.estado === 'PENDIENTE' || f.estado === 'PAGO PARCIAL') && f.moneda === 'ARS')
+    .reduce((sum, f) => sum + getSaldoRestante(f), 0);
 
   const totalPendienteUSD = facturasFiltradas
-    .filter((f) => f.estado === 'PENDIENTE' && f.moneda === 'USD')
-    .reduce((sum, f) => sum + f.total, 0);
+    .filter((f) => (f.estado === 'PENDIENTE' || f.estado === 'PAGO PARCIAL') && f.moneda === 'USD')
+    .reduce((sum, f) => sum + getSaldoRestante(f), 0);
 
   const totalPagadoARS = facturasFiltradas
     .filter((f) => f.estado === 'PAGADA' && f.moneda === 'ARS')
@@ -425,10 +435,12 @@ export default function CuentasCorrientes() {
                           className={`px-2 py-1 rounded-full text-xs font-medium ${
                             factura.estado === 'PAGADA'
                               ? 'bg-green-100 text-green-800'
+                              : factura.estado === 'PAGO PARCIAL'
+                              ? 'bg-orange-100 text-orange-800'
                               : 'bg-red-100 text-red-800'
                           }`}
                         >
-                          {factura.estado}
+                          {factura.estado === 'PAGO PARCIAL' ? 'Pago Parcial' : factura.estado}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
