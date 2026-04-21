@@ -83,6 +83,7 @@ interface Factura {
   subtotal: number;
   iva105: number;
   iva21: number;
+  otrosCargos: number;
   total: number;
   formaPago: string;
   fechaPago?: string;
@@ -158,6 +159,7 @@ export default function Facturas() {
   const [subtotal, setSubtotal] = useState('');
   const [tipoIva, setTipoIva] = useState<'SIN_IVA' | 'IVA_105' | 'IVA_21'>('SIN_IVA');
   const [tipoCambio, setTipoCambio] = useState('');
+  const [otrosCargos, setOtrosCargos] = useState('');
 
   useEffect(() => {
     fetchFacturas();
@@ -257,6 +259,7 @@ export default function Facturas() {
   };
 
   const calcularTotalFactura = () => {
+    const extras = parseFloat(otrosCargos) || 0;
     if (modoFactura === 'remitos') {
       let total = 0;
       Object.entries(productosPrecios).forEach(([_, productos]) => {
@@ -265,7 +268,7 @@ export default function Facturas() {
         });
       });
       const iva = calcularIva(total);
-      return total + iva;
+      return total + iva + extras;
     } else if (modoFactura === 'servicios') {
       let totalServicios = 0;
       serviciosSeleccionados.forEach(servicioId => {
@@ -282,7 +285,7 @@ export default function Facturas() {
       }
 
       const iva = calcularIva(totalServicios);
-      return totalServicios + iva;
+      return totalServicios + iva + extras;
     } else {
       let sub = parseFloat(subtotal) || 0;
       const tcSimple = parseFloat(tipoCambio) || 0;
@@ -293,7 +296,7 @@ export default function Facturas() {
       }
 
       const iva = calcularIva(sub);
-      return sub + iva;
+      return sub + iva + extras;
     }
   };
 
@@ -311,6 +314,7 @@ export default function Facturas() {
       tipoFactura,
       moneda: monedaFinal,
       tipoCambio: moneda === 'USD' && tc > 0 ? tc : null,
+      otrosCargos: parseFloat(otrosCargos) || 0,
       formaPago,
       fechaPago: formaPago === 'A pagar en fecha' ? fechaPago : null,
       estado,
@@ -475,6 +479,7 @@ export default function Facturas() {
       setServiciosSeleccionados(factura.servicios.map(s => s.id));
       setSubtotal(factura.subtotal ? factura.subtotal.toString() : '');
       setTipoCambio(factura.tipoCambio ? factura.tipoCambio.toString() : '');
+      setOtrosCargos(factura.otrosCargos ? factura.otrosCargos.toString() : '');
 
       // Determinar tipo de IVA
       if (factura.iva105 > 0) {
@@ -488,6 +493,7 @@ export default function Facturas() {
       setModoFactura('simple');
       setSubtotal(factura.subtotal ? factura.subtotal.toString() : '');
       setTipoCambio(factura.tipoCambio ? factura.tipoCambio.toString() : '');
+      setOtrosCargos(factura.otrosCargos ? factura.otrosCargos.toString() : '');
 
       // Determinar tipo de IVA
       if (factura.iva105 > 0) {
@@ -536,6 +542,7 @@ export default function Facturas() {
     setSubtotal('');
     setTipoIva('SIN_IVA');
     setTipoCambio('');
+    setOtrosCargos('');
   };
 
   const formatFecha = (fecha: string) => {
@@ -1144,6 +1151,23 @@ export default function Facturas() {
                   </div>
                 )}
 
+                {/* Otros cargos (percepciones, retenciones, etc.) */}
+                <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                  <label className="label">Otros cargos (percepciones, retenciones, etc.)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={otrosCargos}
+                    onChange={(e) => setOtrosCargos(e.target.value)}
+                    className="input"
+                    placeholder="0.00 (opcional)"
+                  />
+                  {parseFloat(otrosCargos) > 0 && (
+                    <p className="text-xs text-gray-500 mt-1">Se suma al total: subtotal + IVA + {parseFloat(otrosCargos).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</p>
+                  )}
+                </div>
+
                 <div className="flex justify-end space-x-3">
                   <button
                     type="button"
@@ -1242,6 +1266,11 @@ export default function Facturas() {
                         {factura.iva21 > 0 && (
                           <div className="text-xs text-gray-600">
                             IVA 21%: {formatMoneda(factura.iva21, factura.moneda)}
+                          </div>
+                        )}
+                        {factura.otrosCargos > 0 && (
+                          <div className="text-xs text-gray-600">
+                            Otros cargos: {formatMoneda(factura.otrosCargos, factura.moneda)}
                           </div>
                         )}
                         <div className="font-semibold">

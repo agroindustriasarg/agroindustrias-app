@@ -240,7 +240,8 @@ model Factura {
   subtotal       Float    @default(0) // Subtotal sin IVA
   iva105         Float    @default(0) // Monto de IVA 10.5%
   iva21          Float    @default(0) // Monto de IVA 21%
-  total          Float    // Total final (subtotal + iva105 + iva21)
+  otrosCargos    Float    @default(0) // Percepciones, retenciones u otros cargos adicionales
+  total          Float    // Total final (subtotal + iva105 + iva21 + otrosCargos)
   formaPago      String   // Contado, Cheque, Canje de granos, A pagar en fecha
   fechaPago      DateTime? // Solo si formaPago es "A pagar en fecha"
   estado         String   @default("PENDIENTE") // PENDIENTE, PAGADA
