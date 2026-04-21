@@ -285,11 +285,11 @@ export default function Facturas() {
       return totalServicios + iva;
     } else {
       let sub = parseFloat(subtotal) || 0;
+      const tcSimple = parseFloat(tipoCambio) || 0;
 
-      // Si es USD, aplicar tipo de cambio al subtotal
-      if (moneda === 'USD') {
-        const tc = parseFloat(tipoCambio) || 0;
-        sub = sub * tc;
+      // Solo convertir a ARS si hay tipo de cambio
+      if (moneda === 'USD' && tcSimple > 0) {
+        sub = sub * tcSimple;
       }
 
       const iva = calcularIva(sub);
@@ -1040,11 +1040,12 @@ export default function Facturas() {
                               }
                             });
 
+                            const tcVal2 = parseFloat(tipoCambio) || 0;
                             let subtotalFinal = totalServicios;
-                            if (moneda === 'USD') {
-                              const tc = parseFloat(tipoCambio) || 0;
-                              subtotalFinal = totalServicios * tc;
+                            if (moneda === 'USD' && tcVal2 > 0) {
+                              subtotalFinal = totalServicios * tcVal2;
                             }
+                            const monedaDisplay2 = (moneda === 'USD' && tcVal2 > 0) ? 'ARS' : moneda;
 
                             const ivaCalculado = calcularIva(subtotalFinal);
 
@@ -1052,19 +1053,19 @@ export default function Facturas() {
                               <>
                                 <div className="flex justify-between items-center text-sm mb-1">
                                   <span className="text-gray-600">Subtotal:</span>
-                                  <span className="font-medium">{formatMoneda(subtotalFinal, 'ARS')}</span>
+                                  <span className="font-medium">{formatMoneda(subtotalFinal, monedaDisplay2)}</span>
                                 </div>
                                 {tipoIva !== 'SIN_IVA' && (
                                   <div className="flex justify-between items-center text-sm mb-1">
                                     <span className="text-gray-600">
                                       {tipoIva === 'IVA_105' ? 'IVA 10.5%:' : 'IVA 21%:'}
                                     </span>
-                                    <span className="font-medium">{formatMoneda(ivaCalculado, 'ARS')}</span>
+                                    <span className="font-medium">{formatMoneda(ivaCalculado, monedaDisplay2)}</span>
                                   </div>
                                 )}
                                 <div className="flex justify-between items-center text-lg font-bold border-t pt-2">
                                   <span>Total:</span>
-                                  <span className="text-primary-600">{formatMoneda(calcularTotalFactura(), 'ARS')}</span>
+                                  <span className="text-primary-600">{formatMoneda(calcularTotalFactura(), monedaDisplay2)}</span>
                                 </div>
                               </>
                             );
@@ -1108,11 +1109,12 @@ export default function Facturas() {
                     <div className="border-t pt-3">
                       {(() => {
                         let sub = parseFloat(subtotal) || 0;
+                        const tcVal = parseFloat(tipoCambio) || 0;
 
-                        // Si es USD, aplicar tipo de cambio
-                        if (moneda === 'USD') {
-                          const tc = parseFloat(tipoCambio) || 0;
-                          sub = sub * tc;
+                        // Solo convertir a ARS si hay TC
+                        const monedaDisplay = (moneda === 'USD' && tcVal > 0) ? 'ARS' : moneda;
+                        if (moneda === 'USD' && tcVal > 0) {
+                          sub = sub * tcVal;
                         }
 
                         const ivaCalculado = calcularIva(sub);
@@ -1121,19 +1123,19 @@ export default function Facturas() {
                           <>
                             <div className="flex justify-between items-center text-sm mb-1">
                               <span className="text-gray-600">Subtotal:</span>
-                              <span className="font-medium">{formatMoneda(sub, 'ARS')}</span>
+                              <span className="font-medium">{formatMoneda(sub, monedaDisplay)}</span>
                             </div>
                             {tipoIva !== 'SIN_IVA' && (
                               <div className="flex justify-between items-center text-sm mb-1">
                                 <span className="text-gray-600">
                                   {tipoIva === 'IVA_105' ? 'IVA 10.5%:' : 'IVA 21%:'}
                                 </span>
-                                <span className="font-medium">{formatMoneda(ivaCalculado, 'ARS')}</span>
+                                <span className="font-medium">{formatMoneda(ivaCalculado, monedaDisplay)}</span>
                               </div>
                             )}
                             <div className="flex justify-between items-center text-lg font-bold border-t pt-2">
                               <span>Total:</span>
-                              <span className="text-primary-600">{formatMoneda(calcularTotalFactura(), 'ARS')}</span>
+                              <span className="text-primary-600">{formatMoneda(calcularTotalFactura(), monedaDisplay)}</span>
                             </div>
                           </>
                         );
