@@ -189,6 +189,7 @@ export default function Gastos() {
       Mantenimiento: 'bg-blue-100 text-blue-800',
       Insumos: 'bg-green-100 text-green-800',
       Salarios: 'bg-purple-100 text-purple-800',
+      'Cargas Sociales': 'bg-red-100 text-red-800',
       Servicios: 'bg-orange-100 text-orange-800',
       Otros: 'bg-gray-100 text-gray-800',
     };
@@ -348,6 +349,7 @@ export default function Gastos() {
                   <option value="Mantenimiento">Mantenimiento</option>
                   <option value="Insumos">Insumos</option>
                   <option value="Salarios">Salarios</option>
+                  <option value="Cargas Sociales">Cargas Sociales</option>
                   <option value="Servicios">Servicios</option>
                   <option value="Otros">Otros</option>
                 </select>
