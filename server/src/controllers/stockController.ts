@@ -333,6 +333,101 @@ export const deleteMovimiento = async (req: AuthRequest, res: Response): Promise
   }
 };
 
+export const updateMovimiento = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { stockId, movimientoId } = req.params;
+
+    const movimientoAnterior = await prisma.movimientoStock.findUnique({
+      where: { id: movimientoId },
+      include: { stock: true },
+    });
+
+    if (!movimientoAnterior) {
+      res.status(404).json({ error: 'Movimiento no encontrado' });
+      return;
+    }
+
+    if (movimientoAnterior.stockId !== stockId) {
+      res.status(400).json({ error: 'El movimiento no pertenece a este stock' });
+      return;
+    }
+
+    const {
+      cantidad, motivo, observaciones, fecha,
+      precio, proveedor, precioUnitario, tipoFactura, numeroRemito, numeroFactura, cuentaId,
+      maquinariaId, implementoId, servicioId, campoId, loteId,
+    } = req.body;
+
+    // Actualizar el movimiento
+    const movimientoActualizado = await prisma.movimientoStock.update({
+      where: { id: movimientoId },
+      data: {
+        cantidad: cantidad !== undefined ? parseFloat(cantidad) : movimientoAnterior.cantidad,
+        motivo: motivo !== undefined ? motivo : movimientoAnterior.motivo,
+        observaciones: observaciones !== undefined ? observaciones : movimientoAnterior.observaciones,
+        fecha: fecha ? new Date(fecha) : movimientoAnterior.fecha,
+        precio: precio !== undefined ? parseFloat(precio) : movimientoAnterior.precio,
+        proveedor: proveedor !== undefined ? proveedor : movimientoAnterior.proveedor,
+        precioUnitario: precioUnitario !== undefined ? parseFloat(precioUnitario) : movimientoAnterior.precioUnitario,
+        tipoFactura: tipoFactura !== undefined ? tipoFactura : movimientoAnterior.tipoFactura,
+        numeroRemito: numeroRemito !== undefined ? numeroRemito : movimientoAnterior.numeroRemito,
+        numeroFactura: numeroFactura !== undefined ? numeroFactura : movimientoAnterior.numeroFactura,
+        cuentaId: cuentaId !== undefined ? (cuentaId || null) : movimientoAnterior.cuentaId,
+        maquinariaId: maquinariaId !== undefined ? (maquinariaId || null) : movimientoAnterior.maquinariaId,
+        implementoId: implementoId !== undefined ? (implementoId || null) : movimientoAnterior.implementoId,
+        servicioId: servicioId !== undefined ? (servicioId || null) : movimientoAnterior.servicioId,
+        campoId: campoId !== undefined ? (campoId || null) : movimientoAnterior.campoId,
+        loteId: loteId !== undefined ? (loteId || null) : movimientoAnterior.loteId,
+      },
+    });
+
+    // Recalcular stock desde todos los movimientos
+    const todosMovimientos = await prisma.movimientoStock.findMany({ where: { stockId } });
+    const nuevaCantidad = todosMovimientos.reduce((acc, mov) => {
+      return mov.tipo === 'ENTRADA' ? acc + mov.cantidad : acc - mov.cantidad;
+    }, 0);
+    await prisma.stock.update({ where: { id: stockId }, data: { cantidad: nuevaCantidad } });
+
+    // Actualizar gasto relacionado si es ENTRADA con cuenta y precio
+    if (movimientoAnterior.tipo === 'ENTRADA' && movimientoAnterior.cuentaId && movimientoAnterior.precio) {
+      const conceptoAnterior = `Compra de ${movimientoAnterior.stock.nombre}${movimientoAnterior.proveedor ? ` - ${movimientoAnterior.proveedor}` : ''}`;
+      const gastosRelacionados = await prisma.gasto.findMany({
+        where: {
+          concepto: conceptoAnterior,
+          monto: movimientoAnterior.precio,
+          cuentaId: movimientoAnterior.cuentaId,
+          categoria: 'Insumos',
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 1,
+      });
+
+      if (gastosRelacionados.length > 0) {
+        const nuevoProveedor = proveedor !== undefined ? proveedor : movimientoAnterior.proveedor;
+        const nuevoConcepto = `Compra de ${movimientoAnterior.stock.nombre}${nuevoProveedor ? ` - ${nuevoProveedor}` : ''}`;
+        const nuevoPrecio = precio !== undefined ? parseFloat(precio) : movimientoAnterior.precio;
+        const nuevaCuentaId = cuentaId !== undefined ? (cuentaId || null) : movimientoAnterior.cuentaId;
+        await prisma.gasto.update({
+          where: { id: gastosRelacionados[0].id },
+          data: {
+            concepto: nuevoConcepto,
+            monto: nuevoPrecio,
+            cuentaId: nuevaCuentaId,
+            fecha: fecha ? new Date(fecha) : movimientoAnterior.fecha,
+            tipoFactura: tipoFactura !== undefined ? tipoFactura : movimientoAnterior.tipoFactura,
+            numeroFactura: numeroFactura !== undefined ? numeroFactura : movimientoAnterior.numeroFactura,
+          },
+        });
+      }
+    }
+
+    res.json(movimientoActualizado);
+  } catch (error) {
+    console.error('Error al actualizar movimiento:', error);
+    res.status(500).json({ error: 'Error al actualizar movimiento' });
+  }
+};
+
 export const recalcularStock = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;

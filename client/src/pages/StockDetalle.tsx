@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/apiWithCache';
-import { ArrowLeft, TrendingUp, TrendingDown, Calendar, FileText, Trash2, Edit2 } from 'lucide-react';
+import { ArrowLeft, TrendingUp, TrendingDown, Calendar, FileText, Trash2, Edit2, Pencil, X } from 'lucide-react';
 
 interface StockItem {
   id: string;
@@ -47,6 +47,8 @@ export default function StockDetalle() {
   const [loading, setLoading] = useState(true);
   const [editandoNombre, setEditandoNombre] = useState(false);
   const [nuevoNombre, setNuevoNombre] = useState('');
+  const [movimientoEditando, setMovimientoEditando] = useState<Movimiento | null>(null);
+  const [formEdicion, setFormEdicion] = useState<any>({});
 
   useEffect(() => {
     fetchStockDetalle();
@@ -165,6 +167,46 @@ export default function StockDetalle() {
   const handleCancelarEdicion = () => {
     setEditandoNombre(false);
     setNuevoNombre('');
+  };
+
+  const handleAbrirEdicionMovimiento = (mov: Movimiento) => {
+    setMovimientoEditando(mov);
+    setFormEdicion({
+      cantidad: mov.cantidad,
+      motivo: mov.motivo || '',
+      observaciones: mov.observaciones || '',
+      fecha: mov.fecha ? mov.fecha.split('T')[0] : '',
+      precio: mov.precio || '',
+      proveedor: mov.proveedor || '',
+      precioUnitario: mov.precioUnitario || '',
+      tipoFactura: mov.tipoFactura || '',
+      numeroRemito: mov.numeroRemito || '',
+      numeroFactura: mov.numeroFactura || '',
+    });
+  };
+
+  const handleGuardarEdicionMovimiento = async () => {
+    if (!movimientoEditando) return;
+    try {
+      await api.put(`/stock/${id}/movimientos/${movimientoEditando.id}`, {
+        cantidad: parseFloat(formEdicion.cantidad),
+        motivo: formEdicion.motivo || undefined,
+        observaciones: formEdicion.observaciones || undefined,
+        fecha: formEdicion.fecha ? `${formEdicion.fecha}T12:00:00` : undefined,
+        precio: formEdicion.precio !== '' ? parseFloat(formEdicion.precio) : undefined,
+        proveedor: formEdicion.proveedor || undefined,
+        precioUnitario: formEdicion.precioUnitario !== '' ? parseFloat(formEdicion.precioUnitario) : undefined,
+        tipoFactura: formEdicion.tipoFactura || undefined,
+        numeroRemito: formEdicion.numeroRemito || undefined,
+        numeroFactura: formEdicion.numeroFactura || undefined,
+      });
+      setMovimientoEditando(null);
+      fetchStockDetalle();
+      fetchMovimientos();
+    } catch (error) {
+      alert('Error al actualizar el movimiento');
+      console.error(error);
+    }
   };
 
   if (loading) {
@@ -354,13 +396,22 @@ export default function StockDetalle() {
                       )}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm">
-                      <button
-                        onClick={() => handleDeleteMovimiento(mov.id)}
-                        className="text-red-500 hover:text-red-700 transition-colors"
-                        title="Eliminar movimiento"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleAbrirEdicionMovimiento(mov)}
+                          className="text-blue-500 hover:text-blue-700 transition-colors"
+                          title="Editar movimiento"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteMovimiento(mov.id)}
+                          className="text-red-500 hover:text-red-700 transition-colors"
+                          title="Eliminar movimiento"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -369,6 +420,149 @@ export default function StockDetalle() {
           </div>
         )}
       </div>
+
+      {/* Modal edición de movimiento */}
+      {movimientoEditando && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-bold text-gray-900">
+                Editar movimiento — {movimientoEditando.tipo === 'ENTRADA' ? 'Entrada' : 'Salida'}
+              </h3>
+              <button onClick={() => setMovimientoEditando(null)} className="text-gray-500 hover:text-gray-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-3 max-h-[70vh] overflow-y-auto">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Cantidad *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="input w-full"
+                    value={formEdicion.cantidad}
+                    onChange={e => setFormEdicion({ ...formEdicion, cantidad: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
+                  <input
+                    type="date"
+                    className="input w-full"
+                    value={formEdicion.fecha}
+                    onChange={e => setFormEdicion({ ...formEdicion, fecha: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              {movimientoEditando.tipo === 'ENTRADA' && (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Precio unitario</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        className="input w-full"
+                        value={formEdicion.precioUnitario}
+                        onChange={e => setFormEdicion({ ...formEdicion, precioUnitario: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Precio total</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        className="input w-full"
+                        value={formEdicion.precio}
+                        onChange={e => setFormEdicion({ ...formEdicion, precio: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Proveedor</label>
+                    <input
+                      type="text"
+                      className="input w-full"
+                      value={formEdicion.proveedor}
+                      onChange={e => setFormEdicion({ ...formEdicion, proveedor: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Tipo factura</label>
+                      <select
+                        className="input w-full"
+                        value={formEdicion.tipoFactura}
+                        onChange={e => setFormEdicion({ ...formEdicion, tipoFactura: e.target.value })}
+                      >
+                        <option value="">-</option>
+                        <option value="A">A</option>
+                        <option value="B">B</option>
+                        <option value="C">C</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">N° Remito</label>
+                      <input
+                        type="text"
+                        className="input w-full"
+                        value={formEdicion.numeroRemito}
+                        onChange={e => setFormEdicion({ ...formEdicion, numeroRemito: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">N° Factura</label>
+                      <input
+                        type="text"
+                        className="input w-full"
+                        value={formEdicion.numeroFactura}
+                        onChange={e => setFormEdicion({ ...formEdicion, numeroFactura: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Motivo</label>
+                <input
+                  type="text"
+                  className="input w-full"
+                  value={formEdicion.motivo}
+                  onChange={e => setFormEdicion({ ...formEdicion, motivo: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Observaciones</label>
+                <textarea
+                  className="input w-full"
+                  rows={2}
+                  value={formEdicion.observaciones}
+                  onChange={e => setFormEdicion({ ...formEdicion, observaciones: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-2 p-4 border-t">
+              <button
+                onClick={() => setMovimientoEditando(null)}
+                className="btn-secondary"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleGuardarEdicionMovimiento}
+                className="btn-primary"
+              >
+                Guardar cambios
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

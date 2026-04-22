@@ -9,6 +9,7 @@ import {
   updateStock,
   deleteStock,
   createMovimiento,
+  updateMovimiento,
   deleteMovimiento,
   recalcularStock,
 } from '../controllers/stockController.js';
@@ -26,6 +27,7 @@ router.post('/', createStock);
 router.put('/:id', updateStock);
 router.delete('/:id', deleteStock);
 router.post('/:stockId/movimientos', createMovimiento);
+router.put('/:stockId/movimientos/:movimientoId', updateMovimiento);
 router.delete('/:stockId/movimientos/:movimientoId', deleteMovimiento);
 router.post('/:id/recalcular', recalcularStock);
 
