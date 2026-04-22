@@ -359,7 +359,7 @@ export default function Facturas() {
       data.subtotal = subtotalRemitosFinal;
       data.iva105 = tipoIva === 'IVA_105' ? ivaRemitosFinal : 0;
       data.iva21 = tipoIva === 'IVA_21' ? ivaRemitosFinal : 0;
-      data.total = subtotalRemitosFinal + ivaRemitosFinal;
+      data.total = subtotalRemitosFinal + ivaRemitosFinal + (parseFloat(otrosCargos) || 0);
     } else if (modoFactura === 'servicios') {
       // Factura con servicios
       if (serviciosSeleccionados.length === 0) {
