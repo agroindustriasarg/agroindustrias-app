@@ -19,9 +19,13 @@ interface Rendimiento {
   variedad?: string;
   fecha: string;
   kgBrutos: number;
-  descHumedad: number;
   descCuerposExtranos: number;
-  descVolatiles: number;
+  descQuebrados: number;
+  descTotalDaniados: number;
+  descHumedad: number;
+  descVolatil: number;
+  descTemperatura: number;
+  descGranosVerdes: number;
   kgNetos: number;
   destinoId?: string;
   numeroCTG?: string;
@@ -51,9 +55,13 @@ const emptyForm = {
   variedad: '',
   fecha: new Date().toISOString().split('T')[0],
   kgBrutos: '',
-  descHumedad: '',
   descCuerposExtranos: '',
-  descVolatiles: '',
+  descQuebrados: '',
+  descTotalDaniados: '',
+  descHumedad: '',
+  descVolatil: '',
+  descTemperatura: '',
+  descGranosVerdes: '',
   destinoId: '',
   numeroCTG: '',
   observaciones: '',
@@ -143,7 +151,7 @@ export default function Rendimientos() {
     gruposMap[key].totalKgBrutos += r.kgBrutos;
     gruposMap[key].totalDescHumedad += r.descHumedad;
     gruposMap[key].totalDescCuerpos += r.descCuerposExtranos;
-    gruposMap[key].totalDescVolatiles += r.descVolatiles;
+    gruposMap[key].totalDescVolatiles += r.descVolatil;
     gruposMap[key].totalKgNetos += r.kgNetos;
   });
 
@@ -187,9 +195,13 @@ export default function Rendimientos() {
       variedad: r.variedad || '',
       fecha: r.fecha.split('T')[0],
       kgBrutos: r.kgBrutos.toString(),
-      descHumedad: r.descHumedad.toString(),
       descCuerposExtranos: r.descCuerposExtranos.toString(),
-      descVolatiles: r.descVolatiles.toString(),
+      descQuebrados: r.descQuebrados.toString(),
+      descTotalDaniados: r.descTotalDaniados.toString(),
+      descHumedad: r.descHumedad.toString(),
+      descVolatil: r.descVolatil.toString(),
+      descTemperatura: r.descTemperatura.toString(),
+      descGranosVerdes: r.descGranosVerdes.toString(),
       destinoId: r.destinoId || '',
       numeroCTG: r.numeroCTG || '',
       observaciones: r.observaciones || '',
@@ -200,10 +212,14 @@ export default function Rendimientos() {
 
   const calcKgNetos = () => {
     const brutos = parseFloat(form.kgBrutos) || 0;
-    const humedad = parseFloat(form.descHumedad) || 0;
     const cuerpos = parseFloat(form.descCuerposExtranos) || 0;
-    const volatiles = parseFloat(form.descVolatiles) || 0;
-    return brutos - humedad - cuerpos - volatiles;
+    const quebrados = parseFloat(form.descQuebrados) || 0;
+    const daniados = parseFloat(form.descTotalDaniados) || 0;
+    const humedad = parseFloat(form.descHumedad) || 0;
+    const volatil = parseFloat(form.descVolatil) || 0;
+    const temperatura = parseFloat(form.descTemperatura) || 0;
+    const verdes = parseFloat(form.descGranosVerdes) || 0;
+    return brutos - cuerpos - quebrados - daniados - humedad - volatil - temperatura - verdes;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -408,9 +424,13 @@ export default function Rendimientos() {
                       <tr>
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
                         <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Kg Brutos</th>
-                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">- Humedad</th>
-                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">- Cuerpos</th>
-                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">- Volátiles</th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Cuerpos Ext.</th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Quebrados</th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Dañados</th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Humedad</th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Volátil</th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Temp.</th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Gr. Verdes</th>
                         <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Kg Netos</th>
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Destino</th>
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">CTG</th>
@@ -422,9 +442,13 @@ export default function Rendimientos() {
                         <tr key={e.id} className="hover:bg-gray-50">
                           <td className="px-4 py-2 whitespace-nowrap">{fmtFecha(e.fecha)}</td>
                           <td className="px-4 py-2 text-right">{fmt(e.kgBrutos)}</td>
-                          <td className="px-4 py-2 text-right text-red-500">{e.descHumedad > 0 ? `-${fmt(e.descHumedad)}` : '-'}</td>
                           <td className="px-4 py-2 text-right text-red-500">{e.descCuerposExtranos > 0 ? `-${fmt(e.descCuerposExtranos)}` : '-'}</td>
-                          <td className="px-4 py-2 text-right text-red-500">{e.descVolatiles > 0 ? `-${fmt(e.descVolatiles)}` : '-'}</td>
+                          <td className="px-4 py-2 text-right text-red-500">{e.descQuebrados > 0 ? `-${fmt(e.descQuebrados)}` : '-'}</td>
+                          <td className="px-4 py-2 text-right text-red-500">{e.descTotalDaniados > 0 ? `-${fmt(e.descTotalDaniados)}` : '-'}</td>
+                          <td className="px-4 py-2 text-right text-red-500">{e.descHumedad > 0 ? `-${fmt(e.descHumedad)}` : '-'}</td>
+                          <td className="px-4 py-2 text-right text-red-500">{e.descVolatil > 0 ? `-${fmt(e.descVolatil)}` : '-'}</td>
+                          <td className="px-4 py-2 text-right text-red-500">{e.descTemperatura > 0 ? `-${fmt(e.descTemperatura)}` : '-'}</td>
+                          <td className="px-4 py-2 text-right text-red-500">{e.descGranosVerdes > 0 ? `-${fmt(e.descGranosVerdes)}` : '-'}</td>
                           <td className="px-4 py-2 text-right font-semibold text-green-700">{fmt(e.kgNetos)}</td>
                           <td className="px-4 py-2">{e.destino?.nombre || '-'}</td>
                           <td className="px-4 py-2 text-gray-500">{e.numeroCTG || '-'}</td>
@@ -555,39 +579,48 @@ export default function Rendimientos() {
               {/* Descuentos */}
               <div>
                 <p className="text-sm font-medium text-gray-700 mb-2">Descuentos del acopio (en kg)</p>
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Humedad</label>
-                    <input
-                      type="number"
-                      step="1"
-                      className="input w-full"
-                      placeholder="0"
-                      value={form.descHumedad}
-                      onChange={e => setForm(f => ({ ...f, descHumedad: e.target.value }))}
-                    />
-                  </div>
+                <div className="grid grid-cols-4 gap-3">
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">Cuerpos extraños</label>
-                    <input
-                      type="number"
-                      step="1"
-                      className="input w-full"
-                      placeholder="0"
+                    <input type="number" step="1" className="input w-full" placeholder="0"
                       value={form.descCuerposExtranos}
-                      onChange={e => setForm(f => ({ ...f, descCuerposExtranos: e.target.value }))}
-                    />
+                      onChange={e => setForm(f => ({ ...f, descCuerposExtranos: e.target.value }))} />
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">Volátiles</label>
-                    <input
-                      type="number"
-                      step="1"
-                      className="input w-full"
-                      placeholder="0"
-                      value={form.descVolatiles}
-                      onChange={e => setForm(f => ({ ...f, descVolatiles: e.target.value }))}
-                    />
+                    <label className="block text-xs text-gray-500 mb-1">Quebrados</label>
+                    <input type="number" step="1" className="input w-full" placeholder="0"
+                      value={form.descQuebrados}
+                      onChange={e => setForm(f => ({ ...f, descQuebrados: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Total dañados</label>
+                    <input type="number" step="1" className="input w-full" placeholder="0"
+                      value={form.descTotalDaniados}
+                      onChange={e => setForm(f => ({ ...f, descTotalDaniados: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Humedad</label>
+                    <input type="number" step="1" className="input w-full" placeholder="0"
+                      value={form.descHumedad}
+                      onChange={e => setForm(f => ({ ...f, descHumedad: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Volátil</label>
+                    <input type="number" step="1" className="input w-full" placeholder="0"
+                      value={form.descVolatil}
+                      onChange={e => setForm(f => ({ ...f, descVolatil: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Temperatura</label>
+                    <input type="number" step="1" className="input w-full" placeholder="0"
+                      value={form.descTemperatura}
+                      onChange={e => setForm(f => ({ ...f, descTemperatura: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Granos verdes</label>
+                    <input type="number" step="1" className="input w-full" placeholder="0"
+                      value={form.descGranosVerdes}
+                      onChange={e => setForm(f => ({ ...f, descGranosVerdes: e.target.value }))} />
                   </div>
                 </div>
               </div>

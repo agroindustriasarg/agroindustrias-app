@@ -390,9 +390,13 @@ model Rendimiento {
   variedad            String?  // Ej: 6320, 7976
   fecha               DateTime
   kgBrutos            Float
-  descHumedad         Float    @default(0)
   descCuerposExtranos Float    @default(0)
-  descVolatiles       Float    @default(0)
+  descQuebrados       Float    @default(0)
+  descTotalDaniados   Float    @default(0)
+  descHumedad         Float    @default(0)
+  descVolatil         Float    @default(0)
+  descTemperatura     Float    @default(0)
+  descGranosVerdes    Float    @default(0)
   kgNetos             Float
   destinoId           String?
   numeroCTG           String?

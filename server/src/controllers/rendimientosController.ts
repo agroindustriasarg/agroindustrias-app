@@ -24,15 +24,20 @@ export const createRendimiento = async (req: AuthRequest, res: Response): Promis
   try {
     const {
       campana, campoId, loteId, cultivo, variedad,
-      fecha, kgBrutos, descHumedad, descCuerposExtranos, descVolatiles,
+      fecha, kgBrutos, descCuerposExtranos, descQuebrados, descTotalDaniados,
+      descHumedad, descVolatil, descTemperatura, descGranosVerdes,
       destinoId, numeroCTG, observaciones,
     } = req.body;
 
     const kgNetos =
       parseFloat(kgBrutos) -
-      (parseFloat(descHumedad) || 0) -
       (parseFloat(descCuerposExtranos) || 0) -
-      (parseFloat(descVolatiles) || 0);
+      (parseFloat(descQuebrados) || 0) -
+      (parseFloat(descTotalDaniados) || 0) -
+      (parseFloat(descHumedad) || 0) -
+      (parseFloat(descVolatil) || 0) -
+      (parseFloat(descTemperatura) || 0) -
+      (parseFloat(descGranosVerdes) || 0);
 
     const rendimiento = await prisma.rendimiento.create({
       data: {
@@ -43,9 +48,13 @@ export const createRendimiento = async (req: AuthRequest, res: Response): Promis
         variedad: variedad || null,
         fecha: new Date(fecha),
         kgBrutos: parseFloat(kgBrutos),
-        descHumedad: parseFloat(descHumedad) || 0,
         descCuerposExtranos: parseFloat(descCuerposExtranos) || 0,
-        descVolatiles: parseFloat(descVolatiles) || 0,
+        descQuebrados: parseFloat(descQuebrados) || 0,
+        descTotalDaniados: parseFloat(descTotalDaniados) || 0,
+        descHumedad: parseFloat(descHumedad) || 0,
+        descVolatil: parseFloat(descVolatil) || 0,
+        descTemperatura: parseFloat(descTemperatura) || 0,
+        descGranosVerdes: parseFloat(descGranosVerdes) || 0,
         kgNetos,
         destinoId: destinoId || null,
         numeroCTG: numeroCTG || null,
@@ -66,15 +75,20 @@ export const updateRendimiento = async (req: AuthRequest, res: Response): Promis
     const { id } = req.params;
     const {
       campana, campoId, loteId, cultivo, variedad,
-      fecha, kgBrutos, descHumedad, descCuerposExtranos, descVolatiles,
+      fecha, kgBrutos, descCuerposExtranos, descQuebrados, descTotalDaniados,
+      descHumedad, descVolatil, descTemperatura, descGranosVerdes,
       destinoId, numeroCTG, observaciones,
     } = req.body;
 
     const kgNetos =
       parseFloat(kgBrutos) -
-      (parseFloat(descHumedad) || 0) -
       (parseFloat(descCuerposExtranos) || 0) -
-      (parseFloat(descVolatiles) || 0);
+      (parseFloat(descQuebrados) || 0) -
+      (parseFloat(descTotalDaniados) || 0) -
+      (parseFloat(descHumedad) || 0) -
+      (parseFloat(descVolatil) || 0) -
+      (parseFloat(descTemperatura) || 0) -
+      (parseFloat(descGranosVerdes) || 0);
 
     const rendimiento = await prisma.rendimiento.update({
       where: { id },
@@ -86,9 +100,13 @@ export const updateRendimiento = async (req: AuthRequest, res: Response): Promis
         variedad: variedad || null,
         fecha: new Date(fecha),
         kgBrutos: parseFloat(kgBrutos),
-        descHumedad: parseFloat(descHumedad) || 0,
         descCuerposExtranos: parseFloat(descCuerposExtranos) || 0,
-        descVolatiles: parseFloat(descVolatiles) || 0,
+        descQuebrados: parseFloat(descQuebrados) || 0,
+        descTotalDaniados: parseFloat(descTotalDaniados) || 0,
+        descHumedad: parseFloat(descHumedad) || 0,
+        descVolatil: parseFloat(descVolatil) || 0,
+        descTemperatura: parseFloat(descTemperatura) || 0,
+        descGranosVerdes: parseFloat(descGranosVerdes) || 0,
         kgNetos,
         destinoId: destinoId || null,
         numeroCTG: numeroCTG || null,
