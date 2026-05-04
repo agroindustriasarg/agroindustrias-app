@@ -62,6 +62,7 @@ export default function Reportes() {
   // Filtros específicos para rendimientos
   const [selectedCultivos, setSelectedCultivos] = useState<string[]>([]);
   const [cultivosOpen, setCultivosOpen] = useState(false);
+  const [selectedCampana, setSelectedCampana] = useState('25/26');
 
   // Data states
   const [resumenData, setResumenData] = useState<any>(null);
@@ -177,10 +178,15 @@ export default function Reportes() {
             const categoria = await api.get(`/reportes/gastos-por-categoria${params}`);
             setCategoriaData(categoria.data);
             break;
-          case 'rendimientos':
-            const rendimientos = await api.get(`/reportes/rendimientos${params}`);
-            setRendimientosData(rendimientos.data);
+          case 'rendimientos': {
+            let rndParams = `?campana=${encodeURIComponent(selectedCampana)}`;
+            if (selectedCampos.length > 0) rndParams += `&campoIds=${selectedCampos.join(',')}`;
+            if (selectedLotes.length > 0) rndParams += `&loteIds=${selectedLotes.join(',')}`;
+            if (selectedCultivos.length > 0) rndParams += `&cultivos=${selectedCultivos.join(',')}`;
+            const rndRes2 = await api.get(`/reportes/rendimientos${rndParams}`);
+            setRendimientosData(rndRes2.data);
             break;
+          }
           case 'contabilidad':
             const resumen = await api.get(`/reportes/resumen-general${params}`);
             setResumenData(resumen.data);
@@ -194,7 +200,7 @@ export default function Reportes() {
     };
 
     loadReportData();
-  }, [selectedReport, fechaInicio, fechaFin, selectedCampos, selectedLotes, selectedMaquinarias, selectedContratistas, selectedCultivos]);
+  }, [selectedReport, fechaInicio, fechaFin, selectedCampos, selectedLotes, selectedMaquinarias, selectedContratistas, selectedCultivos, selectedCampana]);
 
   const menuItems = [
     { id: 'campos' as ReportType, label: 'Campos', icon: MapPin },
@@ -440,6 +446,22 @@ export default function Reportes() {
                   </div>
                 )}
 
+                {/* Filtro por campaña (solo para rendimientos) */}
+                {selectedReport === 'rendimientos' && (
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-2">Campaña</label>
+                    <select
+                      value={selectedCampana}
+                      onChange={e => setSelectedCampana(e.target.value)}
+                      className="w-full text-xs border border-gray-300 rounded p-2 bg-white"
+                    >
+                      {['24/25', '25/26', '26/27'].map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 {/* Filtro por cultivos (solo para rendimientos) */}
                 {selectedReport === 'rendimientos' && (
                   <div className="relative">
@@ -577,13 +599,7 @@ export default function Reportes() {
             {selectedReport === 'rendimientos' && (
               <ReporteRendimientos
                 data={rendimientosData}
-                filtros={{
-                  fechaInicio,
-                  fechaFin,
-                  campos: campos.filter(c => selectedCampos.includes(c.id)),
-                  lotes: lotes.filter(l => selectedLotes.includes(l.id)),
-                  cultivos: selectedCultivos
-                }}
+                campana={selectedCampana}
               />
             )}
             {selectedReport === 'contabilidad' && resumenData && <ResumenGeneral data={resumenData} />}
@@ -1844,51 +1860,46 @@ function ConsumoStock({ data }: { data: any[] }) {
 }
 
 // Componente: Reporte de Rendimientos
-function ReporteRendimientos({
-  data,
-  filtros
-}: {
-  data: any[];
-  filtros: {
-    fechaInicio: string;
-    fechaFin: string;
-    campos: any[];
-    lotes: any[];
-    cultivos: string[];
-  };
-}) {
+function ReporteRendimientos({ data, campana }: { data: any[]; campana: string }) {
   const reportRef = useRef<HTMLDivElement>(null);
+
+  const fmt = (n: number) => n.toLocaleString('es-AR', { maximumFractionDigits: 0 });
+  const fmt2 = (n: number) => n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   if (!data || data.length === 0) {
     return (
       <div className="card">
         <h1 className="text-2xl font-bold text-gray-900 mb-4">Reporte de Rendimientos</h1>
-        <p className="text-gray-500 text-center py-12">No hay datos disponibles para el período seleccionado</p>
+        <p className="text-gray-500 text-center py-12">No hay datos disponibles para la campaña {campana}</p>
       </div>
     );
   }
 
-  // Calcular totales
-  const totalSuperficie = data.reduce((sum, item) => sum + (item.totalSuperficie || 0), 0);
-  const totalProduccion = data.reduce((sum, item) => sum + (item.totalCantidad || 0), 0);
-  const promedioRendimiento = totalSuperficie > 0 ? totalProduccion / totalSuperficie : 0;
+  // Totales generales
+  const totalKgBrutos = data.flatMap(c => c.lotes).flatMap((l: any) => l.grupos).reduce((s: number, g: any) => s + g.totalKgBrutos, 0);
+  const totalDescuentos = data.flatMap(c => c.lotes).flatMap((l: any) => l.grupos).reduce((s: number, g: any) => s + g.totalDescuentos, 0);
+  const totalKgNetos = data.flatMap(c => c.lotes).flatMap((l: any) => l.grupos).reduce((s: number, g: any) => s + g.totalKgNetos, 0);
 
-  // Preparar datos para gráfico por cultivo
-  const dataPorCultivo = data.flatMap(campo =>
-    campo.cultivos?.map((c: any) => ({
-      cultivo: c.cultivo,
-      rendimiento: c.promedioRendimiento,
-      superficie: c.totalSuperficie,
-      cantidad: c.totalCantidad
-    })) || []
-  );
+  // Datos para gráfico por cultivo+variedad
+  const gruposPorCultivo: Record<string, { label: string; kgNetos: number; kgBrutos: number }> = {};
+  data.forEach(campo => {
+    campo.lotes?.forEach((lote: any) => {
+      lote.grupos?.forEach((g: any) => {
+        const label = g.variedad ? `${g.cultivo} ${g.variedad}` : g.cultivo;
+        if (!gruposPorCultivo[label]) gruposPorCultivo[label] = { label, kgNetos: 0, kgBrutos: 0 };
+        gruposPorCultivo[label].kgNetos += g.totalKgNetos;
+        gruposPorCultivo[label].kgBrutos += g.totalKgBrutos;
+      });
+    });
+  });
+  const dataCultivo = Object.values(gruposPorCultivo);
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Reporte de Rendimientos</h1>
-          <p className="text-gray-600 mt-1">Análisis de producción por campo, lote y cultivo</p>
+          <p className="text-gray-600 mt-1">Campaña {campana} — por campo, lote, cultivo y variedad</p>
         </div>
         <button
           onClick={() => generarPDF(reportRef, 'REPORTE DE RENDIMIENTOS', 'Rendimientos')}
@@ -1900,95 +1911,106 @@ function ReporteRendimientos({
       </div>
 
       <div ref={reportRef}>
+        {/* KPIs */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="card bg-gradient-to-br from-gray-50 to-gray-100">
+            <p className="text-sm text-gray-600 mb-1">Kg Brutos Totales</p>
+            <p className="text-3xl font-bold text-gray-900">{fmt(totalKgBrutos)}</p>
+          </div>
+          <div className="card bg-gradient-to-br from-red-50 to-red-100">
+            <p className="text-sm text-red-700 mb-1">Total Descuentos</p>
+            <p className="text-3xl font-bold text-red-700">-{fmt(totalDescuentos)}</p>
+          </div>
+          <div className="card bg-gradient-to-br from-green-50 to-green-100">
+            <p className="text-sm text-green-700 mb-1">Kg Netos Totales</p>
+            <p className="text-3xl font-bold text-green-900">{fmt(totalKgNetos)}</p>
+          </div>
+        </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="card bg-gradient-to-br from-green-50 to-green-100">
-          <p className="text-sm text-green-700 mb-1">Superficie Total</p>
-          <p className="text-3xl font-bold text-green-900">
-            {totalSuperficie.toFixed(2)} ha
-          </p>
-        </div>
-        <div className="card bg-gradient-to-br from-yellow-50 to-yellow-100">
-          <p className="text-sm text-yellow-700 mb-1">Producción Total</p>
-          <p className="text-3xl font-bold text-yellow-900">
-            {totalProduccion.toFixed(2)} tn
-          </p>
-        </div>
-        <div className="card bg-gradient-to-br from-blue-50 to-blue-100">
-          <p className="text-sm text-blue-700 mb-1">Rendimiento Promedio</p>
-          <p className="text-3xl font-bold text-blue-900">
-            {promedioRendimiento.toFixed(2)} tn/ha
-          </p>
-        </div>
-      </div>
+        {/* Gráfico por cultivo */}
+        {dataCultivo.length > 0 && (
+          <div className="card mb-6">
+            <h3 className="text-lg font-semibold mb-4">Kg Netos por Cultivo / Variedad</h3>
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={dataCultivo}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="label" />
+                <YAxis tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} />
+                <Tooltip formatter={(v: number) => [`${fmt(v)} kg`, '']} />
+                <Legend />
+                <Bar dataKey="kgBrutos" fill="#d1d5db" name="Kg Brutos" />
+                <Bar dataKey="kgNetos" fill="#10b981" name="Kg Netos" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
 
-      {/* Gráfico de rendimientos por cultivo */}
-      {dataPorCultivo.length > 0 && (
-        <div className="card">
-          <h3 className="text-lg font-semibold mb-4">Rendimiento por Cultivo</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={dataPorCultivo}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="cultivo" />
-              <YAxis label={{ value: 'tn/ha', angle: -90, position: 'insideLeft' }} />
-              <Tooltip
-                formatter={(value: number) => `${value.toFixed(2)} tn/ha`}
-              />
-              <Legend />
-              <Bar dataKey="rendimiento" fill="#10b981" name="Rendimiento (tn/ha)" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-
-      {/* Tabla detallada por campo */}
-      <div className="card">
-        <h3 className="text-lg font-semibold mb-4">Detalle por Campo y Cultivo</h3>
+        {/* Detalle por campo > lote > cultivo/variedad */}
         <div className="space-y-4">
           {data.map((campo) => (
-            <div key={campo.campoId} className="border rounded-lg p-4">
-              <h4 className="font-bold text-lg text-gray-900 mb-3">
-                {campo.campoNombre || 'Campo sin nombre'}
-              </h4>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cultivo</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Cosechas</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Superficie (ha)</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Producción (tn)</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Rendimiento (tn/ha)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {campo.cultivos?.map((cultivo: any, idx: number) => (
-                      <tr key={idx} className="hover:bg-gray-50">
-                        <td className="px-4 py-3">
-                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            {cultivo.cultivo}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-right">{cultivo.cantidad}</td>
-                        <td className="px-4 py-3 text-right font-semibold">
-                          {cultivo.totalSuperficie.toFixed(2)} ha
-                        </td>
-                        <td className="px-4 py-3 text-right font-semibold text-yellow-600">
-                          {cultivo.totalCantidad.toFixed(2)} tn
-                        </td>
-                        <td className="px-4 py-3 text-right font-bold text-blue-600">
-                          {cultivo.promedioRendimiento.toFixed(2)} tn/ha
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            <div key={campo.campoId} className="card overflow-hidden p-0">
+              <div className="bg-gray-100 px-4 py-3 font-bold text-gray-900 text-base border-b">
+                {campo.campoNombre}
               </div>
+              {campo.lotes?.map((lote: any) => (
+                <div key={lote.loteId}>
+                  <div className="bg-gray-50 px-4 py-2 text-sm font-semibold text-gray-700 border-b flex items-center space-x-2">
+                    <span>{lote.loteNombre}</span>
+                    <span className="text-gray-400 font-normal">({lote.loteHectareas} ha)</span>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm">
+                      <thead className="bg-white border-b">
+                        <tr>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Cultivo</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Variedad</th>
+                          <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Entregas</th>
+                          <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Kg Brutos</th>
+                          <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Descuentos</th>
+                          <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Kg Netos</th>
+                          <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Kg/ha</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {lote.grupos?.map((g: any, idx: number) => (
+                          <tr key={idx} className="hover:bg-gray-50">
+                            <td className="px-4 py-2">
+                              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                {g.cultivo}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2 text-gray-500">{g.variedad || '-'}</td>
+                            <td className="px-4 py-2 text-right text-gray-600">{g.entregas}</td>
+                            <td className="px-4 py-2 text-right">{fmt(g.totalKgBrutos)}</td>
+                            <td className="px-4 py-2 text-right text-red-500">-{fmt(g.totalDescuentos)}</td>
+                            <td className="px-4 py-2 text-right font-bold text-green-700">{fmt(g.totalKgNetos)}</td>
+                            <td className="px-4 py-2 text-right font-semibold text-blue-700">
+                              {g.kgNetosPorHa !== null ? fmt2(g.kgNetosPorHa) : '-'}
+                            </td>
+                          </tr>
+                        ))}
+                        {/* Subtotal lote */}
+                        {lote.grupos?.length > 1 && (
+                          <tr className="bg-gray-50 font-semibold">
+                            <td className="px-4 py-2 text-xs text-gray-500" colSpan={3}>Total lote</td>
+                            <td className="px-4 py-2 text-right text-xs">{fmt(lote.grupos.reduce((s: number, g: any) => s + g.totalKgBrutos, 0))}</td>
+                            <td className="px-4 py-2 text-right text-xs text-red-500">-{fmt(lote.grupos.reduce((s: number, g: any) => s + g.totalDescuentos, 0))}</td>
+                            <td className="px-4 py-2 text-right text-xs text-green-700">{fmt(lote.grupos.reduce((s: number, g: any) => s + g.totalKgNetos, 0))}</td>
+                            <td className="px-4 py-2 text-right text-xs text-blue-700">
+                              {lote.loteHectareas > 0
+                                ? fmt2(lote.grupos.reduce((s: number, g: any) => s + g.totalKgNetos, 0) / lote.loteHectareas)
+                                : '-'}
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))}
             </div>
           ))}
         </div>
-      </div>
       </div>
     </div>
   );

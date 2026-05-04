@@ -490,106 +490,87 @@ export const getConsumoStock = async (req: AuthRequest, res: Response): Promise<
 // Reporte de rendimientos
 export const getRendimientos = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { fechaInicio, fechaFin, campoIds, loteIds, cultivos } = req.query;
+    const { campana, campoIds, loteIds, cultivos, variedades } = req.query;
 
     const whereClause: any = {};
 
-    if (fechaInicio && fechaFin) {
-      whereClause.fechaCosecha = {
-        gte: new Date(fechaInicio as string),
-        lte: new Date(fechaFin as string),
-      };
-    }
+    if (campana) whereClause.campana = campana as string;
 
-    // Filtrar por campos
     if (campoIds && typeof campoIds === 'string') {
-      const idsArray = campoIds.split(',');
-      whereClause.campoId = { in: idsArray };
+      whereClause.campoId = { in: campoIds.split(',') };
     }
 
-    // Filtrar por lotes
     if (loteIds && typeof loteIds === 'string') {
-      const idsArray = loteIds.split(',');
-      whereClause.loteId = { in: idsArray };
+      whereClause.loteId = { in: loteIds.split(',') };
     }
 
-    // Filtrar por cultivos
     if (cultivos && typeof cultivos === 'string') {
-      const cultivosArray = cultivos.split(',');
-      whereClause.cultivo = { in: cultivosArray };
+      whereClause.cultivo = { in: cultivos.split(',') };
     }
 
-    // Obtener rendimientos
+    if (variedades && typeof variedades === 'string') {
+      const vArr = variedades.split(',').filter(v => v !== '');
+      if (vArr.length > 0) whereClause.variedad = { in: vArr };
+    }
+
     const rendimientos = await prisma.rendimiento.findMany({
       where: whereClause,
-      orderBy: {
-        fechaCosecha: 'desc',
-      },
+      include: { campo: true, lote: true, destino: true },
+      orderBy: [{ campoId: 'asc' }, { loteId: 'asc' }, { cultivo: 'asc' }],
     });
 
-    // Obtener campos para poder mostrar nombres
-    const uniqueCampoIds = [...new Set(rendimientos.map(r => r.campoId))];
-    const campos = await prisma.campo.findMany({
-      where: {
-        id: { in: uniqueCampoIds },
-      },
-      select: {
-        id: true,
-        nombre: true,
-      },
-    });
+    // Agrupar: campo > lote > cultivo+variedad
+    const camposMap = new Map<string, any>();
 
-    const camposMap = new Map(campos.map(c => [c.id, c.nombre]));
-
-    // Agrupar rendimientos por campo y cultivo
-    const rendimientosPorCampo = new Map<string, any>();
-
-    for (const rend of rendimientos) {
-      const campoId = rend.campoId;
-
-      if (!rendimientosPorCampo.has(campoId)) {
-        rendimientosPorCampo.set(campoId, {
-          campoId: campoId,
-          campoNombre: camposMap.get(campoId) || 'Sin nombre',
-          totalSuperficie: 0,
-          totalCantidad: 0,
-          cultivos: new Map<string, any>(),
+    for (const r of rendimientos) {
+      if (!camposMap.has(r.campoId)) {
+        camposMap.set(r.campoId, {
+          campoId: r.campoId,
+          campoNombre: r.campo?.nombre || '',
+          lotes: new Map<string, any>(),
         });
       }
+      const campo = camposMap.get(r.campoId);
 
-      const campo = rendimientosPorCampo.get(campoId);
-      campo.totalSuperficie += rend.superficie;
-      campo.totalCantidad += rend.cantidad;
-
-      // Agrupar por cultivo dentro del campo
-      if (!campo.cultivos.has(rend.cultivo)) {
-        campo.cultivos.set(rend.cultivo, {
-          cultivo: rend.cultivo,
-          totalSuperficie: 0,
-          totalCantidad: 0,
-          cantidad: 0,
+      if (!campo.lotes.has(r.loteId)) {
+        campo.lotes.set(r.loteId, {
+          loteId: r.loteId,
+          loteNombre: r.lote?.nombre || '',
+          loteHectareas: r.lote?.hectareas || 0,
+          grupos: new Map<string, any>(),
         });
       }
+      const lote = campo.lotes.get(r.loteId);
 
-      const cultivo = campo.cultivos.get(rend.cultivo);
-      cultivo.totalSuperficie += rend.superficie;
-      cultivo.totalCantidad += rend.cantidad;
-      cultivo.cantidad += 1;
+      const grupoKey = `${r.cultivo}||${r.variedad || ''}`;
+      if (!lote.grupos.has(grupoKey)) {
+        lote.grupos.set(grupoKey, {
+          cultivo: r.cultivo,
+          variedad: r.variedad || '',
+          entregas: 0,
+          totalKgBrutos: 0,
+          totalKgNetos: 0,
+          totalDescuentos: 0,
+        });
+      }
+      const grupo = lote.grupos.get(grupoKey);
+      grupo.entregas++;
+      grupo.totalKgBrutos += r.kgBrutos;
+      grupo.totalKgNetos += r.kgNetos;
+      grupo.totalDescuentos += (r.kgBrutos - r.kgNetos);
     }
 
-    // Convertir a array y calcular rendimientos promedios
-    const resultado = Array.from(rendimientosPorCampo.values()).map((campo) => ({
+    const resultado = Array.from(camposMap.values()).map(campo => ({
       campoId: campo.campoId,
       campoNombre: campo.campoNombre,
-      totalSuperficie: campo.totalSuperficie,
-      totalCantidad: campo.totalCantidad,
-      promedioRendimiento: campo.totalSuperficie > 0 ? campo.totalCantidad / campo.totalSuperficie : 0,
-      cultivos: Array.from(campo.cultivos.values()).map((c: any) => ({
-        cultivo: c.cultivo,
-        totalSuperficie: c.totalSuperficie,
-        totalCantidad: c.totalCantidad,
-        cantidad: c.cantidad,
-        promedioRendimiento: c.totalSuperficie > 0 ? c.totalCantidad / c.totalSuperficie : 0,
+      lotes: Array.from(campo.lotes.values()).map((lote: any) => ({
+        loteId: lote.loteId,
+        loteNombre: lote.loteNombre,
+        loteHectareas: lote.loteHectareas,
+        grupos: Array.from(lote.grupos.values()).map((g: any) => ({
+          ...g,
+          kgNetosPorHa: lote.loteHectareas > 0 ? g.totalKgNetos / lote.loteHectareas : null,
+        })),
       })),
     }));
 
