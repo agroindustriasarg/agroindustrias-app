@@ -51,9 +51,10 @@ model Campo {
   updatedAt   DateTime @updatedAt
 
   // Relaciones
-  lotes     Lote[]
-  servicios Servicio[]
-  gastos    Gasto[]
+  lotes        Lote[]
+  servicios    Servicio[]
+  gastos       Gasto[]
+  rendimientos Rendimiento[]
 
   @@map("campos")
 }
@@ -70,9 +71,10 @@ model Lote {
   updatedAt   DateTime @updatedAt
 
   // Relaciones
-  campo     Campo      @relation(fields: [campoId], references: [id], onDelete: Cascade)
-  servicios Servicio[]
-  gastos    GastoLote[]
+  campo        Campo         @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  servicios    Servicio[]
+  gastos       GastoLote[]
+  rendimientos Rendimiento[]
 
   @@map("lotes")
 }
@@ -380,22 +382,38 @@ model GastoLote {
 // ========== RENDIMIENTOS ==========
 
 model Rendimiento {
-  id              String   @id @default(uuid())
-  campoId         String
-  loteId          String?
-  cultivo         String
-  fechaCosecha    DateTime
-  cantidad        Float    // Cantidad cosechada
-  unidad          String   // kg o tn
-  superficie      Float    // Superficie cosechada
-  unidadSuperficie String  // ha o surco
-  rendimientoHa   Float?   // Calculado automáticamente (cantidad/superficie si es en ha)
-  observaciones   String?
-  usuarioId       String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                  String   @id @default(uuid())
+  campana             String   // "24/25", "25/26"
+  campoId             String
+  loteId              String
+  cultivo             String   // Soja, Maíz, Poroto, etc.
+  variedad            String?  // Ej: 6320, 7976
+  fecha               DateTime
+  kgBrutos            Float
+  descHumedad         Float    @default(0)
+  descCuerposExtranos Float    @default(0)
+  descVolatiles       Float    @default(0)
+  kgNetos             Float
+  destinoId           String?
+  numeroCTG           String?
+  observaciones       String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  campo   Campo    @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  lote    Lote     @relation(fields: [loteId], references: [id], onDelete: Cascade)
+  destino Destino? @relation(fields: [destinoId], references: [id], onDelete: SetNull)
 
   @@map("rendimientos")
+}
+
+model Destino {
+  id           String        @id @default(uuid())
+  nombre       String        @unique
+  createdAt    DateTime      @default(now())
+  rendimientos Rendimiento[]
+
+  @@map("destinos")
 }
 
 // ========== REPORTES ==========
