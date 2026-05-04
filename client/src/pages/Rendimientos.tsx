@@ -278,7 +278,7 @@ export default function Rendimientos() {
 
   const fmt = (n: number) => n.toLocaleString('es-AR', { maximumFractionDigits: 0 });
   const fmt2 = (n: number) => n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const fmtFecha = (f: string) => new Date(f).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const fmtFecha = (f: string) => new Date(f.split('T')[0] + 'T12:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
   if (loading) return <div className="text-center py-12">Cargando...</div>;
 
