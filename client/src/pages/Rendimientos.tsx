@@ -78,6 +78,7 @@ export default function Rendimientos() {
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({ ...emptyForm });
+  const [submitting, setSubmitting] = useState(false);
   const [selectedCampo, setSelectedCampo] = useState<Campo | null>(null);
 
   // Destinos panel
@@ -228,6 +229,8 @@ export default function Rendimientos() {
       alert('Campo, lote y kg brutos son obligatorios');
       return;
     }
+    if (submitting) return;
+    setSubmitting(true);
     try {
       const payload = { ...form };
       if (editingId) {
@@ -239,6 +242,8 @@ export default function Rendimientos() {
       fetchAll();
     } catch (error: any) {
       alert(error.response?.data?.error || 'Error al guardar');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -678,8 +683,8 @@ export default function Rendimientos() {
                 <button type="button" onClick={() => setShowModal(false)} className="btn-secondary">
                   Cancelar
                 </button>
-                <button type="submit" className="btn-primary">
-                  {editingId ? 'Guardar cambios' : 'Registrar entrega'}
+                <button type="submit" className="btn-primary" disabled={submitting}>
+                  {submitting ? 'Registrando...' : (editingId ? 'Guardar cambios' : 'Registrar entrega')}
                 </button>
               </div>
             </form>
