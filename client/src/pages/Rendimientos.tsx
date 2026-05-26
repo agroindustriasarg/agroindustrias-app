@@ -19,6 +19,7 @@ interface Rendimiento {
   variedad?: string;
   fecha: string;
   kgBrutos: number;
+  hectareasGrupo?: number;
   descCuerposExtranos: number;
   descQuebrados: number;
   descTotalDaniados: number;
@@ -55,6 +56,7 @@ const emptyForm = {
   variedad: '',
   fecha: new Date().toISOString().split('T')[0],
   kgBrutos: '',
+  hectareasGrupo: '',
   descCuerposExtranos: '',
   descQuebrados: '',
   descTotalDaniados: '',
@@ -79,6 +81,8 @@ export default function Rendimientos() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({ ...emptyForm });
   const [submitting, setSubmitting] = useState(false);
+  const [editandoHaGrupo, setEditandoHaGrupo] = useState<string | null>(null);
+  const [nuevoHaGrupo, setNuevoHaGrupo] = useState('');
   const [selectedCampo, setSelectedCampo] = useState<Campo | null>(null);
 
   // Destinos panel
@@ -114,9 +118,13 @@ export default function Rendimientos() {
 
   type Grupo = {
     key: string;
+    campana: string;
+    campoId: string;
+    loteId: string;
     campoNombre: string;
     loteNombre: string;
     loteHectareas: number;
+    hectareasGrupo: number | null;
     cultivo: string;
     variedad: string;
     entregas: Rendimiento[];
@@ -134,9 +142,13 @@ export default function Rendimientos() {
     if (!gruposMap[key]) {
       gruposMap[key] = {
         key,
+        campana: r.campana,
+        campoId: r.campoId,
+        loteId: r.loteId,
         campoNombre: r.campo?.nombre || '',
         loteNombre: r.lote?.nombre || '',
         loteHectareas: r.lote?.hectareas || 0,
+        hectareasGrupo: r.hectareasGrupo ?? null,
         cultivo: r.cultivo,
         variedad: r.variedad || '',
         entregas: [],
@@ -148,6 +160,8 @@ export default function Rendimientos() {
         kgNetosPorHa: null,
       };
     }
+    // Usar el valor de hectareasGrupo si está definido en cualquier entrega del grupo
+    if (r.hectareasGrupo != null) gruposMap[key].hectareasGrupo = r.hectareasGrupo;
     gruposMap[key].entregas.push(r);
     gruposMap[key].totalKgBrutos += r.kgBrutos;
     gruposMap[key].totalDescHumedad += r.descHumedad;
@@ -156,11 +170,15 @@ export default function Rendimientos() {
     gruposMap[key].totalKgNetos += r.kgNetos;
   });
 
-  const grupos = Object.values(gruposMap).map(g => ({
-    ...g,
-    kgNetosPorHa: g.loteHectareas > 0 ? g.totalKgNetos / g.loteHectareas : null,
-    entregas: [...g.entregas].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()),
-  }));
+  const grupos = Object.values(gruposMap).map(g => {
+    const haEfectivas = g.hectareasGrupo ?? g.loteHectareas;
+    return {
+      ...g,
+      haEfectivas,
+      kgNetosPorHa: haEfectivas > 0 ? g.totalKgNetos / haEfectivas : null,
+      entregas: [...g.entregas].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()),
+    };
+  });
 
   // Ordenar grupos: por campo, luego lote
   grupos.sort((a, b) => a.campoNombre.localeCompare(b.campoNombre) || a.loteNombre.localeCompare(b.loteNombre));
@@ -196,6 +214,7 @@ export default function Rendimientos() {
       variedad: r.variedad || '',
       fecha: r.fecha.split('T')[0],
       kgBrutos: r.kgBrutos.toString(),
+      hectareasGrupo: r.hectareasGrupo?.toString() || '',
       descCuerposExtranos: r.descCuerposExtranos.toString(),
       descQuebrados: r.descQuebrados.toString(),
       descTotalDaniados: r.descTotalDaniados.toString(),
@@ -244,6 +263,23 @@ export default function Rendimientos() {
       alert(error.response?.data?.error || 'Error al guardar');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleGuardarHaGrupo = async (g: any) => {
+    try {
+      await api.put('/rendimientos/grupo-hectareas', {
+        campana: g.campana,
+        campoId: g.campoId,
+        loteId: g.loteId,
+        cultivo: g.cultivo,
+        variedad: g.variedad || null,
+        hectareasGrupo: nuevoHaGrupo ? parseFloat(nuevoHaGrupo) : null,
+      });
+      setEditandoHaGrupo(null);
+      fetchAll();
+    } catch {
+      alert('Error al actualizar hectáreas del grupo');
     }
   };
 
@@ -385,13 +421,45 @@ export default function Rendimientos() {
                   <div>
                     <div className="font-semibold text-gray-900">
                       {g.campoNombre} › {g.loteNombre}
-                      <span className="text-gray-400 font-normal text-sm ml-2">({g.loteHectareas} ha)</span>
+                      <span className="text-gray-400 font-normal text-sm ml-2">({g.loteHectareas} ha totales)</span>
                     </div>
-                    <div className="text-sm text-gray-500 mt-0.5">
+                    <div className="text-sm text-gray-500 mt-0.5 flex items-center flex-wrap gap-2">
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-green-100 text-green-800 text-xs font-medium">
                         {g.cultivo}{g.variedad ? ` ${g.variedad}` : ''}
                       </span>
-                      <span className="ml-2">{g.entregas.length} {g.entregas.length === 1 ? 'entrega' : 'entregas'}</span>
+                      <span>{g.entregas.length} {g.entregas.length === 1 ? 'entrega' : 'entregas'}</span>
+                      {/* Ha del grupo */}
+                      {editandoHaGrupo === g.key ? (
+                        <span className="flex items-center space-x-1" onClick={e => e.stopPropagation()}>
+                          <input
+                            type="number"
+                            step="0.1"
+                            className="border border-blue-400 rounded px-2 py-0.5 text-xs w-20 text-gray-900"
+                            placeholder="Ha"
+                            value={nuevoHaGrupo}
+                            onChange={e => setNuevoHaGrupo(e.target.value)}
+                            autoFocus
+                          />
+                          <button
+                            className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded hover:bg-blue-700"
+                            onClick={() => handleGuardarHaGrupo(g)}
+                          >OK</button>
+                          <button
+                            className="text-xs text-gray-500 hover:text-gray-700"
+                            onClick={() => setEditandoHaGrupo(null)}
+                          >✕</button>
+                        </span>
+                      ) : (
+                        <span
+                          className="flex items-center space-x-1 cursor-pointer text-blue-600 hover:text-blue-800"
+                          onClick={e => { e.stopPropagation(); setNuevoHaGrupo(g.hectareasGrupo?.toString() || ''); setEditandoHaGrupo(g.key); }}
+                        >
+                          <span className="text-xs font-medium">
+                            {g.hectareasGrupo != null ? `${g.hectareasGrupo} ha (grupo)` : 'Definir ha del grupo'}
+                          </span>
+                          <Edit className="w-3 h-3" />
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -567,18 +635,34 @@ export default function Rendimientos() {
                 </div>
               </div>
 
-              {/* Kg brutos */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Kg Brutos *</label>
-                <input
-                  type="number"
-                  step="1"
-                  className="input w-full"
-                  placeholder="Ej: 30000"
-                  value={form.kgBrutos}
-                  onChange={e => setForm(f => ({ ...f, kgBrutos: e.target.value }))}
-                  required
-                />
+              {/* Kg brutos + Ha del grupo */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Kg Brutos *</label>
+                  <input
+                    type="number"
+                    step="1"
+                    className="input w-full"
+                    placeholder="Ej: 30000"
+                    value={form.kgBrutos}
+                    onChange={e => setForm(f => ({ ...f, kgBrutos: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Ha del grupo
+                    <span className="text-gray-400 font-normal text-xs ml-1">(si es parcial del lote)</span>
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    className="input w-full"
+                    placeholder={selectedCampo?.lotes.find(l => l.id === form.loteId)?.hectareas.toString() || 'Total lote'}
+                    value={form.hectareasGrupo}
+                    onChange={e => setForm(f => ({ ...f, hectareasGrupo: e.target.value }))}
+                  />
+                </div>
               </div>
 
               {/* Descuentos */}

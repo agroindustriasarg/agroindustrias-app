@@ -24,7 +24,7 @@ export const createRendimiento = async (req: AuthRequest, res: Response): Promis
   try {
     const {
       campana, campoId, loteId, cultivo, variedad,
-      fecha, kgBrutos, descCuerposExtranos, descQuebrados, descTotalDaniados,
+      fecha, kgBrutos, hectareasGrupo, descCuerposExtranos, descQuebrados, descTotalDaniados,
       descHumedad, descVolatil, descTemperatura, descGranosVerdes,
       destinoId, numeroCTG, observaciones,
     } = req.body;
@@ -48,6 +48,7 @@ export const createRendimiento = async (req: AuthRequest, res: Response): Promis
         variedad: variedad || null,
         fecha: new Date(fecha),
         kgBrutos: parseFloat(kgBrutos),
+        hectareasGrupo: hectareasGrupo ? parseFloat(hectareasGrupo) : null,
         descCuerposExtranos: parseFloat(descCuerposExtranos) || 0,
         descQuebrados: parseFloat(descQuebrados) || 0,
         descTotalDaniados: parseFloat(descTotalDaniados) || 0,
@@ -75,7 +76,7 @@ export const updateRendimiento = async (req: AuthRequest, res: Response): Promis
     const { id } = req.params;
     const {
       campana, campoId, loteId, cultivo, variedad,
-      fecha, kgBrutos, descCuerposExtranos, descQuebrados, descTotalDaniados,
+      fecha, kgBrutos, hectareasGrupo, descCuerposExtranos, descQuebrados, descTotalDaniados,
       descHumedad, descVolatil, descTemperatura, descGranosVerdes,
       destinoId, numeroCTG, observaciones,
     } = req.body;
@@ -100,6 +101,7 @@ export const updateRendimiento = async (req: AuthRequest, res: Response): Promis
         variedad: variedad || null,
         fecha: new Date(fecha),
         kgBrutos: parseFloat(kgBrutos),
+        hectareasGrupo: hectareasGrupo ? parseFloat(hectareasGrupo) : null,
         descCuerposExtranos: parseFloat(descCuerposExtranos) || 0,
         descQuebrados: parseFloat(descQuebrados) || 0,
         descTotalDaniados: parseFloat(descTotalDaniados) || 0,
@@ -119,6 +121,28 @@ export const updateRendimiento = async (req: AuthRequest, res: Response): Promis
   } catch (error) {
     console.error('Error al actualizar rendimiento:', error);
     res.status(500).json({ error: 'Error al actualizar rendimiento' });
+  }
+};
+
+export const actualizarHectareasGrupo = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { campana, campoId, loteId, cultivo, variedad, hectareasGrupo } = req.body;
+    await prisma.rendimiento.updateMany({
+      where: {
+        campana,
+        campoId,
+        loteId,
+        cultivo,
+        variedad: variedad || null,
+      },
+      data: {
+        hectareasGrupo: hectareasGrupo ? parseFloat(hectareasGrupo) : null,
+      },
+    });
+    res.json({ message: 'Hectáreas del grupo actualizadas' });
+  } catch (error) {
+    console.error('Error al actualizar hectáreas del grupo:', error);
+    res.status(500).json({ error: 'Error al actualizar hectáreas del grupo' });
   }
 };
 

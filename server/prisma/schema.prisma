@@ -390,6 +390,7 @@ model Rendimiento {
   variedad            String?  // Ej: 6320, 7976
   fecha               DateTime
   kgBrutos            Float
+  hectareasGrupo      Float?   // Ha parciales del grupo (cultivo+variedad) dentro del lote
   descCuerposExtranos Float    @default(0)
   descQuebrados       Float    @default(0)
   descTotalDaniados   Float    @default(0)

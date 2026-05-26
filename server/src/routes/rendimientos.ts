@@ -4,6 +4,7 @@ import {
   getRendimientos,
   createRendimiento,
   updateRendimiento,
+  actualizarHectareasGrupo,
   deleteRendimiento,
 } from '../controllers/rendimientosController.js';
 import { authMiddleware } from '../middleware/auth.js';
@@ -14,6 +15,7 @@ router.use(authMiddleware);
 
 router.get('/', getRendimientos);
 router.post('/', createRendimiento);
+router.put('/grupo-hectareas', actualizarHectareasGrupo);
 router.put('/:id', updateRendimiento);
 router.delete('/:id', deleteRendimiento);
 
