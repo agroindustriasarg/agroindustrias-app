@@ -679,13 +679,7 @@ export default function StockPage() {
                       >
                         <option value="">Seleccionar...</option>
                         {maquinarias.filter(m =>
-                          m.tipo === 'Desmalezadora' ||
-                          m.tipo === 'Rastra' ||
-                          m.tipo === 'Sembradora' ||
-                          m.tipo === 'Carro' ||
-                          m.tipo === 'Embolsadora' ||
-                          m.tipo === 'Extractora' ||
-                          m.tipo === 'Chimango'
+                          !['Tractor', 'Camión', 'Camioneta', 'Moto', 'Cuatriciclo', 'Pulverizadora'].includes(m.tipo)
                         ).map((imp) => (
                           <option key={imp.id} value={imp.id}>
                             {imp.nombre} ({imp.tipo})

@@ -64,12 +64,13 @@ export default function Gastos() {
       setCampanas(campanasRes.data);
 
       // Separar maquinarias e implementos
+      const TIPOS_MAQUINA = ['Tractor', 'Camión', 'Camioneta', 'Moto', 'Cuatriciclo', 'Pulverizadora'];
       const todasMaquinarias = maquinariasRes.data;
       const maquinariasFilter = todasMaquinarias.filter((m: Maquinaria) =>
-        ['Tractor', 'Camión', 'Camioneta', 'Moto', 'Cuatriciclo', 'Pulverizadora'].includes(m.tipo)
+        TIPOS_MAQUINA.includes(m.tipo)
       );
       const implementosFilter = todasMaquinarias.filter((m: Maquinaria) =>
-        ['Desmalezadora', 'Rastra', 'Sembradora', 'Carro', 'Embolsadora', 'Extractora', 'Chimango'].includes(m.tipo)
+        !TIPOS_MAQUINA.includes(m.tipo)
       );
 
       setMaquinarias(maquinariasFilter);

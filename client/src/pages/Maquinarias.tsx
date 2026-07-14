@@ -55,16 +55,24 @@ export default function Maquinarias() {
     horasUso: '',
     descripcion: '',
   });
+  const [tipoPersonalizado, setTipoPersonalizado] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const tipoFinal = formData.tipo === '__otro__' ? tipoPersonalizado.trim() : formData.tipo;
+    if (!tipoFinal) {
+      alert('Ingresá el tipo de implemento');
+      return;
+    }
     try {
       await create({
         ...formData,
+        tipo: tipoFinal,
         anio: formData.anio ? parseInt(formData.anio) : undefined,
         horasUso: formData.horasUso ? parseFloat(formData.horasUso) : 0,
       });
       setShowForm(false);
+      setTipoPersonalizado('');
       setFormData({
         nombre: '',
         tipo: '',
@@ -184,9 +192,12 @@ export default function Maquinarias() {
                 </label>
                 <select
                   value={formData.tipo}
-                  onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, tipo: e.target.value });
+                    if (e.target.value !== '__otro__') setTipoPersonalizado('');
+                  }}
                   className="input"
-                  required
+                  required={formData.tipo !== '__otro__'}
                 >
                   <option value="">Seleccionar...</option>
                   <optgroup label="Máquina">
@@ -203,7 +214,19 @@ export default function Maquinarias() {
                       </option>
                     ))}
                   </optgroup>
+                  <option value="__otro__">Otro (escribir)...</option>
                 </select>
+                {formData.tipo === '__otro__' && (
+                  <input
+                    type="text"
+                    value={tipoPersonalizado}
+                    onChange={(e) => setTipoPersonalizado(e.target.value)}
+                    className="input mt-2"
+                    placeholder="Ej: Cisterna, Mixer, Acoplado..."
+                    required
+                    autoFocus
+                  />
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
