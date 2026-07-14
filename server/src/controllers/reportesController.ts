@@ -68,7 +68,7 @@ export const getResumenGeneral = async (req: AuthRequest, res: Response): Promis
 // Gastos por categoría
 export const getGastosPorCategoria = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { fechaInicio, fechaFin, campoIds, loteIds } = req.query;
+    const { fechaInicio, fechaFin, campoIds, loteIds, campanaId } = req.query;
 
     const whereClause: any = {
       categoria: { not: 'Pago' }, // Excluir pagos de reportes
@@ -78,6 +78,10 @@ export const getGastosPorCategoria = async (req: AuthRequest, res: Response): Pr
         gte: new Date(fechaInicio as string),
         lte: new Date(fechaFin as string),
       };
+    }
+
+    if (campanaId && typeof campanaId === 'string') {
+      whereClause.campanaId = campanaId;
     }
 
     // Filtrar por campos
@@ -116,7 +120,7 @@ export const getGastosPorCategoria = async (req: AuthRequest, res: Response): Pr
 // Gastos por cuenta
 export const getGastosPorCuenta = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { fechaInicio, fechaFin, campoIds, loteIds } = req.query;
+    const { fechaInicio, fechaFin, campoIds, loteIds, campanaId } = req.query;
 
     const whereClause: any = {
       categoria: { not: 'Pago' }, // Excluir pagos de reportes
@@ -126,6 +130,10 @@ export const getGastosPorCuenta = async (req: AuthRequest, res: Response): Promi
         gte: new Date(fechaInicio as string),
         lte: new Date(fechaFin as string),
       };
+    }
+
+    if (campanaId && typeof campanaId === 'string') {
+      whereClause.campanaId = campanaId;
     }
 
     // Filtrar por campos
@@ -180,7 +188,7 @@ export const getGastosPorCuenta = async (req: AuthRequest, res: Response): Promi
 // Gastos por campo
 export const getGastosPorCampo = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { fechaInicio, fechaFin, campoIds, loteIds } = req.query;
+    const { fechaInicio, fechaFin, campoIds, loteIds, campanaId } = req.query;
 
     const whereClause: any = {
       categoria: { not: 'Pago' }, // Excluir pagos de reportes
@@ -190,6 +198,10 @@ export const getGastosPorCampo = async (req: AuthRequest, res: Response): Promis
         gte: new Date(fechaInicio as string),
         lte: new Date(fechaFin as string),
       };
+    }
+
+    if (campanaId && typeof campanaId === 'string') {
+      whereClause.campanaId = campanaId;
     }
 
     // Filtrar por campos
@@ -245,7 +257,7 @@ export const getGastosPorCampo = async (req: AuthRequest, res: Response): Promis
 // Servicios realizados
 export const getServiciosRealizados = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { fechaInicio, fechaFin, campoIds, loteIds, contratistaIds } = req.query;
+    const { fechaInicio, fechaFin, campoIds, loteIds, contratistaIds, campanaId } = req.query;
 
     const whereClause: any = {};
     if (fechaInicio && fechaFin) {
@@ -253,6 +265,10 @@ export const getServiciosRealizados = async (req: AuthRequest, res: Response): P
         gte: new Date(fechaInicio as string),
         lte: new Date(fechaFin as string),
       };
+    }
+
+    if (campanaId && typeof campanaId === 'string') {
+      whereClause.campanaId = campanaId;
     }
 
     // Filtrar por campos

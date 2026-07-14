@@ -22,6 +22,7 @@ const servicioSchema = z.object({
   caldo: z.number().positive().optional(),
   receta: z.string().optional(),
   estado: z.enum(['PENDIENTE', 'REALIZADO']).optional(),
+  campanaId: z.string().optional(),
 });
 
 export const getServicios = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -66,7 +67,7 @@ export const getServicios = async (req: AuthRequest, res: Response): Promise<voi
 
 export const createServicio = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { fecha, hectareas, costoPorHa, tipo, receta, ...rest } = servicioSchema.parse(req.body);
+    const { fecha, hectareas, costoPorHa, tipo, receta, campanaId, ...rest } = servicioSchema.parse(req.body);
 
     // Si es una pulverización con receta, solo verificar que los productos existan (no validar cantidad)
     if (tipo === 'Pulverización' && receta && hectareas) {
@@ -103,6 +104,7 @@ export const createServicio = async (req: AuthRequest, res: Response): Promise<v
         costoPorHa,
         total,
         usuarioId: req.user?.userId,
+        campanaId: campanaId || undefined,
       },
       include: {
         campo: { select: { nombre: true } },
@@ -164,7 +166,7 @@ export const createServicio = async (req: AuthRequest, res: Response): Promise<v
 export const updateServicio = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { fecha, hectareas, costoPorHa, estado, tipo, receta, ...rest } = servicioSchema.partial().parse(req.body);
+    const { fecha, hectareas, costoPorHa, estado, tipo, receta, campanaId, ...rest } = servicioSchema.partial().parse(req.body);
 
     // Obtener el servicio actual
     const servicioActual = await prisma.servicio.findUnique({
@@ -254,6 +256,7 @@ export const updateServicio = async (req: AuthRequest, res: Response): Promise<v
         hectareas,
         costoPorHa,
         total,
+        campanaId: campanaId || undefined,
       },
     });
 

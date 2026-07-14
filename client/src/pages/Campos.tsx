@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Campo } from '../types';
-import { Plus, MapPin, Trash2, Edit, Layers } from 'lucide-react';
+import { Plus, MapPin, Trash2, Edit, Layers, Wheat } from 'lucide-react';
 
 export default function Campos() {
   const [campos, setCampos] = useState<Campo[]>([]);
@@ -22,9 +22,45 @@ export default function Campos() {
     superficie: '',
   });
 
+  const [campanas, setCampanas] = useState<any[]>([]);
+  const [showCampanaForm, setShowCampanaForm] = useState(false);
+  const [campanaFormData, setCampanaFormData] = useState({ cultivo: '', anio: '' });
+
   useEffect(() => {
     fetchCampos();
+    fetchCampanas();
   }, []);
+
+  const fetchCampanas = async () => {
+    try {
+      const res = await api.get('/campanas');
+      setCampanas(res.data);
+    } catch (error) {
+      console.error('Error al cargar campañas:', error);
+    }
+  };
+
+  const handleAddCampana = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await api.post('/campanas', campanaFormData);
+      setCampanaFormData({ cultivo: '', anio: '' });
+      setShowCampanaForm(false);
+      fetchCampanas();
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Error al crear campaña');
+    }
+  };
+
+  const handleDeleteCampana = async (id: string) => {
+    if (!confirm('¿Eliminar esta campaña?')) return;
+    try {
+      await api.delete(`/campanas/${id}`);
+      fetchCampanas();
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Error al eliminar campaña');
+    }
+  };
 
   const fetchCampos = async () => {
     try {
@@ -298,6 +334,142 @@ export default function Campos() {
           No hay campos registrados. Crea uno para comenzar.
         </div>
       )}
+
+      {/* ===== SECCIÓN CAMPAÑAS ===== */}
+      <div className="mt-10">
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex items-center space-x-3">
+            <div className="bg-yellow-100 p-2 rounded-lg">
+              <Wheat className="w-5 h-5 text-yellow-600" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">Campañas</h2>
+              <p className="text-gray-600 text-sm">Campañas agrícolas por cultivo y año</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowCampanaForm(!showCampanaForm)}
+            className="btn-primary flex items-center space-x-2"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Nueva Campaña</span>
+          </button>
+        </div>
+
+        {showCampanaForm && (
+          <div className="card mb-6">
+            <h3 className="text-lg font-semibold mb-4">Nueva Campaña</h3>
+            <form onSubmit={handleAddCampana} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Cultivo *
+                  </label>
+                  <input
+                    type="text"
+                    list="cultivos-sugeridos"
+                    value={campanaFormData.cultivo}
+                    onChange={(e) => setCampanaFormData({ ...campanaFormData, cultivo: e.target.value })}
+                    className="input"
+                    required
+                    placeholder="Ej: Soja, Maíz, Poroto"
+                  />
+                  <datalist id="cultivos-sugeridos">
+                    {[...new Set(campanas.map(c => c.cultivo))].map(cultivo => (
+                      <option key={cultivo} value={cultivo} />
+                    ))}
+                    {['Soja', 'Maíz', 'Poroto', 'Trigo', 'Sorgo'].map(c => (
+                      <option key={c} value={c} />
+                    ))}
+                  </datalist>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Año *
+                  </label>
+                  <input
+                    type="text"
+                    list="anios-sugeridos"
+                    value={campanaFormData.anio}
+                    onChange={(e) => setCampanaFormData({ ...campanaFormData, anio: e.target.value })}
+                    className="input"
+                    required
+                    placeholder="Ej: 25 o 25/26"
+                  />
+                  <datalist id="anios-sugeridos">
+                    {[...new Set(campanas.map(c => c.anio))].map(anio => (
+                      <option key={anio} value={anio} />
+                    ))}
+                    {['24', '24/25', '25', '25/26', '26', '26/27'].map(a => (
+                      <option key={a} value={a} />
+                    ))}
+                  </datalist>
+                  {campanaFormData.cultivo && campanaFormData.anio && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Se creará: <span className="font-medium text-gray-700">{campanaFormData.cultivo} {campanaFormData.anio}</span>
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="flex space-x-3">
+                <button type="submit" className="btn-primary">
+                  Crear Campaña
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCampanaForm(false);
+                    setCampanaFormData({ cultivo: '', anio: '' });
+                  }}
+                  className="btn-secondary"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        <div className="card">
+          {campanas.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              No hay campañas registradas. Crea una para comenzar.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Campaña</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Cultivo</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Año</th>
+                    <th className="text-right py-3 px-4 font-semibold text-gray-700">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {campanas.map((campana) => (
+                    <tr key={campana.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="py-3 px-4">
+                        <span className="font-medium text-gray-900">{campana.nombre}</span>
+                      </td>
+                      <td className="py-3 px-4 text-gray-600">{campana.cultivo}</td>
+                      <td className="py-3 px-4 text-gray-600">{campana.anio}</td>
+                      <td className="py-3 px-4 text-right">
+                        <button
+                          onClick={() => handleDeleteCampana(campana.id)}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
 
       {showLotesModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">

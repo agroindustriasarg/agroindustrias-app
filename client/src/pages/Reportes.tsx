@@ -64,6 +64,10 @@ export default function Reportes() {
   const [cultivosOpen, setCultivosOpen] = useState(false);
   const [selectedCampana, setSelectedCampana] = useState('25/26');
 
+  // Filtro por campaña (para gastos/servicios)
+  const [campanas, setCampanas] = useState<any[]>([]);
+  const [selectedCampanaFilter, setSelectedCampanaFilter] = useState('');
+
   // Data states
   const [resumenData, setResumenData] = useState<any>(null);
   const [categoriaData, setCategoriaData] = useState<any[]>([]);
@@ -88,15 +92,17 @@ export default function Reportes() {
 
   const loadFilterData = async () => {
     try {
-      const [camposRes, maquinariasRes, contratistasRes] = await Promise.all([
+      const [camposRes, maquinariasRes, contratistasRes, campanasRes] = await Promise.all([
         api.get('/campos'),
         api.get('/maquinarias'),
-        api.get('/contratistas')
+        api.get('/contratistas'),
+        api.get('/campanas'),
       ]);
 
       setCampos(camposRes.data);
       setMaquinarias(maquinariasRes.data);
       setContratistas(contratistasRes.data);
+      setCampanas(campanasRes.data);
 
       // Cargar todos los lotes de todos los campos
       const todosLotes: any[] = [];
@@ -122,6 +128,7 @@ export default function Reportes() {
     setSelectedMaquinarias([]);
     setSelectedContratistas([]);
     setSelectedCultivos([]);
+    setSelectedCampanaFilter('');
   }, [selectedReport]);
 
   useEffect(() => {
@@ -147,6 +154,10 @@ export default function Reportes() {
 
         if (selectedContratistas.length > 0 && selectedReport === 'servicios') {
           params += `&contratistaIds=${selectedContratistas.join(',')}`;
+        }
+
+        if (selectedCampanaFilter && (selectedReport === 'gastos' || selectedReport === 'servicios' || selectedReport === 'campos')) {
+          params += `&campanaId=${selectedCampanaFilter}`;
         }
 
         if (selectedCultivos.length > 0 && selectedReport === 'rendimientos') {
@@ -200,7 +211,7 @@ export default function Reportes() {
     };
 
     loadReportData();
-  }, [selectedReport, fechaInicio, fechaFin, selectedCampos, selectedLotes, selectedMaquinarias, selectedContratistas, selectedCultivos, selectedCampana]);
+  }, [selectedReport, fechaInicio, fechaFin, selectedCampos, selectedLotes, selectedMaquinarias, selectedContratistas, selectedCultivos, selectedCampana, selectedCampanaFilter]);
 
   const menuItems = [
     { id: 'campos' as ReportType, label: 'Campos', icon: MapPin },
@@ -443,6 +454,23 @@ export default function Reportes() {
                         )}
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* Filtro por campaña (gastos/servicios) */}
+                {(selectedReport === 'gastos' || selectedReport === 'servicios' || selectedReport === 'campos') && (
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-2">Campaña</label>
+                    <select
+                      value={selectedCampanaFilter}
+                      onChange={e => setSelectedCampanaFilter(e.target.value)}
+                      className="w-full text-xs border border-gray-300 rounded p-2 bg-white"
+                    >
+                      <option value="">Todas las campañas</option>
+                      {campanas.map(c => (
+                        <option key={c.id} value={c.id}>{c.nombre}</option>
+                      ))}
+                    </select>
                   </div>
                 )}
 

@@ -150,6 +150,7 @@ model Servicio {
   maquinariaId  String?
   contratistaId String?
   usuarioId     String?
+  campanaId     String?   // Campaña a la que pertenece el servicio
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -160,6 +161,7 @@ model Servicio {
   contratista Contratista? @relation(fields: [contratistaId], references: [id], onDelete: SetNull)
   usuario     User?        @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
   factura     Factura?     @relation(fields: [facturaId], references: [id], onDelete: SetNull)
+  campana     Campana?     @relation(fields: [campanaId], references: [id], onDelete: SetNull)
 
   @@map("servicios")
 }
@@ -332,6 +334,21 @@ model Cuenta {
   @@map("cuentas")
 }
 
+// ========== CAMPAÑAS ==========
+
+model Campana {
+  id        String   @id @default(uuid())
+  cultivo   String
+  anio      String
+  nombre    String   @unique // "Soja 25/26"
+  createdAt DateTime @default(now())
+
+  gastos    Gasto[]
+  servicios Servicio[]
+
+  @@map("campanas")
+}
+
 // ========== GASTOS ==========
 
 model Gasto {
@@ -349,6 +366,7 @@ model Gasto {
   implementoId   String?
   usuarioId      String?
   grupoId        String?   // ID compartido entre gastos distribuidos del mismo origen
+  campanaId      String?   // Campaña a la que pertenece el gasto
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
@@ -359,6 +377,7 @@ model Gasto {
   maquinaria  Maquinaria? @relation(fields: [maquinariaId], references: [id], onDelete: SetNull)
   implemento  Maquinaria? @relation("GastoImplemento", fields: [implementoId], references: [id], onDelete: SetNull)
   usuario     User?       @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  campana     Campana?    @relation(fields: [campanaId], references: [id], onDelete: SetNull)
 
   @@index([grupoId])
   @@map("gastos")

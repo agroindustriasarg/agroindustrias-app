@@ -13,6 +13,7 @@ export default function Gastos() {
   const [implementos, setImplementos] = useState<Maquinaria[]>([]);
   const [lotes, setLotes] = useState<any[]>([]);
   const [cuentas, setCuentas] = useState<Cuenta[]>([]);
+  const [campanas, setCampanas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -30,6 +31,7 @@ export default function Gastos() {
     maquinariaId: '',
     implementoId: '',
     cuentaId: '',
+    campanaId: '',
   });
 
   useEffect(() => {
@@ -50,14 +52,16 @@ export default function Gastos() {
 
   const fetchData = async () => {
     try {
-      const [gastosRes, camposRes, maquinariasRes, cuentasRes] = await Promise.all([
+      const [gastosRes, camposRes, maquinariasRes, cuentasRes, campanasRes] = await Promise.all([
         api.get('/gastos'),
         api.get('/campos'),
         api.get('/maquinarias'),
         api.get('/cuentas'),
+        api.get('/campanas'),
       ]);
       setGastos(gastosRes.data);
       setCampos(camposRes.data);
+      setCampanas(campanasRes.data);
 
       // Separar maquinarias e implementos
       const todasMaquinarias = maquinariasRes.data;
@@ -110,6 +114,7 @@ export default function Gastos() {
         maquinariaId: formData.maquinariaId || undefined,
         implementoId: formData.implementoId || undefined,
         cuentaId: formData.cuentaId || undefined,
+        campanaId: formData.campanaId || undefined,
       };
 
       if (editingId) {
@@ -134,6 +139,7 @@ export default function Gastos() {
         maquinariaId: '',
         implementoId: '',
         cuentaId: '',
+        campanaId: '',
       });
       setLotes([]);
       fetchData();
@@ -165,6 +171,7 @@ export default function Gastos() {
       maquinariaId: gasto.maquinariaId || '',
       implementoId: gasto.implementoId || '',
       cuentaId: gasto.cuentaId || '',
+      campanaId: gasto.campanaId || '',
     });
     if (gasto.campoId) {
       fetchLotesPorCampo(gasto.campoId);
@@ -574,6 +581,24 @@ export default function Gastos() {
                   ))}
                 </select>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Campaña *
+                </label>
+                <select
+                  value={formData.campanaId}
+                  onChange={(e) => setFormData({ ...formData, campanaId: e.target.value })}
+                  className="input"
+                  required
+                >
+                  <option value="">Seleccionar campaña...</option>
+                  {campanas.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Descripción
@@ -609,6 +634,7 @@ export default function Gastos() {
                     maquinariaId: '',
                     implementoId: '',
                     cuentaId: '',
+                    campanaId: '',
                   });
                   setLotes([]);
                 }}

@@ -25,6 +25,7 @@ const gastoSchema = z.object({
   loteIds: z.array(z.string()).optional(),
   maquinariaId: z.string().optional(),
   implementoId: z.string().optional(),
+  campanaId: z.string().optional(),
 });
 
 export const getGastos = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -57,7 +58,7 @@ export const getGastos = async (req: AuthRequest, res: Response): Promise<void> 
 
 export const createGasto = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { fecha, loteIds, campoIds, campoId, ...rest } = gastoSchema.parse(req.body);
+    const { fecha, loteIds, campoIds, campoId, campanaId, ...rest } = gastoSchema.parse(req.body);
 
     // Si hay múltiples campos seleccionados, crear un gasto por cada campo con monto proporcional
     if (campoIds && campoIds.length > 0) {
@@ -96,6 +97,7 @@ export const createGasto = async (req: AuthRequest, res: Response): Promise<void
               cuentaId: rest.cuentaId || undefined,
               usuarioId: req.user?.userId,
               grupoId,
+              campanaId: campanaId || undefined,
             },
             include: {
               cuenta: { select: { nombre: true, tipo: true } },
@@ -115,6 +117,7 @@ export const createGasto = async (req: AuthRequest, res: Response): Promise<void
         data: {
           ...rest,
           campoId: campoId || undefined,
+          campanaId: campanaId || undefined,
           fecha: parseFecha(fecha),
           usuarioId: req.user?.userId,
           lotes: loteIds && loteIds.length > 0 ? {
@@ -152,13 +155,14 @@ export const createGasto = async (req: AuthRequest, res: Response): Promise<void
 export const updateGasto = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { fecha, loteIds, campoIds, campoId, ...rest } = gastoSchema.partial().parse(req.body);
+    const { fecha, loteIds, campoIds, campoId, campanaId, ...rest } = gastoSchema.partial().parse(req.body);
 
     const gasto = await prisma.gasto.update({
       where: { id },
       data: {
         ...rest,
         campoId: campoId || undefined,
+        campanaId: campanaId || undefined,
         fecha: fecha ? parseFecha(fecha) : undefined,
         lotes: loteIds !== undefined ? {
           deleteMany: {},

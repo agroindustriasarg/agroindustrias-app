@@ -24,6 +24,7 @@ export default function Servicios() {
   const [contratistas, setContratistas] = useState<Contratista[]>([]);
   const [stockItems, setStockItems] = useState<Stock[]>([]);
   const [movimientosStock, setMovimientosStock] = useState<any[]>([]);
+  const [campanas, setCampanas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -54,6 +55,7 @@ export default function Servicios() {
     caldo: '',
     productos: [] as Array<{ stockId: string; producto: string; cantidad: string; unidad: string }>,
     facturable: true,
+    campanaId: '',
   });
 
   useEffect(() => {
@@ -97,7 +99,7 @@ export default function Servicios() {
   const fetchData = async () => {
     try {
       // Cargar TODO en paralelo incluyendo movimientos
-      const [serviciosRes, camposRes, maquinariasRes, contratistasRes, stockRes, movimientosRes] = await Promise.all([
+      const [serviciosRes, camposRes, maquinariasRes, contratistasRes, stockRes, movimientosRes, campanasRes] = await Promise.all([
         api.get('/servicios'),
         api.get('/campos'),
         api.get('/maquinarias'),
@@ -107,12 +109,14 @@ export default function Servicios() {
           console.error('Error cargando movimientos de agroquímicos:', err);
           return { data: [] };
         }),
+        api.get('/campanas'),
       ]);
 
       setServicios(serviciosRes.data);
       setCampos(camposRes.data);
       setMaquinarias(maquinariasRes.data);
       setContratistas(contratistasRes.data);
+      setCampanas(campanasRes.data);
 
       const agroquimicos = stockRes.data.filter((item: Stock) => item.categoria === 'Agroquímicos');
       console.log('DEBUG: Stock de agroquímicos cargado:', agroquimicos);
@@ -188,6 +192,7 @@ export default function Servicios() {
           caldo: servicio.caldo?.toString() || '',
           productos: servicio.receta ? JSON.parse(servicio.receta) : [],
           facturable: servicio.facturable !== undefined ? servicio.facturable : true,
+          campanaId: servicio.campanaId || '',
         });
         setEditingId(servicio.id);
         setShowForm(true);
@@ -211,6 +216,7 @@ export default function Servicios() {
         maquinariaId: formData.maquinariaId || undefined,
         contratistaId: formData.contratistaId || undefined,
         facturable: formData.facturable,
+        campanaId: formData.campanaId || undefined,
       };
 
       // Para tipos con lotes múltiples, enviar todos los lotes seleccionados en la descripción
@@ -288,6 +294,7 @@ export default function Servicios() {
         caldo: '',
         facturable: true,
         productos: [],
+        campanaId: '',
       });
       fetchData();
     } catch (error: any) {
@@ -819,6 +826,24 @@ export default function Servicios() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Campaña *
+                </label>
+                <select
+                  value={formData.campanaId}
+                  onChange={(e) => setFormData({ ...formData, campanaId: e.target.value })}
+                  className="input"
+                  required
+                >
+                  <option value="">Seleccionar campaña...</option>
+                  {campanas.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Maquinaria (opcional)
                 </label>
                 <select
@@ -949,6 +974,10 @@ export default function Servicios() {
                     tipoFertilizante: '',
                     dosisKgHa: '',
                     unidadDosis: 'kg/ha',
+                    caldo: '',
+                    facturable: true,
+                    productos: [],
+                    campanaId: '',
                   });
                 }}
                 className="btn-secondary"
