@@ -317,9 +317,14 @@ export const getServiciosRealizados = async (req: AuthRequest, res: Response): P
 // Consumo de stock (productos más consumidos)
 export const getConsumoStock = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { fechaInicio, fechaFin, maquinariaIds, campoIds, loteIds } = req.query;
+    const { fechaInicio, fechaFin, maquinariaIds, campoIds, loteIds, campanaId } = req.query;
 
     const whereClause: any = { tipo: 'SALIDA' };
+
+    // Si se filtra por campaña, mostrar solo movimientos de esa campaña
+    if (campanaId && typeof campanaId === 'string') {
+      whereClause.campanaId = campanaId;
+    }
     if (fechaInicio && fechaFin) {
       const fin = new Date(fechaFin as string);
       fin.setHours(23, 59, 59, 999);

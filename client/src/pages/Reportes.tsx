@@ -164,7 +164,7 @@ export default function Reportes() {
           parts.push(`contratistaIds=${selectedContratistas.join(',')}`);
         }
 
-        if (selectedCampanaFilter && (selectedReport === 'gastos' || selectedReport === 'servicios' || selectedReport === 'campos')) {
+        if (selectedCampanaFilter && (selectedReport === 'gastos' || selectedReport === 'servicios' || selectedReport === 'campos' || selectedReport === 'stock')) {
           parts.push(`campanaId=${selectedCampanaFilter}`);
         }
 
