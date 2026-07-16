@@ -467,8 +467,8 @@ export default function Reportes() {
                   </div>
                 )}
 
-                {/* Filtro por campaña (gastos/servicios) */}
-                {(selectedReport === 'gastos' || selectedReport === 'servicios' || selectedReport === 'campos') && (
+                {/* Filtro por campaña (gastos/servicios/stock/campos) */}
+                {(selectedReport === 'gastos' || selectedReport === 'servicios' || selectedReport === 'campos' || selectedReport === 'stock') && (
                   <div>
                     <label className="block text-xs text-gray-600 mb-2">Campaña</label>
                     <select
