@@ -1924,19 +1924,23 @@ function ReporteRendimientos({ data, campana }: { data: any[]; campana: string }
   const totalDescuentos = data.flatMap(c => c.lotes).flatMap((l: any) => l.grupos).reduce((s: number, g: any) => s + g.totalDescuentos, 0);
   const totalKgNetos = data.flatMap(c => c.lotes).flatMap((l: any) => l.grupos).reduce((s: number, g: any) => s + g.totalKgNetos, 0);
 
-  // Datos para gráfico por cultivo+variedad
-  const gruposPorCultivo: Record<string, { label: string; kgNetos: number; kgBrutos: number }> = {};
+  // Datos para gráfico kg/ha por cultivo+variedad
+  const gruposPorCultivo: Record<string, { label: string; kgNetos: number; hectareas: number }> = {};
   data.forEach(campo => {
     campo.lotes?.forEach((lote: any) => {
       lote.grupos?.forEach((g: any) => {
         const label = g.variedad ? `${g.cultivo} ${g.variedad}` : g.cultivo;
-        if (!gruposPorCultivo[label]) gruposPorCultivo[label] = { label, kgNetos: 0, kgBrutos: 0 };
+        const ha = g.grupoHectareas || lote.loteHectareas || 0;
+        if (!gruposPorCultivo[label]) gruposPorCultivo[label] = { label, kgNetos: 0, hectareas: 0 };
         gruposPorCultivo[label].kgNetos += g.totalKgNetos;
-        gruposPorCultivo[label].kgBrutos += g.totalKgBrutos;
+        gruposPorCultivo[label].hectareas += ha;
       });
     });
   });
-  const dataCultivo = Object.values(gruposPorCultivo);
+  const dataCultivo = Object.values(gruposPorCultivo).map(d => ({
+    label: d.label,
+    kgHa: d.hectareas > 0 ? Math.round(d.kgNetos / d.hectareas) : 0,
+  }));
 
   return (
     <div className="space-y-6">
@@ -1974,16 +1978,14 @@ function ReporteRendimientos({ data, campana }: { data: any[]; campana: string }
         {/* Gráfico por cultivo */}
         {dataCultivo.length > 0 && (
           <div className="card mb-6">
-            <h3 className="text-lg font-semibold mb-4">Kg Netos por Cultivo / Variedad</h3>
+            <h3 className="text-lg font-semibold mb-4">Kg/Ha por Variedad</h3>
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={dataCultivo}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="label" />
-                <YAxis tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} />
-                <Tooltip formatter={(v: number) => [`${fmt(v)} kg`, '']} />
-                <Legend />
-                <Bar dataKey="kgBrutos" fill="#d1d5db" name="Kg Brutos" />
-                <Bar dataKey="kgNetos" fill="#10b981" name="Kg Netos" />
+                <YAxis tickFormatter={(v) => fmt2(v)} />
+                <Tooltip formatter={(v: number) => [`${fmt2(v)} kg/ha`, '']} />
+                <Bar dataKey="kgHa" fill="#10b981" name="Kg/Ha" />
               </BarChart>
             </ResponsiveContainer>
           </div>
