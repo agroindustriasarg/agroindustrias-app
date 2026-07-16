@@ -174,6 +174,13 @@ export default function Servicios() {
           lotesIdsExtraidos = servicio.loteId ? [servicio.loteId] : [];
         }
 
+        // Determinar si era parcial: hectareas guardadas != total ha de los lotes seleccionados
+        const lotesSeleccionados = lotesDelCampo.filter((l: any) => lotesIdsExtraidos.includes(l.id));
+        const totalHaLotes = lotesSeleccionados.reduce((sum: number, l: any) => sum + l.hectareas, 0);
+        const savedHa = servicio.hectareas || 0;
+        const isParcial = lotesSeleccionados.length > 0 && Math.abs(savedHa - totalHaLotes) > 0.01;
+        setEsParcial(isParcial);
+
         setFormData({
           tipo: servicio.tipo,
           fecha: new Date(servicio.fecha).toISOString().split('T')[0],
