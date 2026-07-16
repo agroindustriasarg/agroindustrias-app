@@ -358,6 +358,15 @@ export default function Servicios() {
     }
   };
 
+  const handleAsignarCampana = async (id: string, campanaId: string) => {
+    try {
+      await api.patch(`/servicios/${id}`, { campanaId: campanaId || null });
+      fetchData();
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Error al asignar campaña');
+    }
+  };
+
   const handleEstadoChange = async (id: string, nuevoEstado: string) => {
     // Si se intenta marcar como REALIZADO, validar stock
     if (nuevoEstado === 'REALIZADO') {
@@ -1244,6 +1253,21 @@ export default function Servicios() {
                     {servicio.descripcion.split(' - ')[1]}
                   </p>
                 )}
+
+                {/* Selector de campaña */}
+                <div className="flex items-center gap-2 mt-2 pt-1.5 border-t">
+                  <span className="text-xs text-gray-500 shrink-0">Campaña:</span>
+                  <select
+                    value={servicio.campanaId || ''}
+                    onChange={e => handleAsignarCampana(servicio.id, e.target.value)}
+                    className="text-xs border border-gray-200 rounded px-2 py-1 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                  >
+                    <option value="">Sin campaña</option>
+                    {campanas.map(c => (
+                      <option key={c.id} value={c.id}>{c.nombre}</option>
+                    ))}
+                  </select>
+                </div>
 
                 {/* Botones de Estado */}
                 <div className="flex flex-col space-y-1.5 mt-2 pt-1.5 border-t">
