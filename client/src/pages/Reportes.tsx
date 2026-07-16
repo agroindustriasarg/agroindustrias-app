@@ -60,8 +60,6 @@ export default function Reportes() {
   const [contratistas, setContratistas] = useState<any[]>([]);
 
   // Filtros específicos para rendimientos
-  const [selectedCultivos, setSelectedCultivos] = useState<string[]>([]);
-  const [cultivosOpen, setCultivosOpen] = useState(false);
   const [selectedCampana, setSelectedCampana] = useState('');
 
   // Filtro por campaña (para gastos/servicios)
@@ -131,7 +129,6 @@ export default function Reportes() {
     setSelectedLotes([]);
     setSelectedMaquinarias([]);
     setSelectedContratistas([]);
-    setSelectedCultivos([]);
     setSelectedCampanaFilter('');
   }, [selectedReport]);
 
@@ -168,9 +165,6 @@ export default function Reportes() {
           parts.push(`campanaId=${selectedCampanaFilter}`);
         }
 
-        if (selectedCultivos.length > 0 && selectedReport === 'rendimientos') {
-          parts.push(`cultivos=${selectedCultivos.join(',')}`);
-        }
 
         const params = parts.length > 0 ? `?${parts.join('&')}` : '';
 
@@ -203,7 +197,6 @@ export default function Reportes() {
             let rndParams = `?campana=${encodeURIComponent(selectedCampana)}`;
             if (selectedCampos.length > 0) rndParams += `&campoIds=${selectedCampos.join(',')}`;
             if (selectedLotes.length > 0) rndParams += `&loteIds=${selectedLotes.join(',')}`;
-            if (selectedCultivos.length > 0) rndParams += `&cultivos=${selectedCultivos.join(',')}`;
             const rndRes2 = await api.get(`/reportes/rendimientos${rndParams}`);
             setRendimientosData(rndRes2.data);
             break;
@@ -221,7 +214,7 @@ export default function Reportes() {
     };
 
     loadReportData();
-  }, [selectedReport, fechaInicio, fechaFin, selectedCampos, selectedLotes, selectedMaquinarias, selectedContratistas, selectedCultivos, selectedCampana, selectedCampanaFilter]);
+  }, [selectedReport, fechaInicio, fechaFin, selectedCampos, selectedLotes, selectedMaquinarias, selectedContratistas, selectedCampana, selectedCampanaFilter]);
 
   const menuItems = [
     { id: 'campos' as ReportType, label: 'Campos', icon: MapPin },
@@ -507,69 +500,15 @@ export default function Reportes() {
                   </div>
                 )}
 
-                {/* Filtro por cultivos (solo para rendimientos) */}
-                {selectedReport === 'rendimientos' && (
-                  <div className="relative">
-                    <label className="block text-xs text-gray-600 mb-2">Cultivos</label>
-                    <button
-                      type="button"
-                      onClick={() => setCultivosOpen(!cultivosOpen)}
-                      className="w-full text-xs border border-gray-300 rounded p-2 bg-white flex items-center justify-between hover:bg-gray-50"
-                    >
-                      <span className="truncate">
-                        {selectedCultivos.length === 0
-                          ? 'Seleccionar cultivos...'
-                          : `${selectedCultivos.length} seleccionado${selectedCultivos.length > 1 ? 's' : ''}`}
-                      </span>
-                      {cultivosOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    </button>
-                    {cultivosOpen && rendimientosData && (
-                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded shadow-lg max-h-48 overflow-y-auto">
-                        {(() => {
-                          // Extraer cultivos únicos del reporte de rendimientos
-                          const cultivosUnicos = Array.from(new Set(
-                            rendimientosData.flatMap((r: any) => r.cultivos?.map((c: any) => c.cultivo) || [])
-                          )) as string[];
-
-                          return cultivosUnicos.length === 0 ? (
-                            <p className="text-xs text-gray-400 p-2">No hay cultivos disponibles</p>
-                          ) : (
-                            <div className="p-2 space-y-1">
-                              {cultivosUnicos.map((cultivo) => (
-                                <label key={cultivo} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1.5 rounded">
-                                  <input
-                                    type="checkbox"
-                                    checked={selectedCultivos.includes(cultivo)}
-                                    onChange={(e) => {
-                                      if (e.target.checked) {
-                                        setSelectedCultivos([...selectedCultivos, cultivo]);
-                                      } else {
-                                        setSelectedCultivos(selectedCultivos.filter(c => c !== cultivo));
-                                      }
-                                      setCultivosOpen(false);
-                                    }}
-                                    className="rounded text-blue-600 focus:ring-blue-500"
-                                  />
-                                  <span className="text-xs">{cultivo}</span>
-                                </label>
-                              ))}
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    )}
-                  </div>
-                )}
 
                 {/* Botón limpiar filtros */}
-                {(selectedCampos.length > 0 || selectedLotes.length > 0 || selectedMaquinarias.length > 0 || selectedContratistas.length > 0 || selectedCultivos.length > 0) && (
+                {(selectedCampos.length > 0 || selectedLotes.length > 0 || selectedMaquinarias.length > 0 || selectedContratistas.length > 0) && (
                   <button
                     onClick={() => {
                       setSelectedCampos([]);
                       setSelectedLotes([]);
                       setSelectedMaquinarias([]);
                       setSelectedContratistas([]);
-                      setSelectedCultivos([]);
                     }}
                     className="w-full text-xs text-blue-600 hover:text-blue-700 font-medium"
                   >
