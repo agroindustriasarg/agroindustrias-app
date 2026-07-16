@@ -219,12 +219,14 @@ model MovimientoStock {
   servicioId      String?
   campoId         String?
   loteId          String?
+  campanaId       String?
 
   createdAt   DateTime @default(now())
 
   // Relaciones
   stock   Stock   @relation(fields: [stockId], references: [id], onDelete: Cascade)
   cuenta  Cuenta? @relation(fields: [cuentaId], references: [id], onDelete: SetNull)
+  campana Campana? @relation(fields: [campanaId], references: [id], onDelete: SetNull)
   facturasItems FacturaItem[]
 
   @@index([stockId, createdAt])
@@ -343,8 +345,9 @@ model Campana {
   nombre    String   @unique // "Soja 25/26"
   createdAt DateTime @default(now())
 
-  gastos    Gasto[]
-  servicios Servicio[]
+  gastos      Gasto[]
+  servicios   Servicio[]
+  movimientos MovimientoStock[]
 
   @@map("campanas")
 }

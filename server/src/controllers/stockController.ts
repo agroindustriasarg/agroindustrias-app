@@ -38,6 +38,7 @@ const movimientoSchema = z.object({
   servicioId: z.string().optional(),
   campoId: z.string().optional(),
   loteId: z.string().optional(),
+  campanaId: z.string().optional(),
 });
 
 export const getStock = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -355,7 +356,7 @@ export const updateMovimiento = async (req: AuthRequest, res: Response): Promise
     const {
       cantidad, motivo, observaciones, fecha,
       precio, proveedor, precioUnitario, tipoFactura, numeroRemito, numeroFactura, cuentaId,
-      maquinariaId, implementoId, servicioId, campoId, loteId,
+      maquinariaId, implementoId, servicioId, campoId, loteId, campanaId,
     } = req.body;
 
     // Actualizar el movimiento
@@ -378,6 +379,7 @@ export const updateMovimiento = async (req: AuthRequest, res: Response): Promise
         servicioId: servicioId !== undefined ? (servicioId || null) : movimientoAnterior.servicioId,
         campoId: campoId !== undefined ? (campoId || null) : movimientoAnterior.campoId,
         loteId: loteId !== undefined ? (loteId || null) : movimientoAnterior.loteId,
+        campanaId: campanaId !== undefined ? (campanaId || null) : movimientoAnterior.campanaId,
       },
     });
 

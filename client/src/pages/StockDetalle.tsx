@@ -30,6 +30,7 @@ interface Movimiento {
   servicioId?: string;
   campoId?: string;
   loteId?: string;
+  campanaId?: string;
   motivo?: string;
   observaciones?: string;
   fecha: string;
@@ -44,6 +45,7 @@ export default function StockDetalle() {
   const [, setMaquinarias] = useState<any[]>([]);
   const [campos, setCampos] = useState<any[]>([]);
   const [lotes, setLotes] = useState<any[]>([]);
+  const [campanas, setCampanas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editandoNombre, setEditandoNombre] = useState(false);
   const [nuevoNombre, setNuevoNombre] = useState('');
@@ -55,6 +57,7 @@ export default function StockDetalle() {
     fetchMovimientos();
     fetchMaquinarias();
     fetchCampos();
+    api.get('/campanas').then(res => setCampanas(res.data)).catch(() => {});
   }, [id]);
 
   const fetchStockDetalle = async () => {
@@ -167,6 +170,15 @@ export default function StockDetalle() {
   const handleCancelarEdicion = () => {
     setEditandoNombre(false);
     setNuevoNombre('');
+  };
+
+  const handleAsignarCampana = async (movId: string, campanaId: string) => {
+    try {
+      await api.put(`/stock/${id}/movimientos/${movId}`, { campanaId: campanaId || null });
+      fetchMovimientos();
+    } catch (error) {
+      console.error('Error al asignar campaña:', error);
+    }
   };
 
   const handleAbrirEdicionMovimiento = (mov: Movimiento) => {
@@ -373,12 +385,27 @@ export default function StockDetalle() {
                           {mov.numeroFactura && <span>N°Fact: {mov.numeroFactura}</span>}
                         </div>
                       ) : (
-                        <div className="text-xs">
-                          {mov.campoId && <span className="mr-3">Campo: {getCampoNombre(mov.campoId)}</span>}
-                          {mov.loteId && (() => {
-                            const lote = lotes.find(l => l.id === mov.loteId);
-                            return <span className="mr-3">Lote: {lote ? lote.nombre : mov.loteId}{lote?.hectareas ? ` · ${lote.hectareas} ha` : ''}</span>;
-                          })()}
+                        <div className="text-xs space-y-1">
+                          <div>
+                            {mov.campoId && <span className="mr-3">Campo: {getCampoNombre(mov.campoId)}</span>}
+                            {mov.loteId && (() => {
+                              const lote = lotes.find(l => l.id === mov.loteId);
+                              return <span className="mr-3">Lote: {lote ? lote.nombre : mov.loteId}{lote?.hectareas ? ` · ${lote.hectareas} ha` : ''}</span>;
+                            })()}
+                          </div>
+                          <div className="flex items-center gap-2 pt-1">
+                            <span className="text-gray-500 shrink-0">Campaña:</span>
+                            <select
+                              value={mov.campanaId || ''}
+                              onChange={e => handleAsignarCampana(mov.id, e.target.value)}
+                              className="text-xs border border-gray-200 rounded px-2 py-1 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                            >
+                              <option value="">Sin campaña</option>
+                              {campanas.map(c => (
+                                <option key={c.id} value={c.id}>{c.nombre}</option>
+                              ))}
+                            </select>
+                          </div>
                         </div>
                       )}
                     </td>

@@ -21,6 +21,7 @@ export default function StockPage() {
   const [campos, setCampos] = useState<any[]>([]);
   const [lotes, setLotes] = useState<any[]>([]);
   const [cuentas, setCuentas] = useState<any[]>([]);
+  const [campanas, setCampanas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -72,6 +73,7 @@ export default function StockPage() {
     servicioId: '',
     campoId: '',
     loteId: '',
+    campanaId: '',
     motivo: '',
     observaciones: '',
     fecha: new Date().toISOString().split('T')[0],
@@ -82,6 +84,7 @@ export default function StockPage() {
     fetchMaquinarias();
     fetchCampos();
     fetchCuentas();
+    api.get('/campanas').then(res => setCampanas(res.data)).catch(() => {});
     api.get('/proveedores').then(res => setProveedoresList(res.data.map((p: any) => p.nombre))).catch(() => {});
 
     // Recargar datos cuando la página vuelve a estar visible
@@ -200,6 +203,7 @@ export default function StockPage() {
         if (movimientoData.servicioId) dataToSend.servicioId = movimientoData.servicioId;
         if (movimientoData.campoId) dataToSend.campoId = movimientoData.campoId;
         if (movimientoData.loteId) dataToSend.loteId = movimientoData.loteId;
+        if (movimientoData.campanaId) dataToSend.campanaId = movimientoData.campanaId;
       }
 
       await api.post(`/stock/${showMovimiento}/movimientos`, dataToSend);
@@ -221,6 +225,7 @@ export default function StockPage() {
         servicioId: '',
         campoId: '',
         loteId: '',
+        campanaId: '',
         motivo: '',
         observaciones: '',
         fecha: new Date().toISOString().split('T')[0],
@@ -744,6 +749,22 @@ export default function StockPage() {
                           <option key={lote.id} value={lote.id}>
                             {lote.nombre}{lote.hectareas ? ` (${lote.hectareas} ha)` : ''}
                           </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Campaña *
+                      </label>
+                      <select
+                        value={movimientoData.campanaId}
+                        onChange={(e) => setMovimientoData({ ...movimientoData, campanaId: e.target.value })}
+                        className="input"
+                        required
+                      >
+                        <option value="">Seleccionar campaña...</option>
+                        {campanas.map((c) => (
+                          <option key={c.id} value={c.id}>{c.nombre}</option>
                         ))}
                       </select>
                     </div>
