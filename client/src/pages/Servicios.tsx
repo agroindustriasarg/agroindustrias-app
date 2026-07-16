@@ -29,6 +29,7 @@ export default function Servicios() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string | null>(null);
+  const [campanaFiltro, setCampanaFiltro] = useState<string>('');
   const [showNuevoProductoModal, setShowNuevoProductoModal] = useState(false);
   const [nuevoProducto, setNuevoProducto] = useState({
     nombre: '',
@@ -456,9 +457,11 @@ export default function Servicios() {
     return servicios.filter((s) => s.tipo === tipo);
   };
 
-  const serviciosFiltrados = categoriaSeleccionada
-    ? getServiciosPorTipo(categoriaSeleccionada)
-    : servicios;
+  const serviciosFiltrados = (() => {
+    let lista = categoriaSeleccionada ? getServiciosPorTipo(categoriaSeleccionada) : servicios;
+    if (campanaFiltro) lista = lista.filter(s => s.campanaId === campanaFiltro);
+    return lista;
+  })();
 
   if (loading) {
     return <div className="text-center py-12">Cargando...</div>;
@@ -507,6 +510,33 @@ export default function Servicios() {
             </button>
           </div>
         )}
+      </div>
+
+      {/* ── Filtro campaña ── */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        <button
+          onClick={() => setCampanaFiltro('')}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            campanaFiltro === ''
+              ? 'bg-primary-600 text-white'
+              : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+          }`}
+        >
+          Todos
+        </button>
+        {campanas.map(c => (
+          <button
+            key={c.id}
+            onClick={() => setCampanaFiltro(c.id)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              campanaFiltro === c.id
+                ? 'bg-primary-600 text-white'
+                : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            {c.nombre}
+          </button>
+        ))}
       </div>
 
       {!categoriaSeleccionada && (
