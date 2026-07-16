@@ -62,7 +62,7 @@ export default function Reportes() {
   // Filtros específicos para rendimientos
   const [selectedCultivos, setSelectedCultivos] = useState<string[]>([]);
   const [cultivosOpen, setCultivosOpen] = useState(false);
-  const [selectedCampana, setSelectedCampana] = useState('25/26');
+  const [selectedCampana, setSelectedCampana] = useState('');
 
   // Filtro por campaña (para gastos/servicios)
   const [campanas, setCampanas] = useState<any[]>([]);
@@ -102,7 +102,11 @@ export default function Reportes() {
       setCampos(camposRes.data);
       setMaquinarias(maquinariasRes.data);
       setContratistas(contratistasRes.data);
-      setCampanas(campanasRes.data);
+      const camps = campanasRes.data;
+      setCampanas(camps);
+      if (camps.length > 0) {
+        setSelectedCampana(prev => prev || camps[0].nombre);
+      }
 
       // Cargar todos los lotes de todos los campos
       const todosLotes: any[] = [];
@@ -483,8 +487,8 @@ export default function Reportes() {
                       onChange={e => setSelectedCampana(e.target.value)}
                       className="w-full text-xs border border-gray-300 rounded p-2 bg-white"
                     >
-                      {['24/25', '25/26', '26/27'].map(c => (
-                        <option key={c} value={c}>{c}</option>
+                      {campanas.map(c => (
+                        <option key={c.id} value={c.nombre}>{c.nombre}</option>
                       ))}
                     </select>
                   </div>

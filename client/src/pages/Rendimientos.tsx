@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import api from '../services/apiWithCache';
 import { Plus, Trash2, Edit, ChevronDown, ChevronRight, X, Warehouse } from 'lucide-react';
 
-const CAMPANAS = ['24/25', '25/26', '26/27'];
 const CULTIVOS = ['Soja', 'Maíz', 'Poroto', 'Trigo', 'Girasol', 'Sorgo', 'Otro'];
 
 interface Destino {
@@ -49,7 +48,7 @@ interface Campo {
 }
 
 const emptyForm = {
-  campana: '25/26',
+  campana: '',
   campoId: '',
   loteId: '',
   cultivo: 'Soja',
@@ -73,8 +72,9 @@ export default function Rendimientos() {
   const [rendimientos, setRendimientos] = useState<Rendimiento[]>([]);
   const [campos, setCampos] = useState<Campo[]>([]);
   const [destinos, setDestinos] = useState<Destino[]>([]);
+  const [campanas, setCampanas] = useState<{ id: string; nombre: string }[]>([]);
   const [loading, setLoading] = useState(true);
-  const [campanaSeleccionada, setCampanaSeleccionada] = useState('25/26');
+  const [campanaSeleccionada, setCampanaSeleccionada] = useState('');
 
   // Modal entrega
   const [showModal, setShowModal] = useState(false);
@@ -98,14 +98,21 @@ export default function Rendimientos() {
 
   const fetchAll = async () => {
     try {
-      const [rRes, cRes, dRes] = await Promise.all([
+      const [rRes, cRes, dRes, campRes] = await Promise.all([
         api.get('/rendimientos'),
         api.get('/campos'),
         api.get('/destinos'),
+        api.get('/campanas'),
       ]);
       setRendimientos(rRes.data);
       setCampos(cRes.data);
       setDestinos(dRes.data);
+      const camps = campRes.data;
+      setCampanas(camps);
+      if (camps.length > 0) {
+        setCampanaSeleccionada(prev => prev || camps[0].nombre);
+        setForm(prev => ({ ...prev, campana: prev.campana || camps[0].nombre }));
+      }
     } catch (error) {
       console.error(error);
     } finally {
@@ -382,18 +389,18 @@ export default function Rendimientos() {
       )}
 
       {/* ── Filtro campaña ── */}
-      <div className="flex space-x-2 mb-6">
-        {CAMPANAS.map(c => (
+      <div className="flex flex-wrap gap-2 mb-6">
+        {campanas.map(c => (
           <button
-            key={c}
-            onClick={() => setCampanaSeleccionada(c)}
+            key={c.id}
+            onClick={() => setCampanaSeleccionada(c.nombre)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              campanaSeleccionada === c
+              campanaSeleccionada === c.nombre
                 ? 'bg-primary-600 text-white'
                 : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
             }`}
           >
-            Campaña {c}
+            {c.nombre}
           </button>
         ))}
       </div>
@@ -569,7 +576,7 @@ export default function Rendimientos() {
                     value={form.campana}
                     onChange={e => setForm(f => ({ ...f, campana: e.target.value }))}
                   >
-                    {CAMPANAS.map(c => <option key={c} value={c}>{c}</option>)}
+                    {campanas.map(c => <option key={c.id} value={c.nombre}>{c.nombre}</option>)}
                   </select>
                 </div>
                 <div>
