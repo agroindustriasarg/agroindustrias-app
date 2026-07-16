@@ -9,7 +9,7 @@ const stockSchema = z.object({
   categoria: z.string().min(1),
   cantidad: z.number(),
   unidad: z.string().min(1),
-  precioUnitario: z.number().optional(),
+  precioUnitario: z.number().nullable().optional(),
   stockMinimo: z.number().optional(),
   ubicacion: z.string().optional(),
   descripcion: z.string().optional(),

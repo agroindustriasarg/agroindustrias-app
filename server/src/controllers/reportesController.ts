@@ -372,7 +372,7 @@ export const getConsumoStock = async (req: AuthRequest, res: Response): Promise<
     const stockIds = movimientos.map((m) => m.stockId);
     const stocks = await prisma.stock.findMany({
       where: { id: { in: stockIds } },
-      select: { id: true, nombre: true, categoria: true, unidad: true },
+      select: { id: true, nombre: true, categoria: true, unidad: true, precioUnitario: true },
     });
 
     const stocksMap = new Map(stocks.map((s) => [s.id, s]));
@@ -494,6 +494,7 @@ export const getConsumoStock = async (req: AuthRequest, res: Response): Promise<
           cantidadConsumida: m._sum.cantidad || 0,
           cantidadMovimientos: m._count.id,
           precioPromedio,
+          precioUnitario: stock?.precioUnitario ?? null,
         };
       })
     );
