@@ -321,9 +321,21 @@ export const getConsumoStock = async (req: AuthRequest, res: Response): Promise<
 
     const whereClause: any = { tipo: 'SALIDA' };
 
-    // Si se filtra por campaña, mostrar solo movimientos de esa campaña
+    // Si se filtra por campaña, incluir movimientos directos de la campaña
+    // Y también los generados por órdenes de pulverización (servicioId → servicio.campanaId)
     if (campanaId && typeof campanaId === 'string') {
-      whereClause.campanaId = campanaId;
+      const serviciosEnCampana = await prisma.servicio.findMany({
+        where: { campanaId: campanaId },
+        select: { id: true },
+      });
+      const servicioIdsEnCampana = serviciosEnCampana.map((s: any) => s.id);
+      if (!whereClause.AND) whereClause.AND = [];
+      whereClause.AND.push({
+        OR: [
+          { campanaId: campanaId },
+          { servicioId: { in: servicioIdsEnCampana } },
+        ],
+      });
     }
     if (fechaInicio && fechaFin) {
       const fin = new Date(fechaFin as string);
