@@ -687,7 +687,7 @@ function ReporteCampo({
   const handlePrecioBlur = async (stockId: string, value: string) => {
     const precioNum = value !== '' ? parseFloat(value) : null;
     try {
-      await api.patch(`/stock/${stockId}`, { precioUnitario: precioNum });
+      await api.put(`/stock/${stockId}`, { precioUnitario: precioNum });
     } catch (error) {
       console.error('Error al guardar precio unitario:', error);
     }
@@ -1802,7 +1802,7 @@ function ConsumoStock({ data }: { data: any[] }) {
   const handlePrecioBlur = async (stockId: string, value: string) => {
     const precioNum = value !== '' ? parseFloat(value) : null;
     try {
-      await api.patch(`/stock/${stockId}`, { precioUnitario: precioNum });
+      await api.put(`/stock/${stockId}`, { precioUnitario: precioNum });
     } catch (error) {
       console.error('Error al guardar precio unitario:', error);
     }
