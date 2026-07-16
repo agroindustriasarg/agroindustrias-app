@@ -150,7 +150,7 @@ export default function Servicios() {
         // Extraer nombres de lotes de la descripción y buscar sus IDs
         let lotesIdsExtraidos: string[] = [];
         let descripcionSinLotes = servicio.descripcion || '';
-        const tiposConLotesMultiples = ['Siembra', 'Cosecha', 'Fertilización', 'Picado', 'Rastra', 'Pulverización'];
+        const tiposConLotesMultiples = ['Siembra', 'Cosecha', 'Fertilización', 'Picado', 'Rastra', 'Pulverización', 'Trabajos manuales'];
 
         if (tiposConLotesMultiples.includes(servicio.tipo) && servicio.descripcion?.includes('Lotes:')) {
           // Extraer nombres de lotes: "Lotes: lote1, lote2 - descripcion" -> "lote1, lote2"
@@ -228,7 +228,7 @@ export default function Servicios() {
       };
 
       // Para tipos con lotes múltiples, enviar todos los lotes seleccionados en la descripción
-      const tiposConLotesMultiples = ['Siembra', 'Cosecha', 'Fertilización', 'Picado', 'Rastra', 'Pulverización'];
+      const tiposConLotesMultiples = ['Siembra', 'Cosecha', 'Fertilización', 'Picado', 'Rastra', 'Pulverización', 'Trabajos manuales'];
       if (tiposConLotesMultiples.includes(formData.tipo) && formData.lotesIds.length > 0) {
         const lotesSeleccionados = lotes.filter(l => formData.lotesIds.includes(l.id));
         const nombresLotes = lotesSeleccionados.map(l => l.nombre).join(', ');
@@ -512,7 +512,7 @@ export default function Servicios() {
             >
               <Plus className="w-5 h-5" />
               <span>
-                {['Siembra', 'Cosecha', 'Fertilización', 'Picado', 'Rastra', 'Pulverización'].includes(categoriaSeleccionada || '')
+                {['Siembra', 'Cosecha', 'Fertilización', 'Picado', 'Rastra', 'Pulverización', 'Trabajos manuales'].includes(categoriaSeleccionada || '')
                   ? `Nueva Orden de ${categoriaSeleccionada}`
                   : 'Nuevo Servicio'}
               </span>
@@ -628,7 +628,7 @@ export default function Servicios() {
                   ))}
                 </select>
               </div>
-              {['Siembra', 'Cosecha', 'Fertilización', 'Picado', 'Rastra', 'Pulverización'].includes(formData.tipo) ? (
+              {['Siembra', 'Cosecha', 'Fertilización', 'Picado', 'Rastra', 'Pulverización', 'Trabajos manuales'].includes(formData.tipo) ? (
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Lotes * (Seleccionar uno o más)
@@ -659,7 +659,7 @@ export default function Servicios() {
                       ))
                     )}
                   </div>
-                  {['Siembra', 'Cosecha', 'Fertilización', 'Picado', 'Rastra', 'Pulverización'].includes(formData.tipo) && formData.lotesIds.length === 0 && (
+                  {['Siembra', 'Cosecha', 'Fertilización', 'Picado', 'Rastra', 'Pulverización', 'Trabajos manuales'].includes(formData.tipo) && formData.lotesIds.length === 0 && (
                     <p className="text-xs text-red-500 mt-1">Debes seleccionar al menos un lote</p>
                   )}
                 </div>
@@ -916,8 +916,8 @@ export default function Servicios() {
                   onChange={(e) => setFormData({ ...formData, hectareas: e.target.value })}
                   className="input"
                   placeholder="0.00"
-                  readOnly={!esParcial && ['Siembra', 'Cosecha', 'Fertilización', 'Picado', 'Rastra', 'Pulverización'].includes(formData.tipo)}
-                  disabled={!esParcial && ['Siembra', 'Cosecha', 'Fertilización', 'Picado', 'Rastra', 'Pulverización'].includes(formData.tipo)}
+                  readOnly={!esParcial && ['Siembra', 'Cosecha', 'Fertilización', 'Picado', 'Rastra', 'Pulverización', 'Trabajos manuales'].includes(formData.tipo)}
+                  disabled={!esParcial && ['Siembra', 'Cosecha', 'Fertilización', 'Picado', 'Rastra', 'Pulverización', 'Trabajos manuales'].includes(formData.tipo)}
                 />
                 <div className="flex items-center space-x-2 mt-2">
                   <input
@@ -995,7 +995,7 @@ export default function Servicios() {
               <button
                 type="submit"
                 className="btn-primary"
-                disabled={['Siembra', 'Cosecha', 'Fertilización', 'Picado', 'Rastra', 'Pulverización'].includes(formData.tipo) && formData.lotesIds.length === 0}
+                disabled={['Siembra', 'Cosecha', 'Fertilización', 'Picado', 'Rastra', 'Pulverización', 'Trabajos manuales'].includes(formData.tipo) && formData.lotesIds.length === 0}
               >
                 Guardar
               </button>
