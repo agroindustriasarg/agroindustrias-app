@@ -137,36 +137,42 @@ export default function Reportes() {
 
   useEffect(() => {
     const loadReportData = async () => {
-      if (!fechaInicio || !fechaFin) return;
+      const hasFechas = !!(fechaInicio && fechaFin);
+      const isRendimientos = selectedReport === 'rendimientos';
+      const canRun = hasFechas || selectedCampanaFilter || isRendimientos;
+      if (!canRun) return;
 
       setLoading(true);
       try {
-        let params = `?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`;
+        const parts: string[] = [];
+        if (hasFechas) parts.push(`fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`);
 
         // Agregar filtros adicionales según el reporte
         if (selectedCampos.length > 0 && (selectedReport === 'categoria' || selectedReport === 'cuenta' || selectedReport === 'servicios' || selectedReport === 'stock' || selectedReport === 'campos' || selectedReport === 'gastos')) {
-          params += `&campoIds=${selectedCampos.join(',')}`;
+          parts.push(`campoIds=${selectedCampos.join(',')}`);
         }
 
         if (selectedLotes.length > 0) {
-          params += `&loteIds=${selectedLotes.join(',')}`;
+          parts.push(`loteIds=${selectedLotes.join(',')}`);
         }
 
         if (selectedMaquinarias.length > 0 && selectedReport === 'stock') {
-          params += `&maquinariaIds=${selectedMaquinarias.join(',')}`;
+          parts.push(`maquinariaIds=${selectedMaquinarias.join(',')}`);
         }
 
         if (selectedContratistas.length > 0 && selectedReport === 'servicios') {
-          params += `&contratistaIds=${selectedContratistas.join(',')}`;
+          parts.push(`contratistaIds=${selectedContratistas.join(',')}`);
         }
 
         if (selectedCampanaFilter && (selectedReport === 'gastos' || selectedReport === 'servicios' || selectedReport === 'campos')) {
-          params += `&campanaId=${selectedCampanaFilter}`;
+          parts.push(`campanaId=${selectedCampanaFilter}`);
         }
 
         if (selectedCultivos.length > 0 && selectedReport === 'rendimientos') {
-          params += `&cultivos=${selectedCultivos.join(',')}`;
+          parts.push(`cultivos=${selectedCultivos.join(',')}`);
         }
+
+        const params = parts.length > 0 ? `?${parts.join('&')}` : '';
 
         switch (selectedReport) {
           case 'campos':
@@ -467,7 +473,10 @@ export default function Reportes() {
                     <label className="block text-xs text-gray-600 mb-2">Campaña</label>
                     <select
                       value={selectedCampanaFilter}
-                      onChange={e => setSelectedCampanaFilter(e.target.value)}
+                      onChange={e => {
+                        setSelectedCampanaFilter(e.target.value);
+                        if (e.target.value) { setFechaInicio(''); setFechaFin(''); }
+                      }}
                       className="w-full text-xs border border-gray-300 rounded p-2 bg-white"
                     >
                       <option value="">Todas las campañas</option>
@@ -484,7 +493,11 @@ export default function Reportes() {
                     <label className="block text-xs text-gray-600 mb-2">Campaña</label>
                     <select
                       value={selectedCampana}
-                      onChange={e => setSelectedCampana(e.target.value)}
+                      onChange={e => {
+                        setSelectedCampana(e.target.value);
+                        setFechaInicio('');
+                        setFechaFin('');
+                      }}
                       className="w-full text-xs border border-gray-300 rounded p-2 bg-white"
                     >
                       {campanas.map(c => (
