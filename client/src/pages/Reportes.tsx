@@ -911,7 +911,7 @@ function ReporteCampo({
                                     type="number"
                                     min="0"
                                     step="0.01"
-                                    value={overrideStr !== undefined ? overrideStr : (precioBase ?? '')}
+                                    value={overrideStr !== undefined ? overrideStr : (precioBase != null ? parseFloat(precioBase.toFixed(2)) : '')}
                                     onChange={(e) => setPreciosOverride((prev) => ({ ...prev, [item.stockId]: e.target.value }))}
                                     placeholder="-"
                                     className="w-28 text-right border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-400"
@@ -1864,7 +1864,7 @@ function ConsumoStock({ data }: { data: any[] }) {
                                 type="number"
                                 min="0"
                                 step="0.01"
-                                value={overrideStr !== undefined ? overrideStr : (precioBase ?? '')}
+                                value={overrideStr !== undefined ? overrideStr : (precioBase != null ? parseFloat(precioBase.toFixed(2)) : '')}
                                 onChange={(e) => setPreciosOverride((prev) => ({ ...prev, [item.stockId]: e.target.value }))}
                                 placeholder="-"
                                 className="w-28 text-right border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-400"
