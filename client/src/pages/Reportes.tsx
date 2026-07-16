@@ -728,7 +728,7 @@ function ReporteCampo({
         <div ref={reportRef} className="space-y-6">
 
           {/* KPIs resumen */}
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
             {/* Gastos */}
             <div className="overflow-hidden rounded-xl border border-blue-200 shadow-sm">
               <div className="bg-blue-50 px-4 py-3">
@@ -787,6 +787,17 @@ function ReporteCampo({
                   const p = overrideStr !== undefined ? parseFloat(overrideStr) : item.precioPromedio;
                   return p == null || isNaN(p);
                 }) && <p className="text-xs text-orange-500 mt-1">* parcial</p>}
+              </div>
+            </div>
+            {/* Total */}
+            <div className="overflow-hidden rounded-xl border border-gray-300 shadow-sm">
+              <div className="bg-gray-100 px-4 py-3">
+                <p className="text-xs text-gray-600 font-medium mb-1">Total · ARS</p>
+                <p className="text-lg font-bold text-gray-900">${(totalGastosARS + totalServiciosARS + totalInsumosARS).toLocaleString('es-AR', { minimumFractionDigits: 0 })}</p>
+              </div>
+              <div className="bg-gray-200 px-4 py-3">
+                <p className="text-xs text-gray-600 font-medium mb-1">Total · USD</p>
+                <p className="text-lg font-bold text-gray-800">{(totalGastosUSD + totalServiciosUSD + totalInsumosUSD) > 0 ? `USD ${(totalGastosUSD + totalServiciosUSD + totalInsumosUSD).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}</p>
               </div>
             </div>
           </div>
