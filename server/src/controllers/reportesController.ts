@@ -568,6 +568,7 @@ export const getRendimientos = async (req: AuthRequest, res: Response): Promise<
           totalKgBrutos: 0,
           totalKgNetos: 0,
           totalDescuentos: 0,
+          grupoHectareas: r.hectareasGrupo || null,
         });
       }
       const grupo = lote.grupos.get(grupoKey);
@@ -575,6 +576,7 @@ export const getRendimientos = async (req: AuthRequest, res: Response): Promise<
       grupo.totalKgBrutos += r.kgBrutos;
       grupo.totalKgNetos += r.kgNetos;
       grupo.totalDescuentos += (r.kgBrutos - r.kgNetos);
+      if (!grupo.grupoHectareas && r.hectareasGrupo) grupo.grupoHectareas = r.hectareasGrupo;
     }
 
     const resultado = Array.from(camposMap.values()).map(campo => ({
@@ -586,7 +588,7 @@ export const getRendimientos = async (req: AuthRequest, res: Response): Promise<
         loteHectareas: lote.loteHectareas,
         grupos: Array.from(lote.grupos.values()).map((g: any) => ({
           ...g,
-          kgNetosPorHa: lote.loteHectareas > 0 ? g.totalKgNetos / lote.loteHectareas : null,
+          kgNetosPorHa: (g.grupoHectareas || lote.loteHectareas) > 0 ? g.totalKgNetos / (g.grupoHectareas || lote.loteHectareas) : null,
         })),
       })),
     }));
