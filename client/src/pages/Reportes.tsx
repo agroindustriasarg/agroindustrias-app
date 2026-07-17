@@ -921,44 +921,58 @@ function ReporteCampo({
           })()}
 
           {/* Sección Rendimientos */}
-          {rendimientos.length > 0 && (
-            <div className="card">
-              <h3 className="text-lg font-semibold mb-4 text-green-800 border-b pb-2">Rendimientos / Cosechas</h3>
-              {rendimientos.map((campo) => (
-                <div key={campo.campoId} className="mb-4">
-                  {rendimientos.length > 1 && (
-                    <h4 className="font-semibold text-gray-700 mb-2">{campo.campoNombre}</h4>
-                  )}
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cultivo</th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Cosechas</th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Superficie (ha)</th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Producción (tn)</th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Rend. (tn/ha)</th>
+          {rendimientos.length > 0 && (() => {
+            // Agregar por cultivo+variedad usando grupoHectareas || loteHectareas
+            const cultivoMap = new Map<string, { cultivo: string; variedad: string; entregas: number; totalHa: number; totalKgNetos: number }>();
+            rendimientos.forEach((campo: any) => {
+              campo.lotes?.forEach((lote: any) => {
+                lote.grupos?.forEach((g: any) => {
+                  const key = `${g.cultivo}||${g.variedad || ''}`;
+                  const ha = g.grupoHectareas || lote.loteHectareas || 0;
+                  if (!cultivoMap.has(key)) cultivoMap.set(key, { cultivo: g.cultivo, variedad: g.variedad || '', entregas: 0, totalHa: 0, totalKgNetos: 0 });
+                  const entry = cultivoMap.get(key)!;
+                  entry.entregas += g.entregas;
+                  entry.totalHa += ha;
+                  entry.totalKgNetos += g.totalKgNetos;
+                });
+              });
+            });
+            const rows = Array.from(cultivoMap.values());
+            if (rows.length === 0) return null;
+            return (
+              <div className="card">
+                <h3 className="text-lg font-semibold mb-4 text-green-800 border-b pb-2">Rendimientos / Cosechas</h3>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cultivo</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Variedad</th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Cosechas</th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Superficie (ha)</th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Producción (tn)</th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Rend. (tn/ha)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {rows.map((row, idx) => (
+                        <tr key={idx} className="hover:bg-gray-50">
+                          <td className="px-4 py-3">
+                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">{row.cultivo}</span>
+                          </td>
+                          <td className="px-4 py-3 text-gray-500">{row.variedad || '-'}</td>
+                          <td className="px-4 py-3 text-right">{row.entregas}</td>
+                          <td className="px-4 py-3 text-right">{row.totalHa.toFixed(2)} ha</td>
+                          <td className="px-4 py-3 text-right font-semibold text-yellow-600">{(row.totalKgNetos / 1000).toFixed(2)} tn</td>
+                          <td className="px-4 py-3 text-right font-bold text-blue-600">{row.totalHa > 0 ? (row.totalKgNetos / row.totalHa / 1000).toFixed(2) : '-'} tn/ha</td>
                         </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {campo.cultivos?.map((cultivo: any, idx: number) => (
-                          <tr key={idx} className="hover:bg-gray-50">
-                            <td className="px-4 py-3">
-                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">{cultivo.cultivo}</span>
-                            </td>
-                            <td className="px-4 py-3 text-right">{cultivo.cantidad}</td>
-                            <td className="px-4 py-3 text-right">{cultivo.totalSuperficie.toFixed(2)} ha</td>
-                            <td className="px-4 py-3 text-right font-semibold text-yellow-600">{cultivo.totalCantidad.toFixed(2)} tn</td>
-                            <td className="px-4 py-3 text-right font-bold text-blue-600">{cultivo.promedioRendimiento.toFixed(2)} tn/ha</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              ))}
-            </div>
-          )}
+              </div>
+            );
+          })()}
 
         </div>
       )}
