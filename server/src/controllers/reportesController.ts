@@ -96,19 +96,33 @@ export const getGastosPorCategoria = async (req: AuthRequest, res: Response): Pr
       whereClause.lotes = { some: { loteId: { in: idsArray } } };
     }
 
-    const gastosPorCategoria = await prisma.gasto.groupBy({
-      by: ['categoria'],
-      where: whereClause,
-      _sum: { monto: true },
-      _count: { id: true },
-      orderBy: { _sum: { monto: 'desc' } },
-    });
+    const [gastosPorCategoria, gastosDetalle] = await Promise.all([
+      prisma.gasto.groupBy({
+        by: ['categoria'],
+        where: whereClause,
+        _sum: { monto: true },
+        _count: { id: true },
+        orderBy: { _sum: { monto: 'desc' } },
+      }),
+      prisma.gasto.findMany({
+        where: whereClause,
+        select: { id: true, concepto: true, fecha: true, monto: true, categoria: true, descripcion: true },
+        orderBy: { fecha: 'desc' },
+      }),
+    ]);
+
+    const detalleMap: Record<string, any[]> = {};
+    for (const g of gastosDetalle) {
+      if (!detalleMap[g.categoria]) detalleMap[g.categoria] = [];
+      detalleMap[g.categoria].push({ id: g.id, concepto: g.concepto, fecha: g.fecha, monto: g.monto, descripcion: g.descripcion });
+    }
 
     res.json(
       gastosPorCategoria.map((cat) => ({
         categoria: cat.categoria,
         total: cat._sum.monto || 0,
         cantidad: cat._count.id,
+        gastos: detalleMap[cat.categoria] || [],
       }))
     );
   } catch (error) {

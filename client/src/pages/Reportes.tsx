@@ -1169,6 +1169,8 @@ function ResumenGeneral({ data }: { data: any }) {
 // Componente: Gastos por Categoría
 function GastosPorCategoria({ data }: { data: any[] }) {
   const reportRef = useRef<HTMLDivElement>(null);
+  const [expandedCats, setExpandedCats] = useState<Record<string, boolean>>({});
+  const toggleCat = (cat: string) => setExpandedCats(prev => ({ ...prev, [cat]: !prev[cat] }));
 
   if (!data || data.length === 0) {
     return (
@@ -1232,40 +1234,44 @@ function GastosPorCategoria({ data }: { data: any[] }) {
           <h3 className="text-lg font-semibold mb-4">Detalle por Categoría</h3>
           <div className="space-y-2">
             {data.map((item, index) => (
-              <div key={item.categoria} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <div
-                    className="w-4 h-4 rounded"
-                    style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                  />
-                  <div>
-                    <p className="font-medium">{item.categoria}</p>
-                    <p className="text-xs text-gray-600">{item.cantidad} gastos</p>
+              <div key={item.categoria}>
+                <button
+                  type="button"
+                  onClick={() => toggleCat(item.categoria)}
+                  className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="w-4 h-4 rounded flex-shrink-0" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
+                    <div className="text-left">
+                      <p className="font-medium">{item.categoria}</p>
+                      <p className="text-xs text-gray-600">{item.cantidad} gastos</p>
+                    </div>
                   </div>
-                </div>
-                <p className="font-bold text-gray-900">
-                  ${item.total.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
-                </p>
+                  <div className="flex items-center space-x-2">
+                    <p className="font-bold text-gray-900">${item.total.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</p>
+                    {expandedCats[item.categoria] ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+                  </div>
+                </button>
+                {expandedCats[item.categoria] && item.gastos?.length > 0 && (
+                  <div className="mt-1 ml-7 border-l-2 border-gray-200 pl-3 space-y-1">
+                    {item.gastos.map((g: any) => (
+                      <div key={g.id} className="flex items-center justify-between py-1.5 px-2 text-sm hover:bg-gray-50 rounded">
+                        <div>
+                          <span className="text-gray-800">{g.concepto}</span>
+                          {g.descripcion && <span className="text-gray-400 ml-2 text-xs">— {g.descripcion}</span>}
+                          <span className="text-gray-400 ml-2 text-xs">{new Date(g.fecha).toLocaleDateString('es-AR')}</span>
+                        </div>
+                        <span className="font-medium text-gray-700 ml-4 flex-shrink-0">${g.monto.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Gráfico de barras */}
-      <div className="card">
-        <h3 className="text-lg font-semibold mb-4">Comparativa</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="categoria" />
-            <YAxis />
-            <Tooltip formatter={(value: number) => `$${value.toLocaleString('es-AR')}`} />
-            <Legend />
-            <Bar dataKey="total" fill="#3b82f6" name="Total" />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
       </div>
     </div>
   );
