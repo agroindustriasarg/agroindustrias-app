@@ -17,6 +17,7 @@ import chequesRoutes from './cheques.js';
 import proveedoresRoutes from './proveedores.js';
 import destinosRoutes from './destinos.js';
 import campanasRoutes from './campanas.js';
+import pizarraRoutes from './pizarra.js';
 
 const router = Router();
 
@@ -37,5 +38,6 @@ router.use('/cheques', chequesRoutes);
 router.use('/proveedores', proveedoresRoutes);
 router.use('/destinos', destinosRoutes);
 router.use('/campanas', campanasRoutes);
+router.use('/pizarra', pizarraRoutes);
 
 export default router;
