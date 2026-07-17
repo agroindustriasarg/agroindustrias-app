@@ -107,7 +107,7 @@ export const getGastosPorCategoria = async (req: AuthRequest, res: Response): Pr
       prisma.gasto.findMany({
         where: whereClause,
         select: { id: true, concepto: true, fecha: true, monto: true, categoria: true, descripcion: true },
-        orderBy: { fecha: 'desc' },
+        orderBy: [{ fecha: 'desc' }, { monto: 'desc' }],
       }),
     ]);
 

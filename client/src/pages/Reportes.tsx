@@ -1252,9 +1252,9 @@ function GastosPorCategoria({ data }: { data: any[] }) {
                     {expandedCats[item.categoria] ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
                   </div>
                 </button>
-                {expandedCats[item.categoria] && item.gastos?.length > 0 && (
+                {expandedCats[item.categoria] && (
                   <div className="mt-1 ml-7 border-l-2 border-gray-200 pl-3 space-y-1">
-                    {item.gastos.map((g: any) => (
+                    {(item.gastos?.length > 0) ? item.gastos.map((g: any) => (
                       <div key={g.id} className="flex items-center justify-between py-1.5 px-2 text-sm hover:bg-gray-50 rounded">
                         <div>
                           <span className="text-gray-800">{g.concepto}</span>
@@ -1263,7 +1263,9 @@ function GastosPorCategoria({ data }: { data: any[] }) {
                         </div>
                         <span className="font-medium text-gray-700 ml-4 flex-shrink-0">${g.monto.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
                       </div>
-                    ))}
+                    )) : (
+                      <p className="text-xs text-gray-400 py-2 px-2">Sin detalle disponible</p>
+                    )}
                   </div>
                 )}
               </div>
