@@ -1169,8 +1169,6 @@ function ResumenGeneral({ data }: { data: any }) {
 // Componente: Gastos por Categoría
 function GastosPorCategoria({ data }: { data: any[] }) {
   const reportRef = useRef<HTMLDivElement>(null);
-  const [expandedCats, setExpandedCats] = useState<Record<string, boolean>>({});
-  const toggleCat = (cat: string) => setExpandedCats(prev => ({ ...prev, [cat]: !prev[cat] }));
 
   if (!data || data.length === 0) {
     return (
@@ -1203,77 +1201,91 @@ function GastosPorCategoria({ data }: { data: any[] }) {
       </div>
 
       <div ref={reportRef}>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Gráfico de torta */}
-        <div className="card">
-          <h3 className="text-lg font-semibold mb-4">Distribución</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <RechartsPieChart>
-              <Pie
-                data={pieData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {pieData.map((_entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(value: number) => `$${value.toLocaleString('es-AR')}`} />
-            </RechartsPieChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Tabla de datos */}
-        <div className="card">
-          <h3 className="text-lg font-semibold mb-4">Detalle por Categoría</h3>
-          <div className="space-y-2">
-            {data.map((item, index) => (
-              <div key={item.categoria}>
-                <button
-                  type="button"
-                  onClick={() => toggleCat(item.categoria)}
-                  className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+        {/* Fila superior: gráfico + resumen */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <div className="card">
+            <h3 className="text-lg font-semibold mb-4">Distribución</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <RechartsPieChart>
+                <Pie
+                  data={pieData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
                 >
+                  {pieData.map((_entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value: number) => `$${value.toLocaleString('es-AR')}`} />
+              </RechartsPieChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="card">
+            <h3 className="text-lg font-semibold mb-4">Resumen por Categoría</h3>
+            <div className="space-y-2">
+              {data.map((item, index) => (
+                <div key={item.categoria} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div className="flex items-center space-x-3">
                     <div className="w-4 h-4 rounded flex-shrink-0" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
-                    <div className="text-left">
+                    <div>
                       <p className="font-medium">{item.categoria}</p>
                       <p className="text-xs text-gray-600">{item.cantidad} gastos</p>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <p className="font-bold text-gray-900">${item.total.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</p>
-                    {expandedCats[item.categoria] ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
-                  </div>
-                </button>
-                {expandedCats[item.categoria] && (
-                  <div className="mt-1 ml-7 border-l-2 border-gray-200 pl-3 space-y-1">
-                    {(item.gastos?.length > 0) ? item.gastos.map((g: any) => (
-                      <div key={g.id} className="flex items-center justify-between py-1.5 px-2 text-sm hover:bg-gray-50 rounded">
-                        <div>
-                          <span className="text-gray-800">{g.concepto}</span>
-                          {g.descripcion && <span className="text-gray-400 ml-2 text-xs">— {g.descripcion}</span>}
-                          <span className="text-gray-400 ml-2 text-xs">{new Date(g.fecha).toLocaleDateString('es-AR')}</span>
-                        </div>
-                        <span className="font-medium text-gray-700 ml-4 flex-shrink-0">${g.monto.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
-                      </div>
-                    )) : (
-                      <p className="text-xs text-gray-400 py-2 px-2">Sin detalle disponible</p>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
+                  <p className="font-bold text-gray-900">${item.total.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
 
+        {/* Tabla full-width: detalle de gastos por categoría */}
+        <div className="card">
+          <h3 className="text-lg font-semibold mb-4">Detalle de Gastos</h3>
+          {data.map((item, index) => (
+            item.gastos?.length > 0 && (
+              <div key={item.categoria} className="mb-8">
+                <div className="flex items-center space-x-2 mb-2">
+                  <div className="w-3 h-3 rounded flex-shrink-0" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
+                  <h4 className="font-semibold text-gray-800">{item.categoria}</h4>
+                  <span className="text-xs text-gray-500">— {item.cantidad} gastos · ${item.total.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
+                </div>
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">Concepto</th>
+                      <th className="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">Descripción</th>
+                      <th className="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">Fecha</th>
+                      <th className="text-right py-2 px-3 text-xs font-medium text-gray-500 uppercase">Monto</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {item.gastos.map((g: any) => (
+                      <tr key={g.id} className="hover:bg-gray-50">
+                        <td className="py-2 px-3 text-gray-800">{g.concepto}</td>
+                        <td className="py-2 px-3 text-gray-500 text-xs">{g.descripcion || '-'}</td>
+                        <td className="py-2 px-3 text-gray-500">{new Date(g.fecha).toLocaleDateString('es-AR')}</td>
+                        <td className="py-2 px-3 text-right font-medium">${g.monto.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 border-gray-300 font-semibold bg-gray-50">
+                      <td className="py-2 px-3 text-xs text-gray-600" colSpan={3}>Total {item.categoria}</td>
+                      <td className="py-2 px-3 text-right">${item.total.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            )
+          ))}
+        </div>
       </div>
     </div>
   );
