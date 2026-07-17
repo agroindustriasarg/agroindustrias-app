@@ -176,6 +176,40 @@ router.post('/', authMiddleware, async (req, res) => {
   }
 });
 
+// Actualizar fecha de un pago
+router.put('/:id', authMiddleware, async (req, res) => {
+  try {
+    const { fechaPago } = req.body;
+    const pago = await prisma.pago.update({
+      where: { id: req.params.id },
+      data: { ...(fechaPago && { fechaPago: new Date(fechaPago) }) },
+      include: { cuenta: true, facturas: { include: { factura: true } } },
+    });
+    res.json(pago);
+  } catch (error) {
+    console.error('Error al actualizar pago:', error);
+    res.status(500).json({ error: 'Error al actualizar pago' });
+  }
+});
+
+// Actualizar monto/moneda de una imputación (PagoFactura)
+router.put('/imputacion/:id', authMiddleware, async (req, res) => {
+  try {
+    const { monto, monedaPago } = req.body;
+    const pf = await prisma.pagoFactura.update({
+      where: { id: req.params.id },
+      data: {
+        ...(monto !== undefined && { monto: parseFloat(monto) }),
+        ...(monedaPago && { monedaPago }),
+      },
+    });
+    res.json(pf);
+  } catch (error) {
+    console.error('Error al actualizar imputación:', error);
+    res.status(500).json({ error: 'Error al actualizar imputación' });
+  }
+});
+
 // Eliminar un pago (y recalcular estado de facturas)
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {

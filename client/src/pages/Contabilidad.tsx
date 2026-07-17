@@ -1,4 +1,4 @@
-import { Calculator, FileText, CreditCard, BookCheck, Wallet } from 'lucide-react';
+import { Calculator, FileText, CreditCard, BookCheck, Wallet, Receipt } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function Contabilidad() {
@@ -81,6 +81,22 @@ export default function Contabilidad() {
                 Cuentas Corrientes
               </h3>
               <p className="text-gray-600 mt-1">Gestión de cuentas corrientes</p>
+            </div>
+          </div>
+        </Link>
+        <Link
+          to="/contabilidad/pagos-realizados"
+          className="card group cursor-pointer"
+        >
+          <div className="flex items-start space-x-4">
+            <div className="bg-blue-600 p-3 rounded-lg">
+              <Receipt className="w-6 h-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-xl font-semibold text-gray-900 group-hover:text-primary-600 transition-colors">
+                Pagos Realizados
+              </h3>
+              <p className="text-gray-600 mt-1">Historial y edición de pagos de facturas</p>
             </div>
           </div>
         </Link>
