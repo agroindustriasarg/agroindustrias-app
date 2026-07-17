@@ -24,7 +24,7 @@ const GRANO_EMOJI: Record<string, string> = {
 };
 
 interface PrecioPizarra { grano: string; ars: string | null; usd: string | null }
-interface Pizarra { fecha: string; precios: PrecioPizarra[]; stale?: boolean }
+interface Pizarra { fecha: string; precios: PrecioPizarra[]; dolarBNA: number | null; stale?: boolean }
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -79,7 +79,7 @@ export default function Dashboard() {
         ) : !pizarra || pizarra.precios.length === 0 ? (
           <p className="text-sm text-gray-400 text-center py-2">No se pudieron obtener los precios</p>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {pizarra.precios.map((p) => {
               const emoji = GRANO_EMOJI[p.grano.toLowerCase()] || '🌱';
               return (
@@ -96,6 +96,17 @@ export default function Dashboard() {
                 </div>
               );
             })}
+
+            {/* Dólar BNA */}
+            {pizarra.dolarBNA != null && (
+              <div className="bg-blue-50 rounded-lg px-3 py-2 text-center border border-blue-100">
+                <div className="text-base mb-0.5">💵 <span className="text-xs font-semibold text-blue-600 uppercase tracking-wide">Dólar BNA</span></div>
+                <div className="text-sm font-bold text-blue-800">
+                  ${pizarra.dolarBNA.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+                <div className="text-xs text-blue-400">vendedor</div>
+              </div>
+            )}
           </div>
         )}
       </div>
