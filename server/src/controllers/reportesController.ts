@@ -441,9 +441,19 @@ export const getConsumoStock = async (req: AuthRequest, res: Response): Promise<
         stockId: true,
         precioUnitario: true,
         cantidad: true,
-        factura: { select: { fechaEmision: true } },
+        factura: { select: { fechaEmision: true, moneda: true } },
       },
     });
+
+    // Rastrear moneda más reciente por stockId desde facturas
+    const monedaRecientePorStock = new Map<string, { moneda: string; fecha: Date }>();
+    for (const i of itemsFactura) {
+      if (!i.stockId || !i.factura?.moneda) continue;
+      const existing = monedaRecientePorStock.get(i.stockId);
+      if (!existing || new Date(i.factura.fechaEmision) > new Date(existing.fecha)) {
+        monedaRecientePorStock.set(i.stockId, { moneda: i.factura.moneda, fecha: i.factura.fechaEmision });
+      }
+    }
 
     // Combinar ambas fuentes en período
     const preciosEnPeriodo: PrecioEntry[] = [
@@ -477,8 +487,17 @@ export const getConsumoStock = async (req: AuthRequest, res: Response): Promise<
       });
       const todosItemsFactura = await prisma.facturaItem.findMany({
         where: { stockId: { in: sinPrecio } },
-        select: { stockId: true, precioUnitario: true, factura: { select: { fechaEmision: true } } },
+        select: { stockId: true, precioUnitario: true, factura: { select: { fechaEmision: true, moneda: true } } },
       });
+
+      // Rastrear moneda de fallback también
+      for (const i of todosItemsFactura) {
+        if (!i.stockId || !i.factura?.moneda) continue;
+        const existing = monedaRecientePorStock.get(i.stockId);
+        if (!existing || new Date(i.factura.fechaEmision) > new Date(existing.fecha)) {
+          monedaRecientePorStock.set(i.stockId, { moneda: i.factura.moneda, fecha: i.factura.fechaEmision });
+        }
+      }
 
       const candidatos: { stockId: string; precioUnitario: number; fecha: Date }[] = [
         ...todasEntradasRemito
@@ -526,6 +545,7 @@ export const getConsumoStock = async (req: AuthRequest, res: Response): Promise<
           cantidadMovimientos: m._count.id,
           precioPromedio,
           precioUnitario: stock?.precioUnitario ?? null,
+          monedaPrecio: monedaRecientePorStock.get(m.stockId)?.moneda ?? 'ARS',
         };
       })
     );

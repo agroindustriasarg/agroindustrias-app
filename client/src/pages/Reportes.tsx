@@ -639,23 +639,22 @@ function ReporteCampo({
   const totalServiciosARS = servicios.filter(s => s.moneda !== 'USD').reduce((s, srv) => s + srv.totalCosto, 0);
   const totalServiciosUSD = servicios.filter(s => s.moneda === 'USD').reduce((s, srv) => s + srv.totalCosto, 0);
   const totalProduccion = rendimientos.reduce((s, r) => s + (r.totalCantidad || 0), 0);
-  const CATEGORIAS_USD = ['Agroquímicos'];
-  const esUSD = (categoria: string) => CATEGORIAS_USD.includes(categoria);
-
   const getPrecioEfectivo = (item: any) => {
     const pu = preciosUnitarios[item.stockId];
     const puVal = pu !== undefined && pu !== '' ? parseFloat(pu) : null;
     return puVal != null && !isNaN(puVal) ? puVal : item.precioPromedio;
   };
 
+  const esItemUSD = (item: any) => item.monedaPrecio === 'USD';
+
   const totalInsumosARS = stock.reduce((acc: number, item: any) => {
-    if (esUSD(item.categoria)) return acc;
+    if (esItemUSD(item)) return acc;
     const p = getPrecioEfectivo(item);
     if (p != null && !isNaN(p)) return acc + p * item.cantidadConsumida;
     return acc;
   }, 0);
   const totalInsumosUSD = stock.reduce((acc: number, item: any) => {
-    if (!esUSD(item.categoria)) return acc;
+    if (!esItemUSD(item)) return acc;
     const p = getPrecioEfectivo(item);
     if (p != null && !isNaN(p)) return acc + p * item.cantidadConsumida;
     return acc;
@@ -859,7 +858,7 @@ function ReporteCampo({
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                           {items.map((item: any) => {
-                            const moneda = esUSD(categoria) ? 'USD' : '$';
+                            const moneda = item.monedaPrecio === 'USD' ? 'USD' : '$';
                             const precioEfectivo = getPrecioEfectivo(item);
                             const costoEstimado = precioEfectivo != null && !isNaN(precioEfectivo) ? precioEfectivo * item.cantidadConsumida : null;
                             return (
@@ -891,7 +890,7 @@ function ReporteCampo({
                           })}
                         </tbody>
                         {(() => {
-                          const moneda = esUSD(categoria) ? 'USD' : '$';
+                          const moneda = (items as any[]).some((i) => i.monedaPrecio === 'USD') ? 'USD' : '$';
                           const totalCosto = items.reduce((acc: number, item: any) => {
                             const p = getPrecioEfectivo(item);
                             if (p != null && !isNaN(p)) return acc + p * item.cantidadConsumida;
@@ -1848,8 +1847,6 @@ function ConsumoStock({ data }: { data: any[] }) {
 
       {/* Tabla detallada agrupada por categoría */}
       {(() => {
-        const CATEGORIAS_USD_CS = ['Agroquímicos'];
-        const esUSDCat = (cat: string) => CATEGORIAS_USD_CS.includes(cat);
         const categoriaBadge: Record<string, string> = {
           'Agroquímicos': 'bg-orange-100 text-orange-800',
           'Semillas': 'bg-green-100 text-green-800',
@@ -1889,7 +1886,7 @@ function ConsumoStock({ data }: { data: any[] }) {
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {items.map((item) => {
-                        const moneda = esUSDCat(categoria) ? 'USD' : '$';
+                        const moneda = (item as any).monedaPrecio === 'USD' ? 'USD' : '$';
                         const precioEfectivo = getPrecioEfectivo(item);
                         const costoEstimado = precioEfectivo != null && !isNaN(precioEfectivo) ? precioEfectivo * item.cantidadConsumida : null;
                         return (
@@ -1921,7 +1918,7 @@ function ConsumoStock({ data }: { data: any[] }) {
                       })}
                     </tbody>
                     {(() => {
-                      const moneda = esUSDCat(categoria) ? 'USD' : '$';
+                      const moneda = items.some((i) => (i as any).monedaPrecio === 'USD') ? 'USD' : '$';
                       const totalCosto = items.reduce((acc, item) => {
                         const p = getPrecioEfectivo(item);
                         if (p != null && !isNaN(p)) return acc + p * item.cantidadConsumida;
