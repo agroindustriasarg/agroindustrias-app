@@ -63,6 +63,19 @@ export default function PagoProveedores() {
   const [fechaPago, setFechaPago] = useState(new Date().toISOString().split('T')[0]);
   const [observaciones, setObservaciones] = useState('');
 
+  // Cheque propio
+  const [chequeData, setChequeData] = useState({
+    numeroCheque: '',
+    banco: '',
+    beneficiario: '',
+    monto: '',
+    moneda: 'ARS',
+    fechaEmision: new Date().toISOString().split('T')[0],
+    fechaVencimiento: '',
+    cruzado: false,
+    observaciones: '',
+  });
+
   useEffect(() => { fetchData(); }, []);
 
   const fetchData = async () => {
@@ -225,6 +238,21 @@ export default function PagoProveedores() {
         observaciones
       });
 
+      // Si es cheque propio, crear el cheque en chequera (estado PENDIENTE por defecto)
+      if (formaPago === 'Cheque Propio') {
+        await api.post('/cheques', {
+          numeroCheque: chequeData.numeroCheque,
+          banco: chequeData.banco,
+          beneficiario: chequeData.beneficiario,
+          monto: parseFloat(chequeData.monto),
+          moneda: chequeData.moneda,
+          fechaEmision: chequeData.fechaEmision,
+          fechaVencimiento: chequeData.fechaVencimiento,
+          cruzado: chequeData.cruzado,
+          observaciones: chequeData.observaciones,
+        });
+      }
+
       alert('Pago registrado correctamente');
       resetFormulario();
       fetchData();
@@ -242,6 +270,11 @@ export default function PagoProveedores() {
     setFormaPago('Transferencia');
     setFechaPago(new Date().toISOString().split('T')[0]);
     setObservaciones('');
+    setChequeData({
+      numeroCheque: '', banco: '', beneficiario: '', monto: '',
+      moneda: 'ARS', fechaEmision: new Date().toISOString().split('T')[0],
+      fechaVencimiento: '', cruzado: false, observaciones: '',
+    });
     if (cuentas.length > 0) setCuentaId(cuentas[0].id);
   };
 
@@ -382,9 +415,27 @@ export default function PagoProveedores() {
                   </div>
                   <div>
                     <label className="label">Forma de Pago *</label>
-                    <select value={formaPago} onChange={(e) => setFormaPago(e.target.value)} className="input" required>
+                    <select
+                      value={formaPago}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormaPago(val);
+                        // Pre-completar beneficiario con el proveedor de la primera factura seleccionada
+                        if (val === 'Cheque Propio') {
+                          const primeraFactura = facturasPendientes.find(f => facturasSeleccionadas.has(f.id));
+                          setChequeData(prev => ({
+                            ...prev,
+                            beneficiario: primeraFactura?.proveedor || '',
+                            fechaEmision: fechaPago,
+                          }));
+                        }
+                      }}
+                      className="input"
+                      required
+                    >
                       <option value="Transferencia">Transferencia</option>
-                      <option value="Cheque">Cheque</option>
+                      <option value="Cheque Terceros">Cheque Terceros</option>
+                      <option value="Cheque Propio">Cheque Propio</option>
                       <option value="Efectivo">Efectivo</option>
                       <option value="Débito automático">Débito automático</option>
                       <option value="Tarjeta de crédito">Tarjeta de crédito</option>
@@ -397,8 +448,111 @@ export default function PagoProveedores() {
                   </div>
                 </div>
 
+                {/* Formulario de Cheque Propio */}
+                {formaPago === 'Cheque Propio' && (
+                  <div className="mb-4 p-4 border border-blue-200 rounded-lg bg-blue-50">
+                    <h3 className="text-sm font-semibold text-blue-800 mb-3">Datos del Cheque</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="label">Número de Cheque *</label>
+                        <input
+                          type="text"
+                          value={chequeData.numeroCheque}
+                          onChange={(e) => setChequeData(p => ({ ...p, numeroCheque: e.target.value }))}
+                          className="input"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="label">Banco *</label>
+                        <input
+                          type="text"
+                          value={chequeData.banco}
+                          onChange={(e) => setChequeData(p => ({ ...p, banco: e.target.value }))}
+                          className="input"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="label">Beneficiario *</label>
+                        <input
+                          type="text"
+                          value={chequeData.beneficiario}
+                          onChange={(e) => setChequeData(p => ({ ...p, beneficiario: e.target.value }))}
+                          className="input"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="label">Monto *</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          value={chequeData.monto}
+                          onChange={(e) => setChequeData(p => ({ ...p, monto: e.target.value }))}
+                          className="input"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="label">Moneda</label>
+                        <select
+                          value={chequeData.moneda}
+                          onChange={(e) => setChequeData(p => ({ ...p, moneda: e.target.value }))}
+                          className="input"
+                        >
+                          <option value="ARS">ARS (Pesos)</option>
+                          <option value="USD">USD (Dólares)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="label">Fecha de Emisión *</label>
+                        <input
+                          type="date"
+                          value={chequeData.fechaEmision}
+                          onChange={(e) => setChequeData(p => ({ ...p, fechaEmision: e.target.value }))}
+                          className="input"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="label">Fecha de Vencimiento *</label>
+                        <input
+                          type="date"
+                          value={chequeData.fechaVencimiento}
+                          onChange={(e) => setChequeData(p => ({ ...p, fechaVencimiento: e.target.value }))}
+                          className="input"
+                          required
+                        />
+                      </div>
+                      <div className="flex items-center mt-6">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={chequeData.cruzado}
+                            onChange={(e) => setChequeData(p => ({ ...p, cruzado: e.target.checked }))}
+                            className="rounded"
+                          />
+                          <span className="text-sm text-gray-700">Cheque Cruzado</span>
+                        </label>
+                      </div>
+                    </div>
+                    <div className="mt-3">
+                      <label className="label">Observaciones del Cheque</label>
+                      <textarea
+                        value={chequeData.observaciones}
+                        onChange={(e) => setChequeData(p => ({ ...p, observaciones: e.target.value }))}
+                        className="input"
+                        rows={2}
+                        placeholder="Notas sobre el cheque..."
+                      />
+                    </div>
+                  </div>
+                )}
+
                 <div className="mb-4">
-                  <label className="label">Observaciones</label>
+                  <label className="label">Observaciones del Pago</label>
                   <textarea value={observaciones} onChange={(e) => setObservaciones(e.target.value)} className="input" rows={3} placeholder="Notas adicionales sobre el pago..." />
                 </div>
 
