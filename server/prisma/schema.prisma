@@ -55,6 +55,7 @@ model Campo {
   servicios    Servicio[]
   gastos       Gasto[]
   rendimientos Rendimiento[]
+  ventas       VentaGrano[]
 
   @@map("campos")
 }
@@ -348,6 +349,7 @@ model Campana {
   gastos      Gasto[]
   servicios   Servicio[]
   movimientos MovimientoStock[]
+  ventas      VentaGrano[]
 
   @@map("campanas")
 }
@@ -441,6 +443,33 @@ model Destino {
   rendimientos Rendimiento[]
 
   @@map("destinos")
+}
+
+// ========== VENTAS DE GRANOS ==========
+
+model VentaGrano {
+  id                  String    @id @default(uuid())
+  fecha               DateTime
+  numeroLiquidacion   String?
+  grano               String    // SOJA, MAIZ, TRIGO, GIRASOL, SORGO
+  grado               String?   // G2, etc.
+  kgEntregados        Float
+  precioTn            Float     // precio pizarra $/tn
+  fleteTn             Float?    // flete por tn (ya descontado por AGD)
+  retenciones         Float?    // total retenciones AFIP $
+  deducciones         Float?    // otras deducciones (sellado, etc.) $
+  importeNeto         Float     // importe neto a pagar (ingreso real)
+  destino             String?   // AGD, COFCO, etc.
+  campanaId           String?
+  campoId             String?
+  observaciones       String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  campana Campana? @relation(fields: [campanaId], references: [id], onDelete: SetNull)
+  campo   Campo?   @relation(fields: [campoId], references: [id], onDelete: SetNull)
+
+  @@map("ventas_granos")
 }
 
 // ========== REPORTES ==========

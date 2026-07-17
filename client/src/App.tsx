@@ -19,6 +19,7 @@ import PagoProveedores from './pages/PagoProveedores';
 import Chequera from './pages/Chequera';
 import CuentasCorrientes from './pages/CuentasCorrientes';
 import PagosRealizados from './pages/PagosRealizados';
+import Ventas from './pages/Ventas';
 import Rendimientos from './pages/Rendimientos';
 import Reportes from './pages/Reportes';
 import Usuarios from './pages/Usuarios';
@@ -172,6 +173,14 @@ function App() {
             element={
               <PrivateRoute>
                 <PagosRealizados />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/ventas"
+            element={
+              <PrivateRoute>
+                <Ventas />
               </PrivateRoute>
             }
           />

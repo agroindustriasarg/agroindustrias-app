@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../services/apiWithCache';
 
 const modules = [
+  { name: 'Ventas', icon: TrendingUp, description: 'Liquidaciones de granos', path: '/ventas', color: 'bg-green-600', roles: ['ADMIN', 'GERENTE'] },
   { name: 'Campos', icon: MapPin, description: 'Gestiona campos y lotes', path: '/campos', color: 'bg-green-500', roles: ['ADMIN', 'GERENTE'] },
   { name: 'Maquinarias', icon: Truck, description: 'Control de maquinaria agrícola', path: '/maquinarias', color: 'bg-blue-500', roles: ['ADMIN'] },
   { name: 'Servicios', icon: Wrench, description: 'Registro de servicios', path: '/servicios', color: 'bg-purple-500', roles: ['ADMIN', 'GERENTE', 'OPERARIO'] },
