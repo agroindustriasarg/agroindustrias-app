@@ -14,13 +14,20 @@ router.get('/', authMiddleware, async (req, res) => {
         cuenta: true,
         facturas: {
           include: {
-            factura: true
+            factura: {
+              include: {
+                items: {
+                  include: {
+                    stock: true,
+                    movimientoStock: { include: { stock: true } }
+                  }
+                }
+              }
+            }
           }
         }
       },
-      orderBy: {
-        fechaPago: 'desc'
-      }
+      orderBy: { fechaPago: 'desc' }
     });
     res.json(pagos);
   } catch (error) {

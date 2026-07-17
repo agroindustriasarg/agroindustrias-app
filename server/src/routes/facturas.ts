@@ -277,6 +277,38 @@ router.post('/', authMiddleware, async (req, res) => {
   }
 });
 
+// Actualizar un ítem de factura (cantidad, precioUnitario)
+router.put('/items/:id', authMiddleware, async (req, res) => {
+  try {
+    const { cantidad, precioUnitario } = req.body;
+    const precioTotal = Number(cantidad) * Number(precioUnitario);
+    const item = await prisma.facturaItem.update({
+      where: { id: req.params.id },
+      data: { cantidad: Number(cantidad), precioUnitario: Number(precioUnitario), precioTotal },
+      include: { stock: true },
+    });
+    res.json(item);
+  } catch (error) {
+    console.error('Error al actualizar ítem:', error);
+    res.status(500).json({ error: 'Error al actualizar ítem' });
+  }
+});
+
+// Actualizar moneda de una factura
+router.patch('/:id/moneda', authMiddleware, async (req, res) => {
+  try {
+    const { moneda } = req.body;
+    const factura = await prisma.factura.update({
+      where: { id: req.params.id },
+      data: { moneda },
+    });
+    res.json(factura);
+  } catch (error) {
+    console.error('Error al actualizar moneda:', error);
+    res.status(500).json({ error: 'Error al actualizar moneda' });
+  }
+});
+
 // Actualizar una factura
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
