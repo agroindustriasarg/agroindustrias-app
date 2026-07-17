@@ -1201,6 +1201,23 @@ function GastosPorCategoria({ data }: { data: any[] }) {
       </div>
 
       <div ref={reportRef}>
+        {/* Total general */}
+        {(() => {
+          const total = data.reduce((s, item) => s + item.total, 0);
+          const cantidad = data.reduce((s, item) => s + item.cantidad, 0);
+          return (
+            <div className="card bg-gradient-to-br from-blue-50 to-blue-100 mb-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-blue-700 font-medium">Total Gastos</p>
+                  <p className="text-3xl font-bold text-blue-900">${total.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</p>
+                </div>
+                <p className="text-sm text-blue-600">{cantidad} gastos · {data.length} categorías</p>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Fila superior: gráfico + resumen */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <div className="card">
