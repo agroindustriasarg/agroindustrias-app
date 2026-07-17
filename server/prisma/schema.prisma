@@ -457,6 +457,7 @@ model VentaGrano {
   precioTn            Float     // precio pizarra $/tn
   fleteTn             Float?    // flete por tn (ya descontado por AGD)
   retenciones         Float?    // total retenciones AFIP $
+  otrasRetenciones    Float?    // retenciones provinciales (IIBB, etc.) $
   deducciones         Float?    // otras deducciones (sellado, etc.) $
   importeNeto         Float     // importe neto a pagar (ingreso real)
   destino             String?   // AGD, COFCO, etc.

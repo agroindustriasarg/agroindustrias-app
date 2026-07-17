@@ -34,7 +34,7 @@ router.post('/', authMiddleware, async (req, res) => {
   try {
     const {
       fecha, numeroLiquidacion, grano, grado, kgEntregados,
-      precioTn, fleteTn, retenciones, deducciones, importeNeto,
+      precioTn, fleteTn, retenciones, otrasRetenciones, deducciones, importeNeto,
       destino, campanaId, campoId, observaciones,
     } = req.body;
 
@@ -48,6 +48,7 @@ router.post('/', authMiddleware, async (req, res) => {
         precioTn: parseFloat(precioTn),
         fleteTn: fleteTn ? parseFloat(fleteTn) : null,
         retenciones: retenciones ? parseFloat(retenciones) : null,
+        otrasRetenciones: otrasRetenciones ? parseFloat(otrasRetenciones) : null,
         deducciones: deducciones ? parseFloat(deducciones) : null,
         importeNeto: parseFloat(importeNeto),
         destino: destino || null,
@@ -69,7 +70,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
   try {
     const {
       fecha, numeroLiquidacion, grano, grado, kgEntregados,
-      precioTn, fleteTn, retenciones, deducciones, importeNeto,
+      precioTn, fleteTn, retenciones, otrasRetenciones, deducciones, importeNeto,
       destino, campanaId, campoId, observaciones,
     } = req.body;
 
@@ -84,6 +85,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
         precioTn: parseFloat(precioTn),
         fleteTn: fleteTn ? parseFloat(fleteTn) : null,
         retenciones: retenciones ? parseFloat(retenciones) : null,
+        otrasRetenciones: otrasRetenciones ? parseFloat(otrasRetenciones) : null,
         deducciones: deducciones ? parseFloat(deducciones) : null,
         importeNeto: parseFloat(importeNeto),
         destino: destino || null,

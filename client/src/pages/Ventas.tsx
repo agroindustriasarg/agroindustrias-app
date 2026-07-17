@@ -13,6 +13,7 @@ const emptyForm = {
   precioTn: '',
   fleteTn: '',
   retenciones: '',
+  otrasRetenciones: '',
   deducciones: '',
   importeNeto: '',
   destino: '',
@@ -83,6 +84,7 @@ export default function Ventas() {
       precioTn: v.precioTn.toString(),
       fleteTn: v.fleteTn?.toString() || '',
       retenciones: v.retenciones?.toString() || '',
+      otrasRetenciones: v.otrasRetenciones?.toString() || '',
       deducciones: v.deducciones?.toString() || '',
       importeNeto: v.importeNeto.toString(),
       destino: v.destino || '',
@@ -296,7 +298,11 @@ export default function Ventas() {
                     </div>
                     <div>
                       <label className="label">Total retenciones AFIP ($)</label>
-                      <input type="number" step="0.01" value={form.retenciones} onChange={e => set('retenciones', e.target.value)} className="input" />
+                      <input type="number" step="0.01" value={form.retenciones} onChange={e => set('retenciones', e.target.value)} className="input" placeholder="Ganancias + IVA" />
+                    </div>
+                    <div>
+                      <label className="label">Otras retenciones ($)</label>
+                      <input type="number" step="0.01" value={form.otrasRetenciones} onChange={e => set('otrasRetenciones', e.target.value)} className="input" placeholder="IIBB, etc." />
                     </div>
                     <div>
                       <label className="label">Otras deducciones ($)</label>
