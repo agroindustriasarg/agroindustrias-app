@@ -69,9 +69,10 @@ export default function Ventas() {
   );
 
   const totalKg = filtered.reduce((s, v) => s + v.kgEntregados, 0);
-  const totalNeto = filtered.reduce((s, v) => s + v.importeNeto, 0);
   const totalKgVenta = filtered.filter(v => v.tipo === 'VENTA').reduce((s, v) => s + v.kgEntregados, 0);
   const totalKgCanje = filtered.filter(v => v.tipo === 'CANJE').reduce((s, v) => s + v.kgEntregados, 0);
+  const totalNetoARS = filtered.filter(v => v.monedaPrecio !== 'USD').reduce((s, v) => s + v.importeNeto, 0);
+  const totalNetoUSD = filtered.filter(v => v.monedaPrecio === 'USD').reduce((s, v) => s + v.importeNeto, 0);
 
   const openNew = () => {
     setEditing(null);
@@ -199,7 +200,10 @@ export default function Ventas() {
               </span>
             )}
           </span>
-          <span className="text-gray-600">Total neto: <strong className="text-green-700">${fmt(totalNeto)}</strong></span>
+          <span className="text-gray-600">Neto ARS: <strong className="text-green-700">${fmt(totalNetoARS)}</strong></span>
+          {totalNetoUSD > 0 && (
+            <span className="text-gray-600">Neto USD: <strong className="text-blue-700">U$S {fmt(totalNetoUSD)}</strong></span>
+          )}
         </div>
       </div>
 
@@ -256,7 +260,9 @@ export default function Ventas() {
                     <td className="px-4 py-2 text-right text-red-500">
                       {esCanje ? <span className="text-gray-300">—</span> : (v.retenciones ? `$${fmt(v.retenciones)}` : '-')}
                     </td>
-                    <td className="px-4 py-2 text-right font-bold text-green-700">${fmt(v.importeNeto)}</td>
+                    <td className="px-4 py-2 text-right font-bold text-green-700">
+                      {v.monedaPrecio === 'USD' ? 'U$S' : '$'}{fmt(v.importeNeto)}
+                    </td>
                     <td className="px-4 py-2">
                       <div className="flex gap-2 justify-end">
                         <button onClick={() => openEdit(v)} className="text-gray-400 hover:text-blue-600"><Pencil className="w-4 h-4" /></button>
@@ -272,7 +278,10 @@ export default function Ventas() {
                 <td colSpan={8} className="px-4 py-2 text-xs text-gray-600">TOTAL</td>
                 <td className="px-4 py-2 text-right">{totalKg.toLocaleString('es-AR')} kg</td>
                 <td colSpan={2}></td>
-                <td className="px-4 py-2 text-right text-green-700">${fmt(totalNeto)}</td>
+                <td className="px-4 py-2 text-right">
+                  <div className="text-green-700">${fmt(totalNetoARS)}</div>
+                  {totalNetoUSD > 0 && <div className="text-blue-700 text-xs">U$S {fmt(totalNetoUSD)}</div>}
+                </td>
                 <td></td>
               </tr>
             </tfoot>
