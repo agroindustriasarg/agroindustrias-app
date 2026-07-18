@@ -461,6 +461,8 @@ model VentaGrano {
   otrasRetenciones    Float?    // retenciones provinciales (IIBB, etc.) $ (solo ventas)
   deducciones         Float?    // otras deducciones (sellado, etc.) $ (solo ventas)
   importeNeto         Float     // importe neto a pagar / valor del canje
+  monedaPrecio        String    @default("ARS") // ARS o USD
+  numeroContrato      String?   // N° de contrato o romaneo de transferencia
   destino             String?   // AGD, COFCO, Bayer SA, etc.
   campanaId           String?
   campoId             String?

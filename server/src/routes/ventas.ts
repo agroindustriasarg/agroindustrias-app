@@ -33,8 +33,8 @@ router.get('/', authMiddleware, async (req, res) => {
 router.post('/', authMiddleware, async (req, res) => {
   try {
     const {
-      tipo, fecha, numeroLiquidacion, grano, grado, kgEntregados,
-      precioTn, fleteTn, retenciones, otrasRetenciones, deducciones, importeNeto,
+      tipo, fecha, numeroLiquidacion, numeroContrato, grano, grado, kgEntregados,
+      precioTn, monedaPrecio, fleteTn, retenciones, otrasRetenciones, deducciones, importeNeto,
       destino, campanaId, campoId, observaciones,
     } = req.body;
 
@@ -43,10 +43,12 @@ router.post('/', authMiddleware, async (req, res) => {
         tipo: tipo || 'VENTA',
         fecha: parseFecha(fecha),
         numeroLiquidacion: numeroLiquidacion || null,
+        numeroContrato: numeroContrato || null,
         grano,
         grado: grado || null,
         kgEntregados: parseFloat(kgEntregados),
         precioTn: parseFloat(precioTn),
+        monedaPrecio: monedaPrecio || 'ARS',
         fleteTn: fleteTn ? parseFloat(fleteTn) : null,
         retenciones: retenciones ? parseFloat(retenciones) : null,
         otrasRetenciones: otrasRetenciones ? parseFloat(otrasRetenciones) : null,
@@ -70,8 +72,8 @@ router.post('/', authMiddleware, async (req, res) => {
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
     const {
-      tipo, fecha, numeroLiquidacion, grano, grado, kgEntregados,
-      precioTn, fleteTn, retenciones, otrasRetenciones, deducciones, importeNeto,
+      tipo, fecha, numeroLiquidacion, numeroContrato, grano, grado, kgEntregados,
+      precioTn, monedaPrecio, fleteTn, retenciones, otrasRetenciones, deducciones, importeNeto,
       destino, campanaId, campoId, observaciones,
     } = req.body;
 
@@ -81,10 +83,12 @@ router.put('/:id', authMiddleware, async (req, res) => {
         tipo: tipo || 'VENTA',
         fecha: parseFecha(fecha),
         numeroLiquidacion: numeroLiquidacion || null,
+        numeroContrato: numeroContrato || null,
         grano,
         grado: grado || null,
         kgEntregados: parseFloat(kgEntregados),
         precioTn: parseFloat(precioTn),
+        monedaPrecio: monedaPrecio || 'ARS',
         fleteTn: fleteTn ? parseFloat(fleteTn) : null,
         retenciones: retenciones ? parseFloat(retenciones) : null,
         otrasRetenciones: otrasRetenciones ? parseFloat(otrasRetenciones) : null,

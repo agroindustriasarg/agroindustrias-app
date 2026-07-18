@@ -8,10 +8,12 @@ const emptyForm = {
   tipo: 'VENTA',
   fecha: new Date().toISOString().split('T')[0],
   numeroLiquidacion: '',
+  numeroContrato: '',
   grano: 'SOJA',
   grado: '',
   kgEntregados: '',
   precioTn: '',
+  monedaPrecio: 'ARS',
   fleteTn: '',
   retenciones: '',
   otrasRetenciones: '',
@@ -83,10 +85,12 @@ export default function Ventas() {
       tipo: v.tipo || 'VENTA',
       fecha: v.fecha.split('T')[0],
       numeroLiquidacion: v.numeroLiquidacion || '',
+      numeroContrato: v.numeroContrato || '',
       grano: v.grano,
       grado: v.grado || '',
       kgEntregados: v.kgEntregados.toString(),
       precioTn: v.precioTn.toString(),
+      monedaPrecio: v.monedaPrecio || 'ARS',
       fleteTn: v.fleteTn?.toString() || '',
       retenciones: v.retenciones?.toString() || '',
       otrasRetenciones: v.otrasRetenciones?.toString() || '',
@@ -201,12 +205,13 @@ export default function Ventas() {
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">N° Ref.</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contrato</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Grano</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Campaña</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Campo</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Destino</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Kg</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">$/tn</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Precio/tn</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Retenciones</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Importe Neto</th>
                 <th className="px-4 py-3"></th>
@@ -225,6 +230,7 @@ export default function Ventas() {
                     </td>
                     <td className="px-4 py-2">{new Date(v.fecha).toLocaleDateString('es-AR')}</td>
                     <td className="px-4 py-2 text-gray-500 text-xs">{v.numeroLiquidacion || '-'}</td>
+                    <td className="px-4 py-2 text-gray-500 text-xs">{v.numeroContrato || '-'}</td>
                     <td className="px-4 py-2">
                       <span className="font-medium">{v.grano}</span>
                       {v.grado && <span className="ml-1 text-xs text-gray-400">{v.grado}</span>}
@@ -233,7 +239,9 @@ export default function Ventas() {
                     <td className="px-4 py-2 text-gray-600">{v.campo?.nombre || '-'}</td>
                     <td className="px-4 py-2 text-gray-500">{v.destino || '-'}</td>
                     <td className="px-4 py-2 text-right font-medium">{v.kgEntregados.toLocaleString('es-AR')}</td>
-                    <td className="px-4 py-2 text-right text-gray-500">${fmt(v.precioTn)}</td>
+                    <td className="px-4 py-2 text-right text-gray-500">
+                      {v.monedaPrecio === 'USD' ? 'U$S' : '$'}{fmt(v.precioTn)}
+                    </td>
                     <td className="px-4 py-2 text-right text-red-500">
                       {esCanje ? <span className="text-gray-300">—</span> : (v.retenciones ? `$${fmt(v.retenciones)}` : '-')}
                     </td>
@@ -250,7 +258,7 @@ export default function Ventas() {
             </tbody>
             <tfoot className="bg-gray-50 border-t-2 font-semibold">
               <tr>
-                <td colSpan={7} className="px-4 py-2 text-xs text-gray-600">TOTAL</td>
+                <td colSpan={8} className="px-4 py-2 text-xs text-gray-600">TOTAL</td>
                 <td className="px-4 py-2 text-right">{totalKg.toLocaleString('es-AR')} kg</td>
                 <td colSpan={2}></td>
                 <td className="px-4 py-2 text-right text-green-700">${fmt(totalNeto)}</td>
@@ -298,8 +306,12 @@ export default function Ventas() {
                     <input type="date" value={form.fecha} onChange={e => set('fecha', e.target.value)} className="input" required />
                   </div>
                   <div>
-                    <label className="label">{esCanje ? 'N° Referencia / Remito' : 'N° Liquidación'}</label>
-                    <input type="text" value={form.numeroLiquidacion} onChange={e => set('numeroLiquidacion', e.target.value)} className="input" placeholder={esCanje ? 'Remito Bayer...' : '330131336177'} />
+                    <label className="label">{esCanje ? 'N° Romaneo / Referencia' : 'N° Liquidación'}</label>
+                    <input type="text" value={form.numeroLiquidacion} onChange={e => set('numeroLiquidacion', e.target.value)} className="input" placeholder={esCanje ? '523709...' : '330131336177'} />
+                  </div>
+                  <div>
+                    <label className="label">N° Contrato</label>
+                    <input type="text" value={form.numeroContrato} onChange={e => set('numeroContrato', e.target.value)} className="input" placeholder="N° contrato" />
                   </div>
                   <div>
                     <label className="label">Grano *</label>
@@ -341,8 +353,14 @@ export default function Ventas() {
                   </p>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="label">{esCanje ? 'Precio implícito ($/tn) *' : 'Precio pizarra ($/tn) *'}</label>
-                      <input type="number" step="0.01" value={form.precioTn} onChange={e => set('precioTn', e.target.value)} className="input" required />
+                      <label className="label">{esCanje ? 'Precio implícito *' : 'Precio pizarra *'}</label>
+                      <div className="flex gap-2">
+                        <select value={form.monedaPrecio} onChange={e => set('monedaPrecio', e.target.value)} className="input w-24">
+                          <option value="ARS">$ ARS</option>
+                          <option value="USD">U$S</option>
+                        </select>
+                        <input type="number" step="0.01" value={form.precioTn} onChange={e => set('precioTn', e.target.value)} className="input flex-1" required placeholder={form.monedaPrecio === 'USD' ? 'ej: 280' : 'ej: 430000'} />
+                      </div>
                     </div>
                     {!esCanje && (
                       <>
