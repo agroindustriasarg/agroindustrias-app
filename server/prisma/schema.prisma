@@ -449,18 +449,19 @@ model Destino {
 
 model VentaGrano {
   id                  String    @id @default(uuid())
+  tipo                String    @default("VENTA") // VENTA, CANJE
   fecha               DateTime
   numeroLiquidacion   String?
   grano               String    // SOJA, MAIZ, TRIGO, GIRASOL, SORGO
   grado               String?   // G2, etc.
   kgEntregados        Float
-  precioTn            Float     // precio pizarra $/tn
-  fleteTn             Float?    // flete por tn (ya descontado por AGD)
-  retenciones         Float?    // total retenciones AFIP $
-  otrasRetenciones    Float?    // retenciones provinciales (IIBB, etc.) $
-  deducciones         Float?    // otras deducciones (sellado, etc.) $
-  importeNeto         Float     // importe neto a pagar (ingreso real)
-  destino             String?   // AGD, COFCO, etc.
+  precioTn            Float     // precio pizarra $/tn (o precio implícito del canje)
+  fleteTn             Float?    // flete por tn (solo ventas)
+  retenciones         Float?    // total retenciones AFIP $ (solo ventas)
+  otrasRetenciones    Float?    // retenciones provinciales (IIBB, etc.) $ (solo ventas)
+  deducciones         Float?    // otras deducciones (sellado, etc.) $ (solo ventas)
+  importeNeto         Float     // importe neto a pagar / valor del canje
+  destino             String?   // AGD, COFCO, Bayer SA, etc.
   campanaId           String?
   campoId             String?
   observaciones       String?

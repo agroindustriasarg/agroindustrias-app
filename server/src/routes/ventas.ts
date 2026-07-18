@@ -33,13 +33,14 @@ router.get('/', authMiddleware, async (req, res) => {
 router.post('/', authMiddleware, async (req, res) => {
   try {
     const {
-      fecha, numeroLiquidacion, grano, grado, kgEntregados,
+      tipo, fecha, numeroLiquidacion, grano, grado, kgEntregados,
       precioTn, fleteTn, retenciones, otrasRetenciones, deducciones, importeNeto,
       destino, campanaId, campoId, observaciones,
     } = req.body;
 
     const venta = await prisma.ventaGrano.create({
       data: {
+        tipo: tipo || 'VENTA',
         fecha: parseFecha(fecha),
         numeroLiquidacion: numeroLiquidacion || null,
         grano,
@@ -69,7 +70,7 @@ router.post('/', authMiddleware, async (req, res) => {
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
     const {
-      fecha, numeroLiquidacion, grano, grado, kgEntregados,
+      tipo, fecha, numeroLiquidacion, grano, grado, kgEntregados,
       precioTn, fleteTn, retenciones, otrasRetenciones, deducciones, importeNeto,
       destino, campanaId, campoId, observaciones,
     } = req.body;
@@ -77,6 +78,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     const venta = await prisma.ventaGrano.update({
       where: { id: req.params.id },
       data: {
+        tipo: tipo || 'VENTA',
         fecha: parseFecha(fecha),
         numeroLiquidacion: numeroLiquidacion || null,
         grano,
