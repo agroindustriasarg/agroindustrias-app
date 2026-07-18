@@ -126,7 +126,18 @@ export default function Ventas() {
     await loadAll();
   };
 
-  const set = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
+  const set = (k: string, v: string) => {
+    setForm(p => {
+      const next = { ...p, [k]: v };
+      // Auto-calcular importe neto para canjes
+      if (next.tipo === 'CANJE' && (k === 'precioTn' || k === 'kgEntregados')) {
+        const precio = parseFloat(k === 'precioTn' ? v : next.precioTn) || 0;
+        const kg = parseFloat(k === 'kgEntregados' ? v : next.kgEntregados) || 0;
+        next.importeNeto = ((kg / 1000) * precio).toFixed(2);
+      }
+      return next;
+    });
+  };
   const esCanje = form.tipo === 'CANJE';
 
   return (
@@ -382,16 +393,22 @@ export default function Ventas() {
                         </div>
                       </>
                     )}
-                    <div className={esCanje ? 'col-span-2' : 'col-span-2'}>
+                    <div className="col-span-2">
                       <label className={`label font-semibold ${esCanje ? 'text-blue-700' : 'text-green-700'}`}>
-                        {esCanje ? 'Valor total del canje ($) *' : 'Importe Neto a Pagar ($) *'}
+                        {esCanje ? 'Valor total del canje (se calcula automático)' : 'Importe Neto a Pagar ($) *'}
                       </label>
                       <input
                         type="number" step="0.01" value={form.importeNeto}
-                        onChange={e => set('importeNeto', e.target.value)}
-                        className={`input ${esCanje ? 'border-blue-300 focus:border-blue-500' : 'border-green-300 focus:border-green-500'}`}
+                        onChange={e => !esCanje && set('importeNeto', e.target.value)}
+                        readOnly={esCanje}
+                        className={`input ${esCanje ? 'bg-gray-50 border-blue-200 text-blue-800 cursor-default' : 'border-green-300 focus:border-green-500'}`}
                         required
                       />
+                      {esCanje && form.precioTn && form.kgEntregados && (
+                        <p className="text-xs text-blue-500 mt-1">
+                          {(parseFloat(form.kgEntregados)/1000).toLocaleString('es-AR',{maximumFractionDigits:3})} tn × {form.monedaPrecio === 'USD' ? 'U$S' : '$'}{parseFloat(form.precioTn).toLocaleString('es-AR')}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
