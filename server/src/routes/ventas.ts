@@ -34,7 +34,8 @@ router.post('/', authMiddleware, async (req, res) => {
   try {
     const {
       tipo, fecha, numeroLiquidacion, numeroContrato, grano, grado, kgEntregados,
-      precioTn, monedaPrecio, fleteTn, retenciones, otrasRetenciones, deducciones, importeNeto,
+      precioTn, monedaPrecio, fleteTn, retenciones, otrasRetenciones, deducciones,
+      subtotalCanje, ivaCanje, gastosAdminCanje, importeNeto,
       destino, campanaId, campoId, observaciones,
     } = req.body;
 
@@ -53,6 +54,9 @@ router.post('/', authMiddleware, async (req, res) => {
         retenciones: retenciones ? parseFloat(retenciones) : null,
         otrasRetenciones: otrasRetenciones ? parseFloat(otrasRetenciones) : null,
         deducciones: deducciones ? parseFloat(deducciones) : null,
+        subtotalCanje: subtotalCanje ? parseFloat(subtotalCanje) : null,
+        ivaCanje: ivaCanje ? parseFloat(ivaCanje) : null,
+        gastosAdminCanje: gastosAdminCanje ? parseFloat(gastosAdminCanje) : null,
         importeNeto: parseFloat(importeNeto),
         destino: destino || null,
         campanaId: campanaId || null,
@@ -73,7 +77,8 @@ router.put('/:id', authMiddleware, async (req, res) => {
   try {
     const {
       tipo, fecha, numeroLiquidacion, numeroContrato, grano, grado, kgEntregados,
-      precioTn, monedaPrecio, fleteTn, retenciones, otrasRetenciones, deducciones, importeNeto,
+      precioTn, monedaPrecio, fleteTn, retenciones, otrasRetenciones, deducciones,
+      subtotalCanje, ivaCanje, gastosAdminCanje, importeNeto,
       destino, campanaId, campoId, observaciones,
     } = req.body;
 
@@ -93,6 +98,9 @@ router.put('/:id', authMiddleware, async (req, res) => {
         retenciones: retenciones ? parseFloat(retenciones) : null,
         otrasRetenciones: otrasRetenciones ? parseFloat(otrasRetenciones) : null,
         deducciones: deducciones ? parseFloat(deducciones) : null,
+        subtotalCanje: subtotalCanje ? parseFloat(subtotalCanje) : null,
+        ivaCanje: ivaCanje ? parseFloat(ivaCanje) : null,
+        gastosAdminCanje: gastosAdminCanje ? parseFloat(gastosAdminCanje) : null,
         importeNeto: parseFloat(importeNeto),
         destino: destino || null,
         campanaId: campanaId || null,

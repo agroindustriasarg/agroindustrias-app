@@ -584,15 +584,14 @@ export default function Gastos() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Campaña *
+                  Campaña
                 </label>
                 <select
                   value={formData.campanaId}
                   onChange={(e) => setFormData({ ...formData, campanaId: e.target.value })}
                   className="input"
-                  required
                 >
-                  <option value="">Seleccionar campaña...</option>
+                  <option value="">Sin campaña</option>
                   {campanas.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.nombre}

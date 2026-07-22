@@ -18,6 +18,9 @@ const emptyForm = {
   retenciones: '',
   otrasRetenciones: '',
   deducciones: '',
+  subtotalCanje: '',
+  ivaCanje: '',
+  gastosAdminCanje: '',
   importeNeto: '',
   destino: '',
   campanaId: '',
@@ -96,6 +99,9 @@ export default function Ventas() {
       retenciones: v.retenciones?.toString() || '',
       otrasRetenciones: v.otrasRetenciones?.toString() || '',
       deducciones: v.deducciones?.toString() || '',
+      subtotalCanje: v.subtotalCanje?.toString() || '',
+      ivaCanje: v.ivaCanje?.toString() || '',
+      gastosAdminCanje: v.gastosAdminCanje?.toString() || '',
       importeNeto: v.importeNeto.toString(),
       destino: v.destino || '',
       campanaId: v.campanaId || '',
@@ -130,11 +136,16 @@ export default function Ventas() {
   const set = (k: string, v: string) => {
     setForm(p => {
       const next = { ...p, [k]: v };
-      // Auto-calcular importe neto para canjes
-      if (next.tipo === 'CANJE' && (k === 'precioTn' || k === 'kgEntregados')) {
-        const precio = parseFloat(k === 'precioTn' ? v : next.precioTn) || 0;
-        const kg = parseFloat(k === 'kgEntregados' ? v : next.kgEntregados) || 0;
-        next.importeNeto = ((kg / 1000) * precio).toFixed(2);
+      if (next.tipo === 'CANJE') {
+        if (k === 'precioTn' || k === 'kgEntregados') {
+          const precio = parseFloat(k === 'precioTn' ? v : next.precioTn) || 0;
+          const kg = parseFloat(k === 'kgEntregados' ? v : next.kgEntregados) || 0;
+          next.subtotalCanje = ((kg / 1000) * precio).toFixed(2);
+        }
+        const subtotal = parseFloat(k === 'subtotalCanje' ? v : next.subtotalCanje) || 0;
+        const iva = parseFloat(k === 'ivaCanje' ? v : next.ivaCanje) || 0;
+        const gastos = parseFloat(k === 'gastosAdminCanje' ? v : next.gastosAdminCanje) || 0;
+        next.importeNeto = (subtotal + iva + gastos).toFixed(2);
       }
       return next;
     });
@@ -402,9 +413,25 @@ export default function Ventas() {
                         </div>
                       </>
                     )}
+                    {esCanje && (
+                      <>
+                        <div>
+                          <label className="label">Subtotal canje (auto)</label>
+                          <input type="number" step="0.01" value={form.subtotalCanje} readOnly className="input bg-gray-50 cursor-default" placeholder="kg/tn × precio" />
+                        </div>
+                        <div>
+                          <label className="label">IVA</label>
+                          <input type="number" step="0.01" value={form.ivaCanje} onChange={e => set('ivaCanje', e.target.value)} className="input" placeholder="0.00" />
+                        </div>
+                        <div>
+                          <label className="label">Gastos administrativos</label>
+                          <input type="number" step="0.01" value={form.gastosAdminCanje} onChange={e => set('gastosAdminCanje', e.target.value)} className="input" placeholder="0.00" />
+                        </div>
+                      </>
+                    )}
                     <div className="col-span-2">
                       <label className={`label font-semibold ${esCanje ? 'text-blue-700' : 'text-green-700'}`}>
-                        {esCanje ? 'Valor total del canje (se calcula automático)' : 'Importe Neto a Pagar ($) *'}
+                        {esCanje ? 'Total del canje (subtotal + IVA + gastos)' : 'Importe Neto a Pagar ($) *'}
                       </label>
                       <input
                         type="number" step="0.01" value={form.importeNeto}
