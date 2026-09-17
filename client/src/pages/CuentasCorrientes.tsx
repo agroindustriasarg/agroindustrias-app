@@ -45,6 +45,7 @@ export default function CuentasCorrientes() {
   const [servicios, setServicios] = useState<Servicio[]>([]);
   const [loading, setLoading] = useState(true);
   const [proveedorFiltro, setProveedorFiltro] = useState('');
+  const [estadosFiltro, setEstadosFiltro] = useState<string[]>(['PENDIENTE', 'PAGO PARCIAL', 'PAGADA']);
   const [contratistaNombre, setContratistaNombre] = useState('');
   const [proveedores, setProveedores] = useState<string[]>([]);
   const [contratistas, setContratistas] = useState<string[]>([]);
@@ -92,9 +93,16 @@ export default function CuentasCorrientes() {
     }
   };
 
+  const toggleEstadoFiltro = (estado: string) => {
+    setEstadosFiltro((prev) =>
+      prev.includes(estado) ? prev.filter((e) => e !== estado) : [...prev, estado]
+    );
+  };
+
   const facturasFiltradas = facturas.filter((factura) => {
-    if (!proveedorFiltro) return true;
-    return factura.proveedor === proveedorFiltro;
+    if (proveedorFiltro && factura.proveedor !== proveedorFiltro) return false;
+    if (!estadosFiltro.includes(factura.estado)) return false;
+    return true;
   });
 
   const serviciosFiltrados = servicios.filter((servicio) => {
@@ -236,6 +244,36 @@ export default function CuentasCorrientes() {
                 Limpiar Filtro
               </button>
             )}
+          </div>
+          <div className="flex items-center space-x-6 mt-4 pt-4 border-t border-gray-200">
+            <span className="text-sm font-medium text-gray-700">Filtrar por Estado:</span>
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={estadosFiltro.includes('PENDIENTE')}
+                onChange={() => toggleEstadoFiltro('PENDIENTE')}
+                className="w-4 h-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
+              />
+              <span className="text-sm text-gray-700">Pendiente</span>
+            </label>
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={estadosFiltro.includes('PAGO PARCIAL')}
+                onChange={() => toggleEstadoFiltro('PAGO PARCIAL')}
+                className="w-4 h-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+              />
+              <span className="text-sm text-gray-700">Pago Parcial</span>
+            </label>
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={estadosFiltro.includes('PAGADA')}
+                onChange={() => toggleEstadoFiltro('PAGADA')}
+                className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+              />
+              <span className="text-sm text-gray-700">Pagada</span>
+            </label>
           </div>
         </div>
       ) : (
