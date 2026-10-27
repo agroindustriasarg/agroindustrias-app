@@ -6,10 +6,12 @@ const DATABASE_URL = "postgresql://neondb_owner:npg_dERn0jl6qpiV@ep-purple-rice-
 const DRIVE_FOLDER = "G:\\Mi unidad\\Agroindustrias";
 
 const TABLAS = [
-  'campos', 'lotes', 'maquinarias', 'stock', 'movimientos_stock',
-  'gastos', 'servicios', 'contratistas', 'cuentas', 'movimientos_cuenta',
-  'rendimientos', 'usuarios', 'facturas', 'factura_items', 'cheques',
-  'pagos', 'proveedores'
+  'usuarios', 'campanas', 'campos', 'lotes', 'maquinarias',
+  'contratistas', 'stock', 'movimientos_stock',
+  'gastos', 'gastos_lotes', 'servicios', 'cuentas',
+  'rendimientos', 'destinos', 'facturas', 'facturas_items',
+  'pagos', 'pagos_facturas', 'cheques', 'proveedores',
+  'ventas_granos'
 ];
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
