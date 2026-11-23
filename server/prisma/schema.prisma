@@ -524,3 +524,13 @@ model Proveedor {
 
   @@map("proveedores")
 }
+
+// ========== MCP (conector de Claude) ==========
+
+model McpClient {
+  id        String   @id // client_id asignado por el server
+  data      Json     // OAuthClientInformationFull completo (metadata de registro dinámico)
+  createdAt DateTime @default(now())
+
+  @@map("mcp_clients")
+}

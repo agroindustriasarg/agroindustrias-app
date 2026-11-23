@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { connectDB, disconnectDB } from './utils/prisma.js';
 import routes from './routes/index.js';
+import { construirRouterMcp } from './mcp/route.js';
 
 dotenv.config();
 
@@ -15,6 +16,10 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Conector MCP (Claude Desktop / iPhone) — rutas en la raíz (/mcp, /authorize, /token, /.well-known/...)
+app.use(construirRouterMcp());
 
 // Routes
 app.use('/api', routes);
