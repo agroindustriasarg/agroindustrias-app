@@ -453,7 +453,10 @@ export default function Servicios() {
   const serviciosFiltrados = (() => {
     let lista = categoriaSeleccionada ? getServiciosPorTipo(categoriaSeleccionada) : servicios;
     if (campanaFiltro) lista = lista.filter(s => s.campanaId === campanaFiltro);
-    return lista;
+    return [...lista].sort((a, b) => {
+      if (a.estado !== b.estado) return a.estado === 'PENDIENTE' ? -1 : 1;
+      return new Date(b.fecha).getTime() - new Date(a.fecha).getTime();
+    });
   })();
 
   if (loading) {
