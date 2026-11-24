@@ -159,10 +159,12 @@ export default function Servicios() {
             ? partesDeLotes.split(' - ')[0].trim()
             : partesDeLotes.trim();
 
-          // Separar por comas y buscar IDs
-          const nombresLotes = nombresLotesStr.split(',').map(n => n.trim());
+          // Separar por comas y buscar IDs — comparar con trim() y sin
+          // distinguir mayúsculas en ambos lados, para no perder lotes
+          // cuyo nombre en la base tenga espacios de más.
+          const nombresLotes = nombresLotesStr.split(',').map(n => n.trim().toLowerCase());
           lotesIdsExtraidos = lotesDelCampo
-            .filter((lote: any) => nombresLotes.includes(lote.nombre))
+            .filter((lote: any) => nombresLotes.includes(lote.nombre.trim().toLowerCase()))
             .map((lote: any) => lote.id);
 
           // Extraer descripción adicional (después del " - ")
@@ -231,7 +233,7 @@ export default function Servicios() {
       const tiposConLotesMultiples = ['Siembra', 'Cosecha', 'Fertilización', 'Picado', 'Rastra', 'Pulverización', 'Trabajos manuales'];
       if (tiposConLotesMultiples.includes(formData.tipo) && formData.lotesIds.length > 0) {
         const lotesSeleccionados = lotes.filter(l => formData.lotesIds.includes(l.id));
-        const nombresLotes = lotesSeleccionados.map(l => l.nombre).join(', ');
+        const nombresLotes = lotesSeleccionados.map(l => l.nombre.trim()).join(', ');
         dataToSend.descripcion = `Lotes: ${nombresLotes}${formData.descripcion ? ' - ' + formData.descripcion : ''}`;
         if (formData.tipo === 'Siembra') {
           dataToSend.variedad = formData.variedad;
