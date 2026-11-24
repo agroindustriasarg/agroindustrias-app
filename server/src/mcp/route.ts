@@ -85,6 +85,12 @@ export function construirRouterMcp() {
         };
         const server = crearMcpServer();
         await server.connect(transport);
+      } else if (sessionId) {
+        // Trae un session-id pero no lo conocemos (ej: el server se reinició y
+        // perdió las sesiones en memoria) → 404, para que el cliente sepa que
+        // tiene que iniciar sesión de nuevo en vez de seguir reintentando la vieja.
+        res.status(404).json({ error: 'Sesión MCP no encontrada, iniciá una sesión nueva' });
+        return;
       } else {
         res.status(400).json({ error: 'Sesión MCP inválida o inexistente' });
         return;
