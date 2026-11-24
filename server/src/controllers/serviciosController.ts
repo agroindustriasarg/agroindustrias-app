@@ -25,6 +25,11 @@ const servicioSchema = z.object({
   campanaId: z.string().optional(),
 });
 
+function unidadEsperadaPorHa(unidadStock: string) {
+  const mapa: Record<string, string> = { litros: 'L/ha', kg: 'kg/ha', gramos: 'g/ha' };
+  return mapa[unidadStock] || `${unidadStock}/ha`;
+}
+
 export const getServicios = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { facturable, estado, sinFacturar } = req.query;
@@ -83,6 +88,14 @@ export const createServicio = async (req: AuthRequest, res: Response): Promise<v
           if (!stock) {
             res.status(400).json({
               error: `Producto ${item.producto} no encontrado en stock`
+            });
+            return;
+          }
+
+          const unidadEsperada = unidadEsperadaPorHa(stock.unidad);
+          if (item.unidad !== unidadEsperada) {
+            res.status(400).json({
+              error: `Unidad incorrecta para ${item.producto}: la receta dice "${item.unidad}" pero el stock es en "${stock.unidad}" (debería ser "${unidadEsperada}")`
             });
             return;
           }
@@ -185,6 +198,24 @@ export const updateServicio = async (req: AuthRequest, res: Response): Promise<v
       const nuevaReceta = receta ? JSON.parse(receta) : recetaAnterior;
       const nuevasHectareas = hectareas !== undefined ? hectareas : hectareasAnteriores;
 
+      // Validar unidades ANTES de tocar el stock
+      for (const item of nuevaReceta) {
+        if (item.stockId) {
+          const stock = await prisma.stock.findUnique({ where: { id: item.stockId } });
+          if (!stock) {
+            res.status(400).json({ error: `Producto ${item.producto} no encontrado en stock` });
+            return;
+          }
+          const unidadEsperada = unidadEsperadaPorHa(stock.unidad);
+          if (item.unidad !== unidadEsperada) {
+            res.status(400).json({
+              error: `Unidad incorrecta para ${item.producto}: la receta dice "${item.unidad}" pero el stock es en "${stock.unidad}" (debería ser "${unidadEsperada}")`
+            });
+            return;
+          }
+        }
+      }
+
       // PASO 1: Devolver TODO el stock de la receta anterior
       for (const item of recetaAnterior) {
         if (item.stockId) {
@@ -202,6 +233,9 @@ export const updateServicio = async (req: AuthRequest, res: Response): Promise<v
         }
       }
 
+      // Reemplazar los movimientos de stock de este servicio (no acumular ajustes)
+      await prisma.movimientoStock.deleteMany({ where: { servicioId: id } });
+
       // PASO 2: Descontar TODO el stock de la nueva receta
       for (const item of nuevaReceta) {
         if (item.stockId) {
@@ -217,27 +251,21 @@ export const updateServicio = async (req: AuthRequest, res: Response): Promise<v
             },
           });
 
-          // Crear UN SOLO movimiento de ajuste neto
-          const cantidadAnteriorItem = recetaAnterior.find((i: any) => i.stockId === item.stockId);
-          const cantidadAnterior = cantidadAnteriorItem
-            ? parseFloat(cantidadAnteriorItem.cantidad) * hectareasAnteriores
-            : 0;
-
-          const diferencia = cantidadNueva - cantidadAnterior;
-
-          if (diferencia !== 0) {
-            await prisma.movimientoStock.create({
-              data: {
-                stockId: item.stockId,
-                tipo: diferencia > 0 ? 'SALIDA' : 'ENTRADA',
-                cantidad: Math.abs(diferencia),
-                motivo: 'Modificación de orden de pulverización',
-                fecha: fecha ? new Date(fecha) : servicioActual.fecha,
-                servicioId: id,
-                observaciones: `Ajuste: ${diferencia > 0 ? 'aumentó' : 'disminuyó'} ${Math.abs(diferencia).toFixed(2)} ${item.unidad.split('/')[0]}`,
-              },
-            });
-          }
+          // Un único movimiento limpio que refleja la cantidad total vigente
+          // (reemplaza, no se suma, al historial anterior de este servicio)
+          await prisma.movimientoStock.create({
+            data: {
+              stockId: item.stockId,
+              tipo: 'SALIDA',
+              cantidad: cantidadNueva,
+              motivo: 'Uso en pulverización (editado)',
+              fecha: fecha ? new Date(fecha) : servicioActual.fecha,
+              servicioId: id,
+              campoId: servicioActual.campoId,
+              loteId: servicioActual.loteId || undefined,
+              observaciones: `Pulverización - ${item.producto} (${dosisHa} ${item.unidad})`,
+            },
+          });
         }
       }
     }

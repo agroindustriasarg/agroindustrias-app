@@ -16,6 +16,11 @@ const categorias = [
   { nombre: 'Desmalezado', icon: Leaf, color: 'bg-teal-500' },
 ];
 
+const unidadPorHa = (unidadStock: string): string => {
+  const mapa: Record<string, string> = { litros: 'L/ha', kg: 'kg/ha', gramos: 'g/ha' };
+  return mapa[unidadStock] || `${unidadStock}/ha`;
+};
+
 export default function Servicios() {
   const [servicios, setServicios] = useState<Servicio[]>([]);
   const [campos, setCampos] = useState<Campo[]>([]);
@@ -200,7 +205,12 @@ export default function Servicios() {
           dosisKgHa: servicio.dosisKgHa?.toString() || '',
           unidadDosis: servicio.unidadDosis || 'kg/ha',
           caldo: servicio.caldo?.toString() || '',
-          productos: servicio.receta ? JSON.parse(servicio.receta) : [],
+          productos: servicio.receta
+            ? JSON.parse(servicio.receta).map((item: any) => {
+                const stockDelItem = stockItems.find(s => s.id === item.stockId);
+                return stockDelItem ? { ...item, unidad: unidadPorHa(stockDelItem.unidad) } : item;
+              })
+            : [],
           facturable: servicio.facturable !== undefined ? servicio.facturable : true,
           campanaId: servicio.campanaId || '',
         });
@@ -766,6 +776,7 @@ export default function Servicios() {
                                   ...newProductos[index],
                                   stockId: e.target.value,
                                   producto: selectedStock?.nombre || '',
+                                  unidad: selectedStock ? unidadPorHa(selectedStock.unidad) : newProductos[index].unidad,
                                 };
                                 setFormData({ ...formData, productos: newProductos });
                               }}
@@ -797,20 +808,13 @@ export default function Servicios() {
                             />
                           </div>
                           <div className="col-span-3">
-                            <select
+                            <input
+                              type="text"
                               value={producto.unidad}
-                              onChange={(e) => {
-                                const newProductos = [...formData.productos];
-                                newProductos[index].unidad = e.target.value;
-                                setFormData({ ...formData, productos: newProductos });
-                              }}
-                              className="input text-sm"
-                              required
-                            >
-                              <option value="L/ha">L/ha</option>
-                              <option value="kg/ha">kg/ha</option>
-                              <option value="g/ha">g/ha</option>
-                            </select>
+                              disabled
+                              className="input text-sm bg-gray-100 text-gray-500"
+                              title="Se calcula automáticamente según la unidad del producto en Stock"
+                            />
                           </div>
                           <div className="col-span-1 flex justify-center">
                             <button
